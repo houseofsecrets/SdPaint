@@ -7,7 +7,7 @@ Run the Start.bat file and it will create a venv and install a few packages
 
 ## Usage
 
-Make sure you have the automatic1111 webui in API mode running in the background and that you have the controlnet extension installed and activated
+Make sure you have the [automatic1111 webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui) in API mode running in the background and that you have the controlnet extension installed and activated
 To start the webui with the API enabled modify the webui-user.bat file by adding ```--api``` after ```set COMMANDLINE_ARGS=```
 You can modify the payload.json file for a different prompt, seed or different controlnet model.
 When you save the json file the program will use it after the next brush stroke.
