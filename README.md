@@ -13,6 +13,7 @@ You can modify the payload.json file for a different prompt, seed or different c
 When you save the json file the program will use it after the next brush stroke.
 in the extra folder there are the names of different controlnet models you may have.
 replace this part ```"control_sd15_scribble [fef5e48e]",``` in the Payload.json with a different one from the modelnames.txt
+left mouse to draw and middlemouse to erase
 press backspace to erase the image.
 the program is bound to 512x512 images right now and doesn't have the ability to save the image right now.
 I may add more features at a later time.
