@@ -23,5 +23,10 @@
             "model": "control_v11p_sd15_scribble_fp16",
             "guessmode": "false"
         }
-    ]
+    ],
+  "controlnet_models": [
+    "control_v11p_sd15_scribble_fp16",
+    "control_v11p_sd15_lineart_fp16",
+    "control_v11p_sd15_lineart_anime_fp16"
+  ]
 }
