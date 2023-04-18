@@ -5,7 +5,10 @@ import numpy as np
 import base64
 import io
 import json
+import time
 from PIL import Image, ImageOps
+import tkinter as tk
+from tkinter import filedialog
 
 # Initialize Pygame
 pygame.init()
@@ -18,6 +21,7 @@ seed = 3456456767
 # Set up the display
 screen = pygame.display.set_mode((1024, 512))
 pygame.display.set_caption("Sd Paint")
+
 # Setup text
 font = pygame.font.SysFont(None, 24)
 text_input = ""
@@ -33,8 +37,22 @@ brush_colors = {
 }
 brush_pos = {1: None, 2: None}
 
+# Define the cursor size and color
+cursor_size = 1
+cursor_color = (0, 0, 0)
+
 # Set up flag to check if server is busy or not
 server_busy = False
+
+def save_file_dialog():
+    root = tk.Tk()
+    root.withdraw()
+    file_path = filedialog.asksaveasfilename(defaultextension=".png")
+    saveimg = canvas.subsurface(pygame.Rect(0, 0, 512, 512)).copy()
+    if file_path:
+        pygame.image.save(saveimg, file_path)
+        time.sleep(1)  # add a 1-second delay
+    return file_path
 
 def update_image(image_data):
     # Decode base64 image data
@@ -53,9 +71,15 @@ while running:
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_BACKSPACE:
                 pygame.draw.rect(canvas, (255, 255, 255), (512, 0, 512, 512))
+            elif event.key == pygame.K_s:
+                save_file_dialog()
         elif event.type == pygame.MOUSEBUTTONDOWN:
             if event.button in brush_colors:
                 brush_pos[event.button] = event.pos
+            elif event.button == 4:  # scroll up
+                brush_size[1] = max(1, brush_size[1] + 1)
+            elif event.button == 5:  # scroll down
+                brush_size[1] = max(1, brush_size[1] - 1)
         elif event.type == pygame.MOUSEBUTTONUP:
             if event.button in brush_colors:
                 brush_pos[event.button] = None
@@ -78,9 +102,6 @@ while running:
                     data = io.BytesIO()
                     pygame.image.save(img, data)
                     data = base64.b64encode(data.getvalue()).decode('utf-8')
-                                        #data = io.BytesIO()
-                    #pygame.image.save(canvas.subsurface(pygame.Rect(512, 0, 512, 512)), data)
-                    #data = base64.b64encode(data.getvalue()).decode('utf-8')
                     with open("payload.json", "r") as f:
                         payload = json.load(f)
                     payload['controlnet_units'][0]['input_image'] = data
@@ -95,14 +116,23 @@ while running:
                     
                     t = threading.Thread(target=send_request)
                     t.start()
-
         elif event.type == pygame.MOUSEMOTION:
             for button, pos in brush_pos.items():
                 if pos is not None and button in brush_colors:
                     pygame.draw.circle(canvas, brush_colors[button], event.pos, brush_size[button])
-
+    
     # Draw the canvas and brushes on the screen
     screen.blit(canvas, (0, 0))
+    
+    # Create a new surface with a circle
+    cursor_size = brush_size[1]*2
+    cursor_surface = pygame.Surface((cursor_size, cursor_size), pygame.SRCALPHA)
+    pygame.draw.circle(cursor_surface, cursor_color, (cursor_size // 2, cursor_size // 2), cursor_size // 2)
+
+    # Blit the cursor surface onto the screen surface at the position of the mouse
+    mouse_pos = pygame.mouse.get_pos()
+    screen.blit(cursor_surface, (mouse_pos[0] - cursor_size // 2, mouse_pos[1] - cursor_size // 2))
+        
     for button, pos in brush_pos.items():
         if pos is not None and button in brush_colors:
             pygame.draw.circle(screen, brush_colors[button], pos, brush_size[button])
