@@ -199,9 +199,38 @@ def img2img_submit(force=False):
         time.sleep(1.0)
         img2img_submit()
 
+
 if img2img:
     t = threading.Thread(target=img2img_submit)
     t.start()
+
+
+def progress_request():
+    json_data = {
+
+    }
+    response = requests.post(url=f'{url}/internal/progress', json=json_data)
+    if response.status_code == 200:
+        r = response.json()
+        return r
+    else:
+        print(f"Error code returned: HTTP {response.status_code}")
+        return {}
+
+
+def progress_bar():
+    if not server_busy:
+        print("completed")
+        return
+
+    progress_json = progress_request()
+    progress = progress_json.get('progress', None)
+    if progress is not None and progress > 0.0:
+        print(f"{progress*100:.0f}%")
+
+    if server_busy:
+        time.sleep(1.0)
+        progress_bar()
 
 
 # Set up the main loop
@@ -224,19 +253,19 @@ while running:
             if eraser_down:
                 brush_key = 'e'
 
-            if shift_down and brush_pos[brush_key] is not None:
-                if shift_pos is None:
-                    shift_pos = brush_pos[brush_key]
-                else:
-                    pygame.draw.polygon(canvas, brush_colors[brush_key], [shift_pos, brush_pos[brush_key]], brush_size[brush_key] * 2)
-                    shift_pos = brush_pos[brush_key]
-
             if brush_key in brush_colors:
                 brush_pos[brush_key] = event.pos
             elif event.button == 4:  # scroll up
                 brush_size[1] = max(1, brush_size[1] + 1)
             elif event.button == 5:  # scroll down
                 brush_size[1] = max(1, brush_size[1] - 1)
+
+            if shift_down and brush_pos[brush_key] is not None:
+                if shift_pos is None:
+                    shift_pos = brush_pos[brush_key]
+                else:
+                    pygame.draw.polygon(canvas, brush_colors[brush_key], [shift_pos, brush_pos[brush_key]], brush_size[brush_key] * 2)
+                    shift_pos = brush_pos[brush_key]
 
         elif event.type == pygame.MOUSEBUTTONUP or event.type == pygame.FINGERUP \
                 or (event.type == pygame.KEYDOWN and event.key in (pygame.K_RETURN,
@@ -318,6 +347,9 @@ while running:
 
                         t = threading.Thread(target=send_request)
                         t.start()
+                        t = threading.Thread(target=progress_bar)
+                        t.start()
+
                     else:
                         img2img_submit(True)
 
