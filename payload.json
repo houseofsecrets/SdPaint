@@ -1,19 +1,26 @@
 {
-    "enable_hr": "false",
-    "prompt": "A painting in the style of Monet",
-    "seed": 3456789904,
-    "sampler_name": "Euler a",
+    "interface_width": 1920,
+    "interface_height": 1080,
+    "enable_hr": "true",
+    "denoising_strength": 0.6,
+    "hr_upscaler": "Latent (bicubic)",
+    "hr_scale": 1.25,
+    "prompt": "a castle on a giant whale",
+    "seed": 42,
+    "sampler_name": "UniPC",
     "batch_size": 1,
-    "steps": 15,
+    "steps": 16,
     "cfg_scale": 7,
-    "width": 512,
-    "height": 512,
-    "negative_prompt": "",
+    "width": 640,
+    "height": 720,
+    "negative_prompt": "easynegative,(worst quality,low quality,bad quality,normal quality:1.2)",
     "controlnet_units": [
         {
-            "weight": 1.0,
+            "weight": 0.6,
+            "guidance_start": 0.0,
+            "guidance_end": 1.0,
             "module": "none",
-            "model": "control_sd15_scribble [fef5e48e]",
+            "model": "control_v11p_sd15_scribble_fp16",
             "guessmode": "false"
         }
     ]
