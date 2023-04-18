@@ -13,6 +13,7 @@ A simple python script that lets you paint on a canvas and sends that image ever
 | `RETURN` or `ENTER`                 | Force image rendering            |
 | `UP` / `DOWN`                       | Increase / decrease seed by 1    |
 | `n`                                 | Random seed value                |
+| `l` / `m`                           | Previous / next ControlNel model |
 | `x` or `ESC`                        | Quit                             |
 
 
@@ -34,6 +35,11 @@ left mouse to draw and middlemouse to erase
 press backspace to erase the image.
 the program is bound to 512x512 images right now and doesn't have the ability to save the image right now.
 I may add more features at a later time.
+
+## Img2img Experimental mode
+
+Launch the program with `--img2img <image_file_path>` to watch an image file for changes, and use it as img2img source. The `img2img.json` file
+is used in this mode.
 
 ## Contributing
 
