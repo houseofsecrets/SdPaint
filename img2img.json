@@ -1,0 +1,12 @@
+{
+    "interface_width": 1920,
+    "interface_height": 1080,
+    "denoising_strength": 0.6,
+    "prompt": "a castle on a giant whale",
+    "seed": 42,
+    "sampler_name": "DDIM",
+    "batch_size": 1,
+    "steps": 16,
+    "cfg_scale": 7,
+    "negative_prompt": "easynegative,(worst quality,low quality,bad quality,normal quality:1.2)"
+}

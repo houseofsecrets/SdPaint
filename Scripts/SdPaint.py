@@ -1,3 +1,4 @@
+import os
 import random
 import sys
 
@@ -11,8 +12,10 @@ import json
 import time
 import math
 from PIL import Image, ImageOps
+from psd_tools import PSDImage
 import tkinter as tk
 from tkinter import filedialog
+import argparse
 
 # Initialize Pygame
 pygame.init()
@@ -21,26 +24,36 @@ clock = pygame.time.Clock()
 # setup sd inputs
 url = "http://127.0.0.1:7860"
 
+img2img = None
+img2img_waiting = False
+img2img_time_prev = None
+if __name__ == '__main__':
+    argParser = argparse.ArgumentParser()
+    argParser.add_argument("--img2img", help="img2img source file")
+
+    args = argParser.parse_args()
+
+    img2img = args.img2img
+
 
 def update_size():
     global width, height, soft_upscale
 
-    interface_width = settings.get('interface_width', width * 2)
+    interface_width = settings.get('interface_width', width * (1 if img2img else 2))
     interface_height = settings.get('interface_height', height)
 
-    if round(interface_width / interface_height * 100) != round(width * 2 / height * 100):
+    if round(interface_width / interface_height * 100) != round(width * (1 if img2img else 2) / height * 100):
         ratio = width / height
-        print(f"different ratios{interface_width / interface_height} != {width * 2 / height}")
         if ratio < 1:
             interface_width = math.floor(interface_height * ratio)
         else:
             interface_height = math.floor(interface_width * ratio)
 
     soft_upscale = 1.0
-    if interface_width != width * 2 or interface_height != height:
+    if interface_width != width * (1 if img2img else 2) or interface_height != height:
         soft_upscale = min(settings['interface_width'] / width, settings['interface_height'] / height)
 
-    if settings['enable_hr'] == 'true':
+    if settings.get('enable_hr', 'false') == 'true':
         soft_upscale = soft_upscale / settings['hr_scale']
         width = math.floor(width * settings['hr_scale'])
         height = math.floor(height * settings['hr_scale'])
@@ -50,7 +63,11 @@ def update_size():
 
 
 # read settings from payload
-with open("payload.json", "r") as f:
+json_file = "payload.json"
+if img2img:
+    json_file = "img2img.json"
+
+with open(json_file, "r") as f:
     settings = json.load(f)
 
     prompt = settings.get('prompt', 'A painting by Monet')
@@ -58,11 +75,22 @@ with open("payload.json", "r") as f:
     width = settings.get('width', 512)
     height = settings.get('height', 512)
     soft_upscale = 1.0
+    controlnet_models: list[str] = settings.get("controlnet_models", [])
+    if settings.get("controlnet_units", None):
+        controlnet_model = settings.get("controlnet_units")[0]["model"]
     update_size()
+
+if img2img:
+    img2img_time = os.path.getmtime(img2img)
+
+    with Image.open(img2img, mode='r') as im:
+        width = im.width
+        height = im.height
+        update_size()
 
 # Set up the display
 fullscreen = False
-screen = pygame.display.set_mode((width*2, height))
+screen = pygame.display.set_mode((width * (1 if img2img else 2), height))
 pygame.display.set_caption("Sd Paint")
 
 # Setup text
@@ -70,7 +98,7 @@ font = pygame.font.SysFont(None, 24)
 text_input = ""
 # Set up the drawing surface
 canvas = pygame.Surface((width*2, height))
-pygame.draw.rect(canvas, (255, 255, 255), (0, 0, width*2, height))
+pygame.draw.rect(canvas, (255, 255, 255), (0, 0, width * (1 if img2img else 2), height))
 
 # Set up the brush
 brush_size = {1: 2, 2: 10, 'e': 10}
@@ -94,7 +122,7 @@ server_busy = False
 
 
 def finger_pos(finger_x, finger_y):
-    x = round(min(max(finger_x, 0), 1) * width * 2)
+    x = round(min(max(finger_x, 0), 1) * width * (1 if img2img else 2))
     y = round(min(max(finger_y, 0), 1) * height)
     return x, y
 
@@ -123,18 +151,71 @@ def update_image(image_data):
     global need_redraw
     need_redraw = True
 
+
+def img2img_submit(force=False):
+    global img2img_time_prev, img2img_time, img2img_waiting, seed
+    img2img_waiting = False
+
+    img2img_time = os.path.getmtime(img2img)
+    if img2img_time != img2img_time_prev or force:
+        img2img_time_prev = img2img_time
+
+        with open(json_file, "r") as f:
+            json_data = json.load(f)
+
+        if os.path.splitext(img2img)[1] == '.psd':
+            psd = PSDImage.open(img2img)
+            im = psd.composite()
+            data = io.BytesIO()
+            im.save(data, format="png")
+            data = base64.b64encode(data.getvalue()).decode('utf-8')
+            json_data['width'] = im.width
+            json_data['height'] = im.height
+        else:
+            with Image.open(img2img, mode='r') as im:
+                data = io.BytesIO()
+                im.save(data, format=im.format)
+                data = base64.b64encode(data.getvalue()).decode('utf-8')
+                json_data['width'] = im.width
+                json_data['height'] = im.height
+
+        json_data['init_images'] = [data]
+
+        json_data['seed'] = seed
+
+        global server_busy
+        response = requests.post(url=f'{url}/controlnet/img2img', json=json_data)
+        if response.status_code == 200:
+            r = response.json()
+            return_img = r['images'][0]
+            update_image(return_img)
+        else:
+            print(f"Error code returned: HTTP {response.status_code}")
+
+        server_busy = False
+
+    if not img2img_waiting and running:
+        img2img_waiting = True
+        time.sleep(1.0)
+        img2img_submit()
+
+if img2img:
+    t = threading.Thread(target=img2img_submit)
+    t.start()
+
+
 # Set up the main loop
 running = True
 need_redraw = True
 while running:
     # Handle events
     for event in pygame.event.get():
-        need_redraw = True
-
         if event.type == pygame.QUIT:
             running = False
 
         elif event.type == pygame.MOUSEBUTTONDOWN or event.type == pygame.FINGERDOWN:
+            need_redraw = True
+
             if event.type == pygame.FINGERDOWN:
                 event.button = 1
                 event.pos = finger_pos(event.x, event.y)
@@ -158,7 +239,16 @@ while running:
                 brush_size[1] = max(1, brush_size[1] - 1)
 
         elif event.type == pygame.MOUSEBUTTONUP or event.type == pygame.FINGERUP \
-                or (event.type == pygame.KEYDOWN and event.key in (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_UP, pygame.K_DOWN, pygame.K_n)):
+                or (event.type == pygame.KEYDOWN and event.key in (pygame.K_RETURN,
+                                                                   pygame.K_KP_ENTER,
+                                                                   pygame.K_UP,
+                                                                   pygame.K_DOWN,
+                                                                   pygame.K_n,
+                                                                   pygame.K_l,
+                                                                   pygame.K_m
+                                                                   )):
+            need_redraw = True
+
             if event.type == pygame.KEYDOWN:
                 event.button = 1
 
@@ -168,6 +258,10 @@ while running:
                     seed = seed - 1
                 elif event.key == pygame.K_n:
                     seed = round(random.random() * sys.maxsize)
+                elif event.key == pygame.K_l:
+                    controlnet_model = controlnet_models[controlnet_models.index(controlnet_model) - 1 % len(controlnet_models)]
+                elif event.key == pygame.K_m:
+                    controlnet_model = controlnet_models[controlnet_models.index(controlnet_model) + 1 % len(controlnet_models)]
 
             elif event.type == pygame.FINGERUP:
                 event.button = 1
@@ -184,44 +278,52 @@ while running:
                 # Check if server is busy before sending request
                 if not server_busy:
                     server_busy = True
-                    img = canvas.subsurface(pygame.Rect(width, 0, width, height)).copy()
 
-                    # Convert the Pygame surface to a PIL image
-                    pil_img = Image.frombytes('RGB', img.get_size(), pygame.image.tostring(img, 'RGB'))
+                    if not img2img:
+                        img = canvas.subsurface(pygame.Rect(width, 0, width, height)).copy()
 
-                    # Invert the colors of the PIL image
-                    pil_img = ImageOps.invert(pil_img)
+                        # Convert the Pygame surface to a PIL image
+                        pil_img = Image.frombytes('RGB', img.get_size(), pygame.image.tostring(img, 'RGB'))
 
-                    # Convert the PIL image back to a Pygame surface
-                    img = pygame.image.fromstring(pil_img.tobytes(), pil_img.size, pil_img.mode).convert_alpha()
+                        # Invert the colors of the PIL image
+                        pil_img = ImageOps.invert(pil_img)
 
-                    # Save the inverted image as base64-encoded data
-                    data = io.BytesIO()
-                    pygame.image.save(img, data)
-                    data = base64.b64encode(data.getvalue()).decode('utf-8')
-                    with open("payload.json", "r") as f:
-                        payload = json.load(f)
+                        # Convert the PIL image back to a Pygame surface
+                        img = pygame.image.fromstring(pil_img.tobytes(), pil_img.size, pil_img.mode).convert_alpha()
 
-                    payload['controlnet_units'][0]['input_image'] = data
-                    payload['hr_second_pass_steps'] = math.floor(payload['steps'] * payload['denoising_strength'])
-                    payload['seed'] = seed
+                        # Save the inverted image as base64-encoded data
+                        data = io.BytesIO()
+                        pygame.image.save(img, data)
+                        data = base64.b64encode(data.getvalue()).decode('utf-8')
+                        with open(json_file, "r") as f:
+                            json_data = json.load(f)
 
-                    def send_request():
-                        global server_busy
-                        response = requests.post(url=f'{url}/controlnet/txt2img', json=payload)
-                        if response.status_code == 200:
-                            r = response.json()
-                            return_img = r['images'][0]
-                            update_image(return_img)
-                        else:
-                            print(f"Error code returned: HTTP {response.status_code}")
+                        json_data['controlnet_units'][0]['input_image'] = data
+                        json_data['controlnet_units'][0]['model'] = controlnet_model
+                        json_data['hr_second_pass_steps'] = math.floor(json_data['steps'] * json_data['denoising_strength'])
 
-                        server_busy = False
+                        json_data['seed'] = seed
 
-                    t = threading.Thread(target=send_request)
-                    t.start()
+                        def send_request():
+                            global server_busy
+                            response = requests.post(url=f'{url}/controlnet/{"img2img" if img2img else "txt2img"}', json=json_data)
+                            if response.status_code == 200:
+                                r = response.json()
+                                return_img = r['images'][0]
+                                update_image(return_img)
+                            else:
+                                print(f"Error code returned: HTTP {response.status_code}")
+
+                            server_busy = False
+
+                        t = threading.Thread(target=send_request)
+                        t.start()
+                    else:
+                        img2img_submit(True)
 
         elif event.type == pygame.MOUSEMOTION or event.type == pygame.FINGERMOTION:
+            need_redraw = True
+
             if event.type == pygame.FINGERMOTION:
                 event.pos = finger_pos(event.x, event.y)
 
@@ -237,6 +339,8 @@ while running:
                     prev_pos = event.pos
 
         elif event.type == pygame.KEYDOWN:
+            need_redraw = True
+
             if event.key == pygame.K_BACKSPACE:
                 pygame.draw.rect(canvas, (255, 255, 255), (width, 0, width, height))
             elif event.key == pygame.K_s:
@@ -252,6 +356,7 @@ while running:
             elif event.key in (pygame.K_LSHIFT, pygame.K_RSHIFT):
                 shift_down = True
             elif event.key in (pygame.K_ESCAPE, pygame.K_x):
+                running = False
                 pygame.quit()
                 exit(0)
 
@@ -262,9 +367,6 @@ while running:
             elif event.key in (pygame.K_LSHIFT, pygame.K_RSHIFT):
                 shift_down = False
                 shift_pos = None
-
-        else:
-            need_redraw = False
 
     # Draw the canvas and brushes on the screen
     screen.blit(canvas, (0, 0))
