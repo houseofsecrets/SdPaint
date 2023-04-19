@@ -370,7 +370,6 @@ if img2img:
     t.start()
 
 
-
 def new_random_seed_for_payload():
     global seed
     seed = round(random.random() * 2**32)
