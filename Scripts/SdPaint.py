@@ -247,9 +247,10 @@ def osd(**kwargs):
 
     osd_size = (128, 20)
     osd_margin = 10
-    # osd_pos = (width*(1 if img2img else 2) // 2 - osd_width // 2, osd_margin)  # top center
-    osd_pos = (width*(1 if img2img else 2) - osd_size[0] - osd_margin, height - osd_size[1] - osd_margin)  # bottom right
-    osd_text_pos = (width*(1 if img2img else 2) - width + osd_margin, height - osd_size[1] - osd_margin)  # bottom left
+    osd_progress_pos = (width*(0 if img2img else 1) + osd_margin, osd_margin)  # top left of canvas
+    # osd_pos = (width*(1 if img2img else 2) // 2 - osd_size [0] // 2, osd_margin)  # top center
+    # osd_progress_pos = (width*(1 if img2img else 2) - osd_size[0] - osd_margin, height - osd_size[1] - osd_margin)  # bottom right
+    osd_text_pos = (width*(1 if img2img else 2) - width + osd_margin, height - osd_size[1] - osd_margin)  # bottom left of canvas
 
     global progress, need_redraw
 
@@ -266,16 +267,16 @@ def osd(**kwargs):
         pygame.draw.rect(progress_surface, (0, 0, 0), pygame.Rect(2, 2, math.floor(osd_size[0] * progress), osd_size[1]))
         pygame.draw.rect(progress_surface, (0, 200, 160), pygame.Rect(0, 0, math.floor(osd_size[0] * progress), osd_size[1] - 2))
 
-        screen.blit(progress_surface, pygame.Rect(osd_pos[0], osd_pos[1], osd_size[0], osd_size[1]))
+        screen.blit(progress_surface, pygame.Rect(osd_progress_pos[0], osd_progress_pos[1], osd_size[0], osd_size[1]))
 
         # progress text
         text_surface = font.render(f"{progress*100:.0f}%", True, (0, 0, 0))
-        screen.blit(text_surface, pygame.Rect(osd_size[0] - osd_margin + osd_pos[0]+1 - text_surface.get_width(), 3 + osd_pos[1]+1, osd_size[0], osd_size[1]))
-        screen.blit(text_surface, pygame.Rect(osd_size[0] - osd_margin + osd_pos[0]+1 - text_surface.get_width(), 3 + osd_pos[1]-1, osd_size[0], osd_size[1]))
-        screen.blit(text_surface, pygame.Rect(osd_size[0] - osd_margin + osd_pos[0]-1 - text_surface.get_width(), 3 + osd_pos[1]+1, osd_size[0], osd_size[1]))
-        screen.blit(text_surface, pygame.Rect(osd_size[0] - osd_margin + osd_pos[0]-1 - text_surface.get_width(), 3 + osd_pos[1]-1, osd_size[0], osd_size[1]))
+        screen.blit(text_surface, pygame.Rect(osd_size[0] - osd_margin + osd_progress_pos[0]+1 - text_surface.get_width(), 3 + osd_progress_pos[1]+1, osd_size[0], osd_size[1]))
+        screen.blit(text_surface, pygame.Rect(osd_size[0] - osd_margin + osd_progress_pos[0]+1 - text_surface.get_width(), 3 + osd_progress_pos[1]-1, osd_size[0], osd_size[1]))
+        screen.blit(text_surface, pygame.Rect(osd_size[0] - osd_margin + osd_progress_pos[0]-1 - text_surface.get_width(), 3 + osd_progress_pos[1]+1, osd_size[0], osd_size[1]))
+        screen.blit(text_surface, pygame.Rect(osd_size[0] - osd_margin + osd_progress_pos[0]-1 - text_surface.get_width(), 3 + osd_progress_pos[1]-1, osd_size[0], osd_size[1]))
         text_surface = font.render(f"{progress*100:.0f}%", True, (255, 255, 255))
-        screen.blit(text_surface, pygame.Rect(osd_size[0] - osd_margin + osd_pos[0] - text_surface.get_width(), 3 + osd_pos[1], osd_size[0], osd_size[1]))
+        screen.blit(text_surface, pygame.Rect(osd_size[0] - osd_margin + osd_progress_pos[0] - text_surface.get_width(), 3 + osd_progress_pos[1], osd_size[0], osd_size[1]))
 
     if text:
         # OSD text
