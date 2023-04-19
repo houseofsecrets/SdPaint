@@ -370,6 +370,22 @@ if img2img:
     t.start()
 
 
+
+def new_random_seed_for_payload():
+    global seed
+    seed = round(random.random() * 2**32)
+
+    with open("payload.json", "r") as f:
+        payload = json.load(f)
+
+    payload['seed'] = seed
+
+    with open("payload.json", "w") as f:
+        json.dump(payload, f, indent=4)
+
+    return seed
+
+
 # Set up the main loop
 running = True
 need_redraw = True
@@ -427,7 +443,7 @@ while running:
                     seed = seed - 1
                     osd(text=f"Seed: {seed}")
                 elif event.key == pygame.K_n:
-                    seed = round(random.random() * 2**32)
+                    seed = new_random_seed_for_payload()
                     osd(text=f"Seed: {seed}")
                 elif event.key == pygame.K_l and controlnet_model:
                     controlnet_model = controlnet_models[(controlnet_models.index(controlnet_model) - 1) % len(controlnet_models)]
