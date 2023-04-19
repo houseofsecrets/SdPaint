@@ -298,6 +298,60 @@ def osd(**kwargs):
             osd_text_display_start = None
 
 
+def render():
+    """Call the API to launch the rendering, if another rendering is not in progress.
+    """
+    global server_busy
+
+    if not server_busy:
+        server_busy = True
+
+        if not img2img:
+            img = canvas.subsurface(pygame.Rect(width, 0, width, height)).copy()
+
+            # Convert the Pygame surface to a PIL image
+            pil_img = Image.frombytes('RGB', img.get_size(), pygame.image.tostring(img, 'RGB'))
+
+            # Invert the colors of the PIL image
+            pil_img = ImageOps.invert(pil_img)
+
+            # Convert the PIL image back to a Pygame surface
+            img = pygame.image.fromstring(pil_img.tobytes(), pil_img.size, pil_img.mode).convert_alpha()
+
+            # Save the inverted image as base64-encoded data
+            data = io.BytesIO()
+            pygame.image.save(img, data)
+            data = base64.b64encode(data.getvalue()).decode('utf-8')
+            with open(json_file, "r") as f:
+                json_data = json.load(f)
+
+            json_data['controlnet_units'][0]['input_image'] = data
+            json_data['controlnet_units'][0]['model'] = controlnet_model
+            json_data['hr_second_pass_steps'] = math.floor(json_data['steps'] * json_data['denoising_strength'])
+
+            json_data['seed'] = seed
+
+            def send_request():
+                global server_busy
+                response = requests.post(url=f'{url}/controlnet/{"img2img" if img2img else "txt2img"}', json=json_data)
+                if response.status_code == 200:
+                    r = response.json()
+                    return_img = r['images'][0]
+                    update_image(return_img)
+                else:
+                    print(f"Error code returned: HTTP {response.status_code}")
+
+                server_busy = False
+
+            t = threading.Thread(target=send_request)
+            t.start()
+            t = threading.Thread(target=progress_bar)
+            t.start()
+
+        else:
+            img2img_submit(True)
+
+
 # Set up img2img call
 if img2img:
     t = threading.Thread(target=img2img_submit)
@@ -382,54 +436,9 @@ while running:
                 brush_pos[brush_key] = None
                 prev_pos = None
                 brush_color = brush_colors[brush_key]
-                # Check if server is busy before sending request
-                if not server_busy:
-                    server_busy = True
 
-                    if not img2img:
-                        img = canvas.subsurface(pygame.Rect(width, 0, width, height)).copy()
-
-                        # Convert the Pygame surface to a PIL image
-                        pil_img = Image.frombytes('RGB', img.get_size(), pygame.image.tostring(img, 'RGB'))
-
-                        # Invert the colors of the PIL image
-                        pil_img = ImageOps.invert(pil_img)
-
-                        # Convert the PIL image back to a Pygame surface
-                        img = pygame.image.fromstring(pil_img.tobytes(), pil_img.size, pil_img.mode).convert_alpha()
-
-                        # Save the inverted image as base64-encoded data
-                        data = io.BytesIO()
-                        pygame.image.save(img, data)
-                        data = base64.b64encode(data.getvalue()).decode('utf-8')
-                        with open(json_file, "r") as f:
-                            json_data = json.load(f)
-
-                        json_data['controlnet_units'][0]['input_image'] = data
-                        json_data['controlnet_units'][0]['model'] = controlnet_model
-                        json_data['hr_second_pass_steps'] = math.floor(json_data['steps'] * json_data['denoising_strength'])
-
-                        json_data['seed'] = seed
-
-                        def send_request():
-                            global server_busy
-                            response = requests.post(url=f'{url}/controlnet/{"img2img" if img2img else "txt2img"}', json=json_data)
-                            if response.status_code == 200:
-                                r = response.json()
-                                return_img = r['images'][0]
-                                update_image(return_img)
-                            else:
-                                print(f"Error code returned: HTTP {response.status_code}")
-
-                            server_busy = False
-
-                        t = threading.Thread(target=send_request)
-                        t.start()
-                        t = threading.Thread(target=progress_bar)
-                        t.start()
-
-                    else:
-                        img2img_submit(True)
+                # Call image render
+                render()
 
         elif event.type == pygame.MOUSEMOTION or event.type == pygame.FINGERMOTION:
             need_redraw = True
