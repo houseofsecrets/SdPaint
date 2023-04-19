@@ -1,11 +1,20 @@
 # SdPaint
 A simple python script that lets you paint on a canvas and sends that image every stroke to the automatic1111 API and updates the canvas when the image is generated
 
-## Updates
+## Controls
 
-- added the possibility to save the image created by pressing the ```s``` key
-- You can use the scrollmouse key to change the brush size
-- added the possibility to refresh random seed ```r``` key
+| Key / Mouse button                  | Control                          |
+|-------------------------------------|----------------------------------|
+| Left button                         | Draw with the current brush size |
+| Scroll up / down                    | Increase / decrease brush size   |
+| Middle button, or `e` + Left button | Eraser                           |
+| `shift` + Left button               | Draw a line                      |
+| `s`                                 | Save the current generated image |
+| `RETURN` or `ENTER`                 | Force image rendering            |
+| `UP` / `DOWN`                       | Increase / decrease seed by 1    |
+| `n`                                 | Random seed value                |
+| `x` or `ESC`                        | Quit                             |
+
 
 ## Installation
 

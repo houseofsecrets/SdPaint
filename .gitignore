@@ -1,1 +1,4 @@
 venv
+*.json-dist
+*.iml
+.idea
