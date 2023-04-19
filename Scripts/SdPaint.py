@@ -115,6 +115,8 @@ prev_pos = None
 shift_down = False
 shift_pos = None
 eraser_down = False
+render_wait = 0.5  # wait time max between 2 draw before launching the render
+last_draw_time = time.time()
 
 # Define the cursor size and color
 cursor_size = 1
@@ -308,6 +310,11 @@ def render():
     """
     global server_busy
 
+    if time.time() - last_draw_time < render_wait:
+        time.sleep(0.25)
+        render()
+        return
+
     if not server_busy:
         server_busy = True
 
@@ -374,6 +381,7 @@ while running:
 
         elif event.type == pygame.MOUSEBUTTONDOWN or event.type == pygame.FINGERDOWN:
             need_redraw = True
+            last_draw_time = time.time()
 
             if event.type == pygame.FINGERDOWN:
                 event.button = 1
@@ -407,6 +415,7 @@ while running:
                                                                    pygame.K_m
                                                                    )):
             need_redraw = True
+            last_draw_time = time.time()
 
             if event.type == pygame.KEYDOWN:
                 event.button = 1
@@ -443,7 +452,8 @@ while running:
                 brush_color = brush_colors[brush_key]
 
                 # Call image render
-                render()
+                t = threading.Thread(target=render)
+                t.start()
 
         elif event.type == pygame.MOUSEMOTION or event.type == pygame.FINGERMOTION:
             need_redraw = True
@@ -453,6 +463,8 @@ while running:
 
             for button, pos in brush_pos.items():
                 if pos is not None and button in brush_colors:
+                    last_draw_time = time.time()
+
                     if prev_pos is None or (abs(event.pos[0] - prev_pos[0]) < brush_size[button] // 4 and abs(event.pos[1] - prev_pos[1]) < brush_size[button] // 4):
                         pygame.draw.circle(canvas, brush_colors[button], event.pos, brush_size[button])
                         prev_pos = None
@@ -471,6 +483,13 @@ while running:
                 save_file_dialog()
             elif event.key == pygame.K_e:
                 eraser_down = True
+            elif event.key == pygame.K_t:
+                if render_wait == 2.0:
+                    render_wait = 0.0
+                    osd(text="Render wait: off")
+                else:
+                    render_wait += 0.5
+                    osd(text=f"Render wait: {render_wait}s")
             elif event.key == pygame.K_f:
                 fullscreen = not fullscreen
                 if fullscreen:
