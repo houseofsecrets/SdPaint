@@ -78,6 +78,8 @@ with open(json_file, "r") as f:
     controlnet_models: list[str] = settings.get("controlnet_models", [])
     if settings.get("controlnet_units", None):
         controlnet_model = settings.get("controlnet_units")[0]["model"]
+    else:
+        controlnet_model = None
     update_size()
 
 if img2img:
@@ -156,7 +158,7 @@ def update_image(image_data):
 
 
 def img2img_submit(force=False):
-    global img2img_time_prev, img2img_time, img2img_waiting, seed
+    global img2img_time_prev, img2img_time, img2img_waiting, seed, server_busy
     img2img_waiting = False
 
     img2img_time = os.path.getmtime(img2img)
@@ -186,7 +188,11 @@ def img2img_submit(force=False):
 
         json_data['seed'] = seed
 
-        global server_busy
+        server_busy = True
+
+        t = threading.Thread(target=progress_bar)
+        t.start()
+
         response = requests.post(url=f'{url}/controlnet/img2img', json=json_data)
         if response.status_code == 200:
             r = response.json()
@@ -201,11 +207,6 @@ def img2img_submit(force=False):
         img2img_waiting = True
         time.sleep(1.0)
         img2img_submit()
-
-
-if img2img:
-    t = threading.Thread(target=img2img_submit)
-    t.start()
 
 
 def progress_request():
@@ -225,7 +226,6 @@ def progress_bar():
     global progress
 
     if not server_busy:
-        print("completed")
         return
 
     progress_json = progress_request()
@@ -256,6 +256,7 @@ def osd(**kwargs):
     progress = kwargs.get('progress', progress)
     text = kwargs.get('text', osd_text)
     text_time = kwargs.get('text_time', 2.0)
+    need_redraw = kwargs.get('need_redraw', need_redraw)
 
     if progress is not None and progress > 0.0:
         need_redraw = True
@@ -294,6 +295,12 @@ def osd(**kwargs):
         if time.time() - osd_text_display_start > text_time:
             osd_text = None
             osd_text_display_start = None
+
+
+# Set up img2img call
+if img2img:
+    t = threading.Thread(target=img2img_submit)
+    t.start()
 
 
 # Set up the main loop
@@ -353,10 +360,10 @@ while running:
                 elif event.key == pygame.K_n:
                     seed = round(random.random() * sys.maxsize)
                     osd(text=f"Seed: {seed}")
-                elif event.key == pygame.K_l:
+                elif event.key == pygame.K_l and controlnet_model:
                     controlnet_model = controlnet_models[(controlnet_models.index(controlnet_model) - 1) % len(controlnet_models)]
                     osd(text=f"ControlNet model: {controlnet_model}")
-                elif event.key == pygame.K_m:
+                elif event.key == pygame.K_m and controlnet_model:
                     controlnet_model = controlnet_models[(controlnet_models.index(controlnet_model) + 1) % len(controlnet_models)]
                     osd(text=f"ControlNet model: {controlnet_model}")
                 elif event.key in (pygame.K_KP_ENTER, pygame.K_RETURN):
