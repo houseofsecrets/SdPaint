@@ -94,7 +94,8 @@ screen = pygame.display.set_mode((width * (1 if img2img else 2), height))
 pygame.display.set_caption("Sd Paint")
 
 # Setup text
-font = pygame.font.SysFont(None, 24)
+font = pygame.font.SysFont(None, size=24)
+font_bold = pygame.font.SysFont(None, size=24, bold=True)
 text_input = ""
 # Set up the drawing surface
 canvas = pygame.Surface((width*2, height))
@@ -119,12 +120,14 @@ cursor_color = (0, 0, 0)
 
 # Set up flag to check if server is busy or not
 server_busy = False
+progress = 0.0
 
 
 def finger_pos(finger_x, finger_y):
     x = round(min(max(finger_x, 0), 1) * width * (1 if img2img else 2))
     y = round(min(max(finger_y, 0), 1) * height)
     return x, y
+
 
 def save_file_dialog():
     root = tk.Tk()
@@ -219,18 +222,78 @@ def progress_request():
 
 
 def progress_bar():
+    global progress
+
     if not server_busy:
         print("completed")
         return
 
     progress_json = progress_request()
     progress = progress_json.get('progress', None)
-    if progress is not None and progress > 0.0:
-        print(f"{progress*100:.0f}%")
+    # if progress is not None and progress > 0.0:
+    #     print(f"{progress*100:.0f}%")
 
     if server_busy:
-        time.sleep(1.0)
+        time.sleep(0.25)
         progress_bar()
+
+
+osd_text = None
+osd_text_display_start = None
+
+
+def osd(**kwargs):
+    global osd_text, osd_text_display_start
+
+    osd_size = (128, 20)
+    osd_margin = 10
+    # osd_pos = (width*(1 if img2img else 2) // 2 - osd_width // 2, osd_margin)  # top center
+    osd_pos = (width*(1 if img2img else 2) - osd_size[0] - osd_margin, height - osd_size[1] - osd_margin)  # bottom right
+    osd_text_pos = (width*(1 if img2img else 2) - width + osd_margin, height - osd_size[1] - osd_margin)  # bottom left
+
+    global progress, need_redraw
+
+    progress = kwargs.get('progress', progress)
+    text = kwargs.get('text', osd_text)
+    text_time = kwargs.get('text_time', 2.0)
+
+    if progress is not None and progress > 0.0:
+        need_redraw = True
+
+        # progress bar
+        progress_surface = pygame.Surface(osd_size, pygame.SRCALPHA)
+        pygame.draw.rect(progress_surface, (0, 0, 0), pygame.Rect(2, 2, math.floor(osd_size[0] * progress), osd_size[1]))
+        pygame.draw.rect(progress_surface, (0, 200, 160), pygame.Rect(0, 0, math.floor(osd_size[0] * progress), osd_size[1] - 2))
+
+        screen.blit(progress_surface, pygame.Rect(osd_pos[0], osd_pos[1], osd_size[0], osd_size[1]))
+
+        # progress text
+        text_surface = font.render(f"{progress*100:.0f}%", True, (0, 0, 0))
+        screen.blit(text_surface, pygame.Rect(osd_size[0] - osd_margin + osd_pos[0]+1 - text_surface.get_width(), 3 + osd_pos[1]+1, osd_size[0], osd_size[1]))
+        screen.blit(text_surface, pygame.Rect(osd_size[0] - osd_margin + osd_pos[0]+1 - text_surface.get_width(), 3 + osd_pos[1]-1, osd_size[0], osd_size[1]))
+        screen.blit(text_surface, pygame.Rect(osd_size[0] - osd_margin + osd_pos[0]-1 - text_surface.get_width(), 3 + osd_pos[1]+1, osd_size[0], osd_size[1]))
+        screen.blit(text_surface, pygame.Rect(osd_size[0] - osd_margin + osd_pos[0]-1 - text_surface.get_width(), 3 + osd_pos[1]-1, osd_size[0], osd_size[1]))
+        text_surface = font.render(f"{progress*100:.0f}%", True, (255, 255, 255))
+        screen.blit(text_surface, pygame.Rect(osd_size[0] - osd_margin + osd_pos[0] - text_surface.get_width(), 3 + osd_pos[1], osd_size[0], osd_size[1]))
+
+    if text:
+        # OSD text
+        if osd_text_display_start is None or text != osd_text:
+            osd_text_display_start = time.time()
+        osd_text = text
+
+        need_redraw = True
+        text_surface = font.render(text, True, (0, 0, 0))
+        screen.blit(text_surface, pygame.Rect(osd_text_pos[0]+1, osd_text_pos[1]+1, osd_size[0], osd_size[1]))
+        screen.blit(text_surface, pygame.Rect(osd_text_pos[0]+1, osd_text_pos[1]-1, osd_size[0], osd_size[1]))
+        screen.blit(text_surface, pygame.Rect(osd_text_pos[0]-1, osd_text_pos[1]+1, osd_size[0], osd_size[1]))
+        screen.blit(text_surface, pygame.Rect(osd_text_pos[0]-1, osd_text_pos[1]-1, osd_size[0], osd_size[1]))
+        text_surface = font.render(text, True, (255, 255, 255))
+        screen.blit(text_surface, pygame.Rect(osd_text_pos[0], osd_text_pos[1], osd_size[0], osd_size[1]))
+
+        if time.time() - osd_text_display_start > text_time:
+            osd_text = None
+            osd_text_display_start = None
 
 
 # Set up the main loop
@@ -283,14 +346,21 @@ while running:
 
                 if event.key == pygame.K_UP:
                     seed = seed + 1
+                    osd(text=f"Seed: {seed}")
                 elif event.key == pygame.K_DOWN:
                     seed = seed - 1
+                    osd(text=f"Seed: {seed}")
                 elif event.key == pygame.K_n:
                     seed = round(random.random() * sys.maxsize)
+                    osd(text=f"Seed: {seed}")
                 elif event.key == pygame.K_l:
-                    controlnet_model = controlnet_models[controlnet_models.index(controlnet_model) - 1 % len(controlnet_models)]
+                    controlnet_model = controlnet_models[(controlnet_models.index(controlnet_model) - 1) % len(controlnet_models)]
+                    osd(text=f"ControlNet model: {controlnet_model}")
                 elif event.key == pygame.K_m:
-                    controlnet_model = controlnet_models[controlnet_models.index(controlnet_model) + 1 % len(controlnet_models)]
+                    controlnet_model = controlnet_models[(controlnet_models.index(controlnet_model) + 1) % len(controlnet_models)]
+                    osd(text=f"ControlNet model: {controlnet_model}")
+                elif event.key in (pygame.K_KP_ENTER, pygame.K_RETURN):
+                    osd(text=f"Rendering")
 
             elif event.type == pygame.FINGERUP:
                 event.button = 1
@@ -411,6 +481,9 @@ while running:
     # Blit the cursor surface onto the screen surface at the position of the mouse
     mouse_pos = pygame.mouse.get_pos()
     screen.blit(cursor_surface, (mouse_pos[0] - cursor_size // 2, mouse_pos[1] - cursor_size // 2))
+
+    # Handle OSD
+    osd()
 
     # for button, pos in brush_pos.items():
     #     if pos is not None and button in brush_colors:
