@@ -21,15 +21,15 @@ prompt = "A painting by Monet"
 seed = 3456456767
 
 # Set up the display
-screen = pygame.display.set_mode((360*2, 360))
+screen = pygame.display.set_mode((1024, 512))
 pygame.display.set_caption("Sd Paint")
 
 # Setup text
 font = pygame.font.SysFont(None, 24)
 text_input = ""
 # Set up the drawing surface
-canvas = pygame.Surface((360*2, 360))
-pygame.draw.rect(canvas, (255, 255, 255), (0, 0, 360*2, 360))
+canvas = pygame.Surface((1024, 512))
+pygame.draw.rect(canvas, (255, 255, 255), (0, 0, 1024, 512))
 
 # Set up the brush
 brush_size = {1: 2, 2: 10}
@@ -50,23 +50,11 @@ def save_file_dialog():
     root = tk.Tk()
     root.withdraw()
     file_path = filedialog.asksaveasfilename(defaultextension=".png")
-    saveimg = canvas.subsurface(pygame.Rect(0, 0, 360, 360)).copy()
+    saveimg = canvas.subsurface(pygame.Rect(0, 0, 512, 512)).copy()
     if file_path:
         pygame.image.save(saveimg, file_path)
         time.sleep(1)  # add a 1-second delay
     return file_path
-
-def upload_image_path(file_path):
-    with open(file_path, "rb") as f:
-        data = f.read()
-    data = base64.b64encode(data).decode('utf-8')
-    with open("payload.json", "r") as f:
-        payload = json.load(f)
-    payload['controlnet_units'][0]['input_image'] = data
-    response = requests.post(url=f'{url}/controlnet/txt2img', json=payload)
-    r = response.json()
-    return_img = r['images'][0]
-    update_image(return_img)
 
 def update_image(image_data):
     # Decode base64 image data
@@ -84,11 +72,6 @@ def new_random_seed_for_payload():
         json.dump(payload, f, indent=4)
     return payload
 
-def ask_for_photo():
-    # Set up the main loop
-    file_path="C:\\Users\\rkilic\\OneDrive\\Resimler\\eye_no_pupil.png"
-    upload_image_path(file_path)
-
 running = True
 while running:
     # Handle events
@@ -97,13 +80,11 @@ while running:
             running = False
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_BACKSPACE:
-                pygame.draw.rect(canvas, (255, 255, 255), (360, 0, 360, 360))
+                pygame.draw.rect(canvas, (255, 255, 255), (512, 0, 512, 512))
             elif event.key == pygame.K_s: # CONTROL + S
                 save_file_dialog()
             elif event.key == pygame.K_r: # CONTROL + R
                 new_random_seed_for_payload()
-            elif event.key == pygame.K_t: # CONTROL + T
-                ask_for_photo()
         elif event.type == pygame.MOUSEBUTTONDOWN:
             if event.button in brush_colors:
                 brush_pos[event.button] = event.pos
@@ -118,7 +99,7 @@ while running:
                 # Check if server is busy before sending request
                 if not server_busy:
                     server_busy = True
-                    img = canvas.subsurface(pygame.Rect(360, 0, 360, 360)).copy()
+                    img = canvas.subsurface(pygame.Rect(512, 0, 512, 512)).copy()
 
                     # Convert the Pygame surface to a PIL image
                     pil_img = Image.frombytes('RGB', img.get_size(), pygame.image.tostring(img, 'RGB'))

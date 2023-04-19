@@ -5,6 +5,7 @@ A simple python script that lets you paint on a canvas and sends that image ever
 
 - added the possibility to save the image created by pressing the ```s``` key
 - You can use the scrollmouse key to change the brush size
+- added the possibility to refresh random seed ```r``` key
 
 ## Installation
 
