@@ -427,7 +427,7 @@ while running:
                     seed = seed - 1
                     osd(text=f"Seed: {seed}")
                 elif event.key == pygame.K_n:
-                    seed = round(random.random() * sys.maxsize)
+                    seed = round(random.random() * 2**32)
                     osd(text=f"Seed: {seed}")
                 elif event.key == pygame.K_l and controlnet_model:
                     controlnet_model = controlnet_models[(controlnet_models.index(controlnet_model) - 1) % len(controlnet_models)]
