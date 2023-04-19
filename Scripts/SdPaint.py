@@ -250,7 +250,10 @@ def osd(**kwargs):
     osd_progress_pos = (width*(0 if img2img else 1) + osd_margin, osd_margin)  # top left of canvas
     # osd_pos = (width*(1 if img2img else 2) // 2 - osd_size [0] // 2, osd_margin)  # top center
     # osd_progress_pos = (width*(1 if img2img else 2) - osd_size[0] - osd_margin, height - osd_size[1] - osd_margin)  # bottom right
-    osd_text_pos = (width*(1 if img2img else 2) - width + osd_margin, height - osd_size[1] - osd_margin)  # bottom left of canvas
+
+    osd_text_pos = (width*(1 if img2img else 2) - width + osd_margin, osd_margin)  # bottom left of canvas
+    # osd_text_pos = (width*(1 if img2img else 2) - width + osd_margin, height - osd_size[1] - osd_margin)  # bottom left of canvas
+    osd_text_offset = 0
 
     global progress, need_redraw
 
@@ -278,6 +281,8 @@ def osd(**kwargs):
         text_surface = font.render(f"{progress*100:.0f}%", True, (255, 255, 255))
         screen.blit(text_surface, pygame.Rect(osd_size[0] - osd_margin + osd_progress_pos[0] - text_surface.get_width(), 3 + osd_progress_pos[1], osd_size[0], osd_size[1]))
 
+        osd_text_offset = osd_size[1] + osd_margin
+
     if text:
         # OSD text
         if osd_text_display_start is None or text != osd_text:
@@ -286,12 +291,12 @@ def osd(**kwargs):
 
         need_redraw = True
         text_surface = font.render(text, True, (0, 0, 0))
-        screen.blit(text_surface, pygame.Rect(osd_text_pos[0]+1, osd_text_pos[1]+1, osd_size[0], osd_size[1]))
-        screen.blit(text_surface, pygame.Rect(osd_text_pos[0]+1, osd_text_pos[1]-1, osd_size[0], osd_size[1]))
-        screen.blit(text_surface, pygame.Rect(osd_text_pos[0]-1, osd_text_pos[1]+1, osd_size[0], osd_size[1]))
-        screen.blit(text_surface, pygame.Rect(osd_text_pos[0]-1, osd_text_pos[1]-1, osd_size[0], osd_size[1]))
+        screen.blit(text_surface, pygame.Rect(osd_text_pos[0]+1, osd_text_pos[1]+1 + osd_text_offset, osd_size[0], osd_size[1]))
+        screen.blit(text_surface, pygame.Rect(osd_text_pos[0]+1, osd_text_pos[1]-1 + osd_text_offset, osd_size[0], osd_size[1]))
+        screen.blit(text_surface, pygame.Rect(osd_text_pos[0]-1, osd_text_pos[1]+1 + osd_text_offset, osd_size[0], osd_size[1]))
+        screen.blit(text_surface, pygame.Rect(osd_text_pos[0]-1, osd_text_pos[1]-1 + osd_text_offset, osd_size[0], osd_size[1]))
         text_surface = font.render(text, True, (255, 255, 255))
-        screen.blit(text_surface, pygame.Rect(osd_text_pos[0], osd_text_pos[1], osd_size[0], osd_size[1]))
+        screen.blit(text_surface, pygame.Rect(osd_text_pos[0], osd_text_pos[1] + osd_text_offset, osd_size[0], osd_size[1]))
 
         if time.time() - osd_text_display_start > text_time:
             osd_text = None
