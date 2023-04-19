@@ -123,6 +123,16 @@ def update_image(image_data):
     global need_redraw
     need_redraw = True
 
+def new_random_seed_for_payload():
+    global seed
+    seed = round(random.random() * 2**32)
+    with open("payload.json", "r") as f:
+        payload = json.load(f)
+    payload['seed'] = seed
+    with open("payload.json", "w") as f:
+        json.dump(payload, f, indent=4)
+    return seed
+
 # Set up the main loop
 running = True
 need_redraw = True
@@ -167,8 +177,7 @@ while running:
                 elif event.key == pygame.K_DOWN:
                     seed = seed - 1
                 elif event.key == pygame.K_n:
-                    seed = round(random.random() * 2**32)
-
+                    new_random_seed_for_payload()
             elif event.type == pygame.FINGERUP:
                 event.button = 1
                 event.pos = finger_pos(event.x, event.y)
