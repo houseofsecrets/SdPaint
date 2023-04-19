@@ -35,3 +35,9 @@ Please make sure to update tests as appropriate.
 ## License
 
 [MIT](https://choosealicense.com/licenses/mit/)
+
+
+# models path
+```bash
+    "D:\mirkan projects\stable-diffusion-webui\extensions\sd-webui-controlnet\models"
+```
