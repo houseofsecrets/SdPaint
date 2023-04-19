@@ -167,7 +167,7 @@ while running:
                 elif event.key == pygame.K_DOWN:
                     seed = seed - 1
                 elif event.key == pygame.K_n:
-                    seed = round(random.random() * sys.maxsize)
+                    seed = round(random.random() * 2**32)
 
             elif event.type == pygame.FINGERUP:
                 event.button = 1
