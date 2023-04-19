@@ -23,8 +23,13 @@ in the extra folder there are the names of different controlnet models you may h
 replace this part ```"control_sd15_scribble [fef5e48e]",``` in the Payload.json with a different one from the modelnames.txt
 left mouse to draw and middlemouse to erase
 press backspace to erase the image.
-the program is bound to 512x512 images right now and doesn't have the ability to save the image right now.
+the program is bound to 512x512 images right now
 I may add more features at a later time.
+If you want to add aditional models into your controlnet extension you can do so by adding the model folder into the models folder of the controlnet extension.
+```bash
+    ".\stable-diffusion-webui\extensions\sd-webui-controlnet\models"
+```
+
 
 ## Contributing
 
@@ -36,9 +41,3 @@ Please make sure to update tests as appropriate.
 ## License
 
 [MIT](https://choosealicense.com/licenses/mit/)
-
-
-# models path
-```bash
-    "D:\mirkan projects\stable-diffusion-webui\extensions\sd-webui-controlnet\models"
-```
