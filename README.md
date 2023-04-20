@@ -3,27 +3,85 @@ A simple python script that lets you paint on a canvas and sends that image ever
 
 ## Updates
 
-- added the possibility to save the image created by pressing the ```s``` key
+- Added the possibility to save the image created by pressing the ```s``` key
 - You can use the scrollmouse key to change the brush size
 
 ## Installation
 
-Run the Start.bat file and it will create a venv and install a few packages
+Assuming you started from no experience with SD, and some experience with GitHub.
+Clone:
+The Tool
+```https://github.com/houseofsecrets/SdPaint```
+The SD interface, installs all other SD components
+```https://github.com/AUTOMATIC1111/stable-diffusion-webui```
+The AI models
+```https://huggingface.co/lllyasviel/ControlNet-v1-1```
+
+Run the Web UI by doube clicking the file 
+```stable-diffusion-webui\webui-user.bat```
+
+The first time will also install SD so you can use this independently if you wish.
+
+In the Web UI, add the extension from
+```https://github.com/Mikubill/sd-webui-controlnet```
+
+Reload UI
+
+In the settings of the Web UI, look for "Allow other script to control this extension" and enable it. Apply settings.
+
+Close the Web UI and the terminal window running the process. For extra certainty, restart your computer, but it should not be needed unless some background process is stuck or you are unsure how to reload it.
+
+Move the .pth files from the AI models folder
+```ControlNet-v1-1```
+To the folder at
+```stable-diffusion-webui\extensions\sd-webui-controlnet\models```
+
+Right click and edit the file 
+```stable-diffusion-webui\webui-user.bat```
+
+Change the line
+```set COMMANDLINE_ARGS=```
+to read:
+```set COMMANDLINE_ARGS= --api```
+
+You can undo this anytime to disable api access. Just ensure you close and relaunch. You can still access the Web UI with API access on, but it is not recommended.
 
 ## Usage
 
-Make sure you have the [automatic1111 webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui) in API mode running in the background and that you have the controlnet extension installed and activated
-To start the webui with the API enabled modify the webui-user.bat file by adding ```--api``` after ```set COMMANDLINE_ARGS=```
-You also need to make sure the "Allow other script to control this extension" option is enabled in the settings of control net
+Launch the file 
+```stable-diffusion-webui\webui-user.bat```
+Note: You need to wait until the "Startup time:" is shown before it is ready to be used, but you can launch SdPaint while the web ui loads.
 
-You can modify the payload.json file for a different prompt, seed or different controlnet model.
-When you save the json file the program will use it after the next brush stroke.
-in the extra folder there are the names of different controlnet models you may have.
-replace this part ```"control_sd15_scribble [fef5e48e]",``` in the Payload.json with a different one from the modelnames.txt
-left mouse to draw and middlemouse to erase
-press backspace to erase the image.
-the program is bound to 512x512 images right now and doesn't have the ability to save the image right now.
-I may add more features at a later time.
+Launch the file
+```SdPaint\Start.bat```
+Run the Start.bat file and it will create a venv and install a few packages the very first time. Then it will open the canvas.
+
+Right click and edit the file
+```SdPaint\payload.json```
+
+This contains your prompt parameters. For beginners, the following is the primary things you need to worry about:
+  prompt
+  negative_prompt
+  model
+
+A list of the working models you downloaded for convenience can be found in
+```SdPaint\extra\Modelnames.txt```
+
+Save this file after making your changes. You don't need to close this file or any program when you make changes, just save it. The changes will take effect after the next brush stroke or erasure, basically the next time SdPaint queries the API.
+
+## Controls
+
+```Left Mouse``` to draw
+```Scroll Wheel``` to change the draw size
+```Middle Mouse``` to erase - fixed size in present version
+```Backspace``` to erase the entire image
+```S``` to save the output image. Give it a name and location to save to.
+
+## Limitations
+
+The program is bound to 512x512 images right now. 
+The drawing canvas is very simple. Only functionality currently in #Controls is working.
+It is not presently possible to save or load drawings into the canvas.
 
 ## Contributing
 
