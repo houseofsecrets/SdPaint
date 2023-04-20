@@ -69,7 +69,6 @@ def update_size(**kwargs):
             hr_scale = kwargs.get('hr_scale')
         else:
             hr_scale = settings.get('hr_scale', 1.0)
-        print(hr_scale)
         soft_upscale = soft_upscale / hr_scale
         width = math.floor(init_width * hr_scale)
         height = math.floor(init_height * hr_scale)
@@ -106,7 +105,6 @@ with open(json_file, "r") as f:
 
 if img2img:
     if not os.path.exists(img2img):
-        print(img2img)
         root = tk.Tk()
         root.withdraw()
         img2img = filedialog.askopenfilename()
