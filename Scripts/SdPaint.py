@@ -103,6 +103,12 @@ with open(json_file, "r") as f:
     update_size()
 
 if img2img:
+    if not os.path.exists(img2img):
+        print(img2img)
+        root = tk.Tk()
+        root.withdraw()
+        img2img = filedialog.askopenfilename()
+
     img2img_time = os.path.getmtime(img2img)
 
     with Image.open(img2img, mode='r') as im:
@@ -184,9 +190,9 @@ def load_file_dialog():
     file_path = filedialog.askopenfilename()
     if not file_path:
         return
-    # windows only solution to get extention path
-    extention = file_path.split(".")[-1].lower()
-    if extention in ACCEPTED_FILE_TYPES:
+
+    extension = os.path.splitext(file_path)[1][1:].lower()
+    if extension in ACCEPTED_FILE_TYPES:
         load_filepath_into_canvas(file_path)
 
 
