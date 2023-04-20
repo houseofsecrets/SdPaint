@@ -1,3 +1,4 @@
+import functools
 import os
 import random
 import sys
@@ -137,7 +138,7 @@ prev_pos = None
 shift_down = False
 shift_pos = None
 eraser_down = False
-render_wait = 0.5  # wait time max between 2 draw before launching the render
+render_wait = 0.5 if not img2img else 0.0  # wait time max between 2 draw before launching the render
 last_draw_time = time.time()
 
 # Define the cursor size and color
@@ -441,10 +442,14 @@ def render():
             t = threading.Thread(target=progress_bar)
             t.start()
         else:
-            img2img_submit(True)
-            t = threading.Thread(target=img2img_submit)
+            t = threading.Thread(target=functools.partial(img2img_submit, True))
             t.start()
 
+
+# Initial img2img call
+if img2img:
+    t = threading.Thread(target=img2img_submit)
+    t.start()
 
 # Set up the main loop
 running = True
