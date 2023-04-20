@@ -107,6 +107,8 @@ if img2img:
     with Image.open(img2img, mode='r') as im:
         width = im.width
         height = im.height
+        init_width = width * 1.0
+        init_height = height * 1.0
         update_size()
 
 # Set up the display
@@ -146,6 +148,7 @@ cursor_color = (0, 0, 0)
 server_busy = False
 progress = 0.0
 
+
 def load_filepath_into_canvas(file_path):
     global canvas
     canvas = pygame.Surface((width * (1 if img2img else 2), height))
@@ -153,6 +156,7 @@ def load_filepath_into_canvas(file_path):
     img = pygame.image.load(file_path)
     img = pygame.transform.smoothscale(img, (width, height))
     canvas.blit(img, (width, 0))
+
 
 def finger_pos(finger_x, finger_y):
     x = round(min(max(finger_x, 0), 1) * width * (1 if img2img else 2))
@@ -172,6 +176,7 @@ def save_file_dialog():
         time.sleep(1)  # add a 1-second delay
     return file_path
 
+
 def load_file_dialog():
     root = tk.Tk()
     root.withdraw()
@@ -182,6 +187,7 @@ def load_file_dialog():
     extention = file_path.split(".")[-1].lower()
     if extention in ACCEPTED_FILE_TYPES:
         load_filepath_into_canvas(file_path)
+
 
 def update_image(image_data):
     # Decode base64 image data
@@ -194,6 +200,7 @@ def update_image(image_data):
     global need_redraw
     need_redraw = True
 
+
 def upload_image_path(file_path):
     with open(file_path, "rb") as f:
         data = f.read()
@@ -205,6 +212,7 @@ def upload_image_path(file_path):
     r = response.json()
     return_img = r['images'][0]
     update_image(return_img)
+
 
 def new_random_seed_for_payload():
     global seed
@@ -219,6 +227,7 @@ def new_random_seed_for_payload():
     with open(json_path, "w") as f:
         json.dump(payload, f, indent=4)
     return payload
+
 
 def img2img_submit(force=False):
     global img2img_time_prev, img2img_time, img2img_waiting, seed, server_busy
@@ -363,6 +372,7 @@ def osd(**kwargs):
             osd_text = None
             osd_text_display_start = None
 
+
 def payload_submit():
     global main_json_data
     img = canvas.subsurface(pygame.Rect(width, 0, width, height)).copy()
@@ -397,6 +407,7 @@ def payload_submit():
 
     main_json_data = json_data
 
+
 def send_request():
     global server_busy
     response = requests.post(url=f'{url}/controlnet/{"img2img" if img2img else "txt2img"}', json=main_json_data)
@@ -407,6 +418,7 @@ def send_request():
     else:
         print(f"Error code returned: HTTP {response.status_code}")
     server_busy = False
+
 
 def render():
     """
@@ -432,6 +444,8 @@ def render():
             img2img_submit(True)
             t = threading.Thread(target=img2img_submit)
             t.start()
+
+
 # Set up the main loop
 running = True
 need_redraw = True
