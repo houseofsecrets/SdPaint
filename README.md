@@ -16,6 +16,7 @@ A simple python script that lets you paint on a canvas and sends that image ever
 | `n`                                 | Random seed value                      |
 | `o`                                 | Open new image                         |
 | `l` / `m`                           | Previous / next ControlNel model       |
+| `h`                                 | Cycle HR fix: off, 1.25, 1.5, 2.0      |
 | `x` or `ESC`                        | Quit                                   |
 
 
