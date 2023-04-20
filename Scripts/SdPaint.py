@@ -24,11 +24,16 @@ clock = pygame.time.Clock()
 # setup sd inputs
 url = "http://127.0.0.1:7860"
 
+ACCEPTED_FILE_TYPES = ["png", "jpg", "jpeg", "bmp"]
+ACCEPTED_KEYDOWN_EVENTS = (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_UP,
+                pygame.K_DOWN, pygame.K_n, pygame.K_l, pygame.K_m,
+                pygame.K_o,pygame.K_h,)
 img2img = None
 img2img_waiting = False
 img2img_time_prev = None
 hr_scale = 1.0
 hr_scales = [1.0, 1.25, 1.5, 2.0]
+main_json_data = None
 
 if __name__ == '__main__':
     argParser = argparse.ArgumentParser()
@@ -141,6 +146,13 @@ cursor_color = (0, 0, 0)
 server_busy = False
 progress = 0.0
 
+def load_filepath_into_canvas(file_path):
+    global canvas
+    canvas = pygame.Surface((width * (1 if img2img else 2), height))
+    pygame.draw.rect(canvas, (255, 255, 255), (0, 0, width * (1 if img2img else 2), height))
+    img = pygame.image.load(file_path)
+    img = pygame.transform.smoothscale(img, (width, height))
+    canvas.blit(img, (width, 0))
 
 def finger_pos(finger_x, finger_y):
     x = round(min(max(finger_x, 0), 1) * width * (1 if img2img else 2))
@@ -155,12 +167,21 @@ def save_file_dialog():
     saveimg = canvas.subsurface(pygame.Rect(0, 0, width, height)).copy()
     if soft_upscale != 1.0:
         saveimg = pygame.transform.smoothscale(saveimg, (saveimg.get_width() // soft_upscale, saveimg.get_height() // soft_upscale))
-
     if file_path:
         pygame.image.save(saveimg, file_path)
         time.sleep(1)  # add a 1-second delay
     return file_path
 
+def load_file_dialog():
+    root = tk.Tk()
+    root.withdraw()
+    file_path = filedialog.askopenfilename()
+    if not file_path:
+        return
+    # windows only solution to get extention path
+    extention = file_path.split(".")[-1].lower()
+    if extention in ACCEPTED_FILE_TYPES:
+        load_filepath_into_canvas(file_path)
 
 def update_image(image_data):
     # Decode base64 image data
@@ -173,6 +194,31 @@ def update_image(image_data):
     global need_redraw
     need_redraw = True
 
+def upload_image_path(file_path):
+    with open(file_path, "rb") as f:
+        data = f.read()
+    data = base64.b64encode(data).decode('utf-8')
+    with open("payload.json", "r") as f:
+        payload = json.load(f)
+    payload['controlnet_units'][0]['input_image'] = data
+    response = requests.post(url=f'{url}/controlnet/txt2img', json=payload)
+    r = response.json()
+    return_img = r['images'][0]
+    update_image(return_img)
+
+def new_random_seed_for_payload():
+    global seed
+    seed = random.randint(0, 2**32-1)
+    json_path = "payload.json"
+    if img2img:
+        json_path = "img2img.json"
+    with open(json_path, "r") as f:
+        payload = json.load(f)
+    # write the seed to the selected payload
+    payload['seed'] = seed
+    with open(json_path, "w") as f:
+        json.dump(payload, f, indent=4)
+    return payload
 
 def img2img_submit(force=False):
     global img2img_time_prev, img2img_time, img2img_waiting, seed, server_busy
@@ -227,9 +273,7 @@ def img2img_submit(force=False):
 
 
 def progress_request():
-    json_data = {
-
-    }
+    json_data = {}
     response = requests.post(url=f'{url}/internal/progress', json=json_data)
     if response.status_code == 200:
         r = response.json()
@@ -319,9 +363,54 @@ def osd(**kwargs):
             osd_text = None
             osd_text_display_start = None
 
+def payload_submit():
+    global main_json_data
+    img = canvas.subsurface(pygame.Rect(width, 0, width, height)).copy()
+
+    # Convert the Pygame surface to a PIL image
+    pil_img = Image.frombytes('RGB', img.get_size(), pygame.image.tostring(img, 'RGB'))
+
+    # Invert the colors of the PIL image
+    pil_img = ImageOps.invert(pil_img)
+
+    # Convert the PIL image back to a Pygame surface
+    img = pygame.image.fromstring(pil_img.tobytes(), pil_img.size, pil_img.mode).convert_alpha()
+
+    # Save the inverted image as base64-encoded data
+    data = io.BytesIO()
+    pygame.image.save(img, data)
+    data = base64.b64encode(data.getvalue()).decode('utf-8')
+    with open(json_file, "r") as f:
+        json_data = json.load(f)
+
+    json_data['controlnet_units'][0]['input_image'] = data
+    json_data['controlnet_units'][0]['model'] = controlnet_model
+    json_data['hr_second_pass_steps'] = math.floor(json_data['steps'] * json_data['denoising_strength'])
+
+    if hr_scale > 1.0:
+        json_data['enable_hr'] = 'true'
+    else:
+        json_data['enable_hr'] = 'false'
+
+    json_data['seed'] = seed
+    json_data['hr_scale'] = hr_scale
+
+    main_json_data = json_data
+
+def send_request():
+    global server_busy
+    response = requests.post(url=f'{url}/controlnet/{"img2img" if img2img else "txt2img"}', json=main_json_data)
+    if response.status_code == 200:
+        r = response.json()
+        return_img = r['images'][0]
+        update_image(return_img)
+    else:
+        print(f"Error code returned: HTTP {response.status_code}")
+    server_busy = False
 
 def render():
-    """Call the API to launch the rendering, if another rendering is not in progress.
+    """
+        Call the API to launch the rendering, if another rendering is not in progress.
     """
     global server_busy
 
@@ -334,78 +423,15 @@ def render():
         server_busy = True
 
         if not img2img:
-            img = canvas.subsurface(pygame.Rect(width, 0, width, height)).copy()
-
-            # Convert the Pygame surface to a PIL image
-            pil_img = Image.frombytes('RGB', img.get_size(), pygame.image.tostring(img, 'RGB'))
-
-            # Invert the colors of the PIL image
-            pil_img = ImageOps.invert(pil_img)
-
-            # Convert the PIL image back to a Pygame surface
-            img = pygame.image.fromstring(pil_img.tobytes(), pil_img.size, pil_img.mode).convert_alpha()
-
-            # Save the inverted image as base64-encoded data
-            data = io.BytesIO()
-            pygame.image.save(img, data)
-            data = base64.b64encode(data.getvalue()).decode('utf-8')
-            with open(json_file, "r") as f:
-                json_data = json.load(f)
-
-            json_data['controlnet_units'][0]['input_image'] = data
-            json_data['controlnet_units'][0]['model'] = controlnet_model
-            json_data['hr_second_pass_steps'] = math.floor(json_data['steps'] * json_data['denoising_strength'])
-
-            if hr_scale > 1.0:
-                json_data['enable_hr'] = 'true'
-            else:
-                json_data['enable_hr'] = 'false'
-
-            json_data['seed'] = seed
-            json_data['hr_scale'] = hr_scale
-
-            def send_request():
-                global server_busy
-                response = requests.post(url=f'{url}/controlnet/{"img2img" if img2img else "txt2img"}', json=json_data)
-                if response.status_code == 200:
-                    r = response.json()
-                    return_img = r['images'][0]
-                    update_image(return_img)
-                else:
-                    print(f"Error code returned: HTTP {response.status_code}")
-
-                server_busy = False
-
+            payload_submit()
             t = threading.Thread(target=send_request)
             t.start()
             t = threading.Thread(target=progress_bar)
             t.start()
-
         else:
             img2img_submit(True)
-
-
-# Set up img2img call
-if img2img:
-    t = threading.Thread(target=img2img_submit)
-    t.start()
-
-
-def new_random_seed_for_payload():
-    global seed
-    seed = round(random.random() * 2**32)
-
-    with open("payload.json", "r") as f:
-        payload = json.load(f)
-
-    payload['seed'] = seed
-
-    with open("payload.json", "w") as f:
-        json.dump(payload, f, indent=4)
-
-    return seed
-
-
+            t = threading.Thread(target=img2img_submit)
+            t.start()
 # Set up the main loop
 running = True
 need_redraw = True
@@ -442,21 +468,12 @@ while running:
                     shift_pos = brush_pos[brush_key]
 
         elif event.type == pygame.MOUSEBUTTONUP or event.type == pygame.FINGERUP \
-                or (event.type == pygame.KEYDOWN and event.key in (pygame.K_RETURN,
-                                                                   pygame.K_KP_ENTER,
-                                                                   pygame.K_UP,
-                                                                   pygame.K_DOWN,
-                                                                   pygame.K_n,
-                                                                   pygame.K_l,
-                                                                   pygame.K_m,
-                                                                   pygame.K_h
-                                                                   )):
+            or (event.type == pygame.KEYDOWN and event.key in ACCEPTED_KEYDOWN_EVENTS):
             need_redraw = True
             last_draw_time = time.time()
 
             if event.type == pygame.KEYDOWN:
                 event.button = 1
-
                 if event.key == pygame.K_UP:
                     seed = seed + 1
                     osd(text=f"Seed: {seed}")
@@ -464,7 +481,7 @@ while running:
                     seed = seed - 1
                     osd(text=f"Seed: {seed}")
                 elif event.key == pygame.K_n:
-                    seed = new_random_seed_for_payload()
+                    new_random_seed_for_payload()
                     osd(text=f"Seed: {seed}")
                 elif event.key == pygame.K_l and controlnet_model:
                     controlnet_model = controlnet_models[(controlnet_models.index(controlnet_model) - 1) % len(controlnet_models)]
@@ -483,6 +500,9 @@ while running:
                     update_size(hr_scale=hr_scale)
                 elif event.key in (pygame.K_KP_ENTER, pygame.K_RETURN):
                     osd(text=f"Rendering")
+                elif event.key == pygame.K_o:
+                    load_file_dialog()
+                    continue
 
             elif event.type == pygame.FINGERUP:
                 event.button = 1
@@ -548,7 +568,6 @@ while running:
                 running = False
                 pygame.quit()
                 exit(0)
-
         elif event.type == pygame.KEYUP:
             if event.key == pygame.K_e:
                 eraser_down = False
