@@ -9,7 +9,9 @@ A simple python script that lets you paint on a canvas and sends that image ever
 ## Installation
 
 Assuming you started from no experience with SD, and some experience with GitHub.
+
 Clone:
+
 The Tool
 ```https://github.com/houseofsecrets/SdPaint```
 The SD interface, installs all other SD components
