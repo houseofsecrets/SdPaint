@@ -28,13 +28,15 @@ url = "http://127.0.0.1:7860"
 ACCEPTED_FILE_TYPES = ["png", "jpg", "jpeg", "bmp"]
 ACCEPTED_KEYDOWN_EVENTS = (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_UP,
                 pygame.K_DOWN, pygame.K_n, pygame.K_l, pygame.K_m,
-                pygame.K_o,pygame.K_h,)
+                pygame.K_o,pygame.K_h,pygame.K_q)
 img2img = None
 img2img_waiting = False
 img2img_time_prev = None
 hr_scale = 1.0
+hr_scale_prev = 1.0
 hr_scales = [1.0, 1.25, 1.5, 2.0]
 main_json_data = None
+quick_mode = False
 
 if __name__ == '__main__':
     argParser = argparse.ArgumentParser()
@@ -400,9 +402,12 @@ def payload_submit():
     with open(json_file, "r") as f:
         json_data = json.load(f)
 
+    if quick_mode:
+        json_data['steps'] = json_data.get('quick_steps', json_data['steps'] // 2)  # use quick_steps setting, or halve steps if not set
+
     json_data['controlnet_units'][0]['input_image'] = data
     json_data['controlnet_units'][0]['model'] = controlnet_model
-    json_data['hr_second_pass_steps'] = math.floor(json_data['steps'] * json_data['denoising_strength'])
+    json_data['hr_second_pass_steps'] = max(8, math.floor(json_data['steps'] * json_data['denoising_strength']))  # at least 8 steps
 
     if hr_scale > 1.0:
         json_data['enable_hr'] = 'true'
@@ -497,23 +502,29 @@ while running:
             need_redraw = True
             last_draw_time = time.time()
 
+            # Handle rendering shortcuts
             if event.type == pygame.KEYDOWN:
                 event.button = 1
                 if event.key == pygame.K_UP:
                     seed = seed + 1
                     osd(text=f"Seed: {seed}")
+
                 elif event.key == pygame.K_DOWN:
                     seed = seed - 1
                     osd(text=f"Seed: {seed}")
+
                 elif event.key == pygame.K_n:
                     new_random_seed_for_payload()
                     osd(text=f"Seed: {seed}")
+
                 elif event.key == pygame.K_l and controlnet_model:
                     controlnet_model = controlnet_models[(controlnet_models.index(controlnet_model) - 1) % len(controlnet_models)]
                     osd(text=f"ControlNet model: {controlnet_model}")
+
                 elif event.key == pygame.K_m and controlnet_model:
                     controlnet_model = controlnet_models[(controlnet_models.index(controlnet_model) + 1) % len(controlnet_models)]
                     osd(text=f"ControlNet model: {controlnet_model}")
+
                 elif event.key == pygame.K_h:
                     hr_scale = hr_scales[(hr_scales.index(hr_scale)+1) % len(hr_scales)]
 
@@ -523,8 +534,22 @@ while running:
                         osd(text=f"HR scale: {hr_scale}")
 
                     update_size(hr_scale=hr_scale)
+
                 elif event.key in (pygame.K_KP_ENTER, pygame.K_RETURN):
                     osd(text=f"Rendering")
+
+                elif event.key == pygame.K_q:
+                    quick_mode = not quick_mode
+                    if quick_mode:
+                        osd(text=f"Quick render: on")
+                        hr_scale_prev = hr_scale
+                        hr_scale = 1.0
+                    else:
+                        osd(text=f"Quick render: off")
+                        hr_scale = hr_scale_prev
+
+                    update_size(hr_scale=hr_scale)
+
                 elif event.key == pygame.K_o:
                     load_file_dialog()
                     continue

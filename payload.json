@@ -10,6 +10,7 @@
     "sampler_name": "DDIM",
     "batch_size": 1,
     "steps": 16,
+    "quick_steps": 12,
     "cfg_scale": 7,
     "width": 640,
     "height": 720,
