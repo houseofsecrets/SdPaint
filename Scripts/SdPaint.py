@@ -27,6 +27,9 @@ url = "http://127.0.0.1:7860"
 img2img = None
 img2img_waiting = False
 img2img_time_prev = None
+hr_scale = 1.0
+hr_scales = [1.0, 1.25, 1.5, 2.0]
+
 if __name__ == '__main__':
     argParser = argparse.ArgumentParser()
     argParser.add_argument("--img2img", help="img2img source file")
@@ -36,27 +39,36 @@ if __name__ == '__main__':
     img2img = args.img2img
 
 
-def update_size():
-    global width, height, soft_upscale
+def update_size(**kwargs):
+    global width, height, soft_upscale, hr_scale
 
-    interface_width = settings.get('interface_width', width * (1 if img2img else 2))
-    interface_height = settings.get('interface_height', height)
+    interface_width = settings.get('interface_width', init_width * (1 if img2img else 2))
+    interface_height = settings.get('interface_height', init_height)
 
-    if round(interface_width / interface_height * 100) != round(width * (1 if img2img else 2) / height * 100):
-        ratio = width / height
+    if round(interface_width / interface_height * 100) != round(init_width * (1 if img2img else 2) / init_height * 100):
+        ratio = init_width / init_height
         if ratio < 1:
             interface_width = math.floor(interface_height * ratio)
         else:
             interface_height = math.floor(interface_width * ratio)
 
     soft_upscale = 1.0
-    if interface_width != width * (1 if img2img else 2) or interface_height != height:
-        soft_upscale = min(settings['interface_width'] / width, settings['interface_height'] / height)
+    if interface_width != init_width * (1 if img2img else 2) or interface_height != init_height:
+        soft_upscale = min(settings['interface_width'] / init_width, settings['interface_height'] / init_height)
 
     if settings.get('enable_hr', 'false') == 'true':
-        soft_upscale = soft_upscale / settings['hr_scale']
-        width = math.floor(width * settings['hr_scale'])
-        height = math.floor(height * settings['hr_scale'])
+        if kwargs.get('hr_scale', None) is not None:
+            hr_scale = kwargs.get('hr_scale')
+        else:
+            hr_scale = settings.get('hr_scale', 1.0)
+        print(hr_scale)
+        soft_upscale = soft_upscale / hr_scale
+        width = math.floor(init_width * hr_scale)
+        height = math.floor(init_height * hr_scale)
+    else:
+        width = init_width * 1.0
+        height = init_height * 1.0
+        hr_scale = 1.0
 
     width = math.floor(width * soft_upscale)
     height = math.floor(height * soft_upscale)
@@ -74,6 +86,8 @@ with open(json_file, "r") as f:
     seed = settings.get('seed', 3456456767)
     width = settings.get('width', 512)
     height = settings.get('height', 512)
+    init_width = width * 1.0
+    init_height = height * 1.0
     soft_upscale = 1.0
     controlnet_models: list[str] = settings.get("controlnet_models", [])
     if settings.get("controlnet_units", None):
@@ -99,6 +113,7 @@ pygame.display.set_caption("Sd Paint")
 font = pygame.font.SysFont(None, size=24)
 font_bold = pygame.font.SysFont(None, size=24, bold=True)
 text_input = ""
+
 # Set up the drawing surface
 canvas = pygame.Surface((width*2, height))
 pygame.draw.rect(canvas, (255, 255, 255), (0, 0, width * (1 if img2img else 2), height))
@@ -341,7 +356,13 @@ def render():
             json_data['controlnet_units'][0]['model'] = controlnet_model
             json_data['hr_second_pass_steps'] = math.floor(json_data['steps'] * json_data['denoising_strength'])
 
+            if hr_scale > 1.0:
+                json_data['enable_hr'] = 'true'
+            else:
+                json_data['enable_hr'] = 'false'
+
             json_data['seed'] = seed
+            json_data['hr_scale'] = hr_scale
 
             def send_request():
                 global server_busy
@@ -427,7 +448,8 @@ while running:
                                                                    pygame.K_DOWN,
                                                                    pygame.K_n,
                                                                    pygame.K_l,
-                                                                   pygame.K_m
+                                                                   pygame.K_m,
+                                                                   pygame.K_h
                                                                    )):
             need_redraw = True
             last_draw_time = time.time()
@@ -450,6 +472,15 @@ while running:
                 elif event.key == pygame.K_m and controlnet_model:
                     controlnet_model = controlnet_models[(controlnet_models.index(controlnet_model) + 1) % len(controlnet_models)]
                     osd(text=f"ControlNet model: {controlnet_model}")
+                elif event.key == pygame.K_h:
+                    hr_scale = hr_scales[(hr_scales.index(hr_scale)+1) % len(hr_scales)]
+
+                    if hr_scale == 1.0:
+                        osd(text="HR scale: off")
+                    else:
+                        osd(text=f"HR scale: {hr_scale}")
+
+                    update_size(hr_scale=hr_scale)
                 elif event.key in (pygame.K_KP_ENTER, pygame.K_RETURN):
                     osd(text=f"Rendering")
 
