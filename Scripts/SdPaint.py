@@ -61,7 +61,8 @@ if __name__ == '__main__':
     args = argParser.parse_args()
 
     img2img = args.img2img
-
+    if img2img == '':
+        img2img = '#'  # force load file dialog if launched with --img2img without value
 
 def update_size_thread(**kwargs):
     global width, height, soft_upscale, hr_scale
