@@ -22,7 +22,7 @@ import argparse
 pygame.init()
 clock = pygame.time.Clock()
 
-# Read configuration
+# Read JSON main configuration file
 config_file = "config.json"
 if not os.path.exists(config_file):
     config_file = f"{config_file}-dist"
@@ -37,6 +37,8 @@ ACCEPTED_FILE_TYPES = ["png", "jpg", "jpeg", "bmp"]
 ACCEPTED_KEYDOWN_EVENTS = (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_UP,
                            pygame.K_DOWN, pygame.K_n, pygame.K_m,
                            pygame.K_o, pygame.K_h, pygame.K_q)
+
+# Global variables
 img2img = None
 img2img_waiting = False
 img2img_time_prev = None
@@ -52,8 +54,11 @@ controlnet_models: list[str] = config.get("controlnet_models", [])
 detectors = config.get('detectors', ('lineart',))
 detector = detectors[0]
 last_detect_time = time.time()
+osd_text = None
+osd_text_display_start = None
 
 
+# Read command-line arguments
 if __name__ == '__main__':
     argParser = argparse.ArgumentParser()
     argParser.add_argument("--img2img", help="img2img source file")
@@ -64,10 +69,20 @@ if __name__ == '__main__':
     if img2img == '':
         img2img = '#'  # force load file dialog if launched with --img2img without value
 
+
 def update_size_thread(**kwargs):
+    """
+        Update interface threaded method.
+
+        If a rendering is in progress, wait before resizing.
+
+    :param kwargs: Accepted override parameter: ``hr_scale``
+    """
+
     global width, height, soft_upscale, hr_scale
 
     while server_busy:
+        # Wait for rendering to end
         time.sleep(0.25)
 
     interface_width = config.get('interface_width', init_width * (1 if img2img else 2))
@@ -102,11 +117,17 @@ def update_size_thread(**kwargs):
 
 
 def update_size(**kwargs):
+    """
+        Update the interface scale, according to image width & height, and HR scale if enabled.
+    :param kwargs: Accepted override parameter: ``hr_scale``
+    :return:
+    """
+
     t = threading.Thread(target=functools.partial(update_size_thread, **kwargs))
     t.start()
 
 
-# read settings from payload
+# Read JSON rendering configuration files
 json_file = "controlnet.json"
 if img2img:
     json_file = "img2img.json"
@@ -182,6 +203,11 @@ cursor_color = (0, 0, 0)
 
 
 def load_filepath_into_canvas(file_path):
+    """
+        Load an image file on the sketch canvas.
+
+    :param str file_path: Local image file path.
+    """
     global canvas
     canvas = pygame.Surface((width * (1 if img2img else 2), height))
     pygame.draw.rect(canvas, (255, 255, 255), (0, 0, width * (1 if img2img else 2), height))
@@ -197,6 +223,12 @@ def finger_pos(finger_x, finger_y):
 
 
 def save_file_dialog():
+    """
+        Display save file dialog, then write the file.
+
+    :return: The saved file path.
+    """
+
     root = tk.Tk()
     root.withdraw()
     file_path = filedialog.asksaveasfilename(defaultextension=".png")
@@ -210,6 +242,10 @@ def save_file_dialog():
 
 
 def load_file_dialog():
+    """
+        Display loading file dialog, then load the image on the sketch canvas.
+    """
+
     root = tk.Tk()
     root.withdraw()
     file_path = filedialog.askopenfilename()
@@ -222,6 +258,12 @@ def load_file_dialog():
 
 
 def update_image(image_data):
+    """
+        Redraw the image canvas.
+
+    :param str image_data: Base64 encoded image data, from API response.
+    """
+
     # Decode base64 image data
     img_bytes = io.BytesIO(base64.b64decode(image_data))
     img_surface = pygame.image.load(img_bytes)
@@ -233,20 +275,13 @@ def update_image(image_data):
     need_redraw = True
 
 
-def upload_image_path(file_path):
-    with open(file_path, "rb") as f:
-        data = f.read()
-    data = base64.b64encode(data).decode('utf-8')
-    with open(json_file, "r") as f:
-        payload = json.load(f)
-    payload['controlnet_units'][0]['input_image'] = data
-    response = requests.post(url=f'{url}/controlnet/txt2img', json=payload)
-    r = response.json()
-    return_img = r['images'][0]
-    update_image(return_img)
-
-
 def new_random_seed_for_payload():
+    """
+        Set the seed to a new random number, save the relevant JSON configuration file (creating a local copy if needed).
+
+    :return: The JSON payload content.
+    """
+
     global seed, json_file
     seed = random.randint(0, 2**32-1)
     with open(json_file, "r") as f:
@@ -263,6 +298,12 @@ def new_random_seed_for_payload():
 
 
 def img2img_submit(force=False):
+    """
+        Read the ``img2img`` file if modified since last render, check every 1s. Call the API to render if needed.
+
+    :param bool force: Force the rendering, even if the file is not modified.
+    """
+
     global img2img_time_prev, img2img_time, img2img_waiting, seed, server_busy
     img2img_waiting = False
 
@@ -315,6 +356,12 @@ def img2img_submit(force=False):
 
 
 def progress_request():
+    """
+        Call the API for rendering progression status.
+
+    :return: The API JSON response.
+    """
+
     json_data = {}
     response = requests.post(url=f'{url}/internal/progress', json=json_data)
     if response.status_code == 200:
@@ -326,6 +373,9 @@ def progress_request():
 
 
 def progress_bar():
+    """
+        Update the progress bar every 0.25s
+    """
     global progress
 
     if not server_busy:
@@ -341,11 +391,13 @@ def progress_bar():
         progress_bar()
 
 
-osd_text = None
-osd_text_display_start = None
-
-
 def osd(**kwargs):
+    """
+        OSD display: progress bar and text messages.
+
+    :param kwargs: Accepted parameters : ``progress, text, text_time, need_redraw``
+    """
+
     global osd_text, osd_text_display_start
 
     osd_size = (128, 20)
@@ -407,6 +459,12 @@ def osd(**kwargs):
 
 
 def payload_submit():
+    """
+        Fill the payload to be sent to the API.
+
+        Set ``main_json_data`` variable.
+    """
+
     global main_json_data
     img = canvas.subsurface(pygame.Rect(width, 0, width, height)).copy()
 
@@ -445,6 +503,12 @@ def payload_submit():
 
 
 def send_request():
+    """
+        Send the API request.
+
+        Use ``main_json_data`` variable.
+    """
+
     global server_busy
     response = requests.post(url=f'{url}/controlnet/{"img2img" if img2img else "txt2img"}', json=main_json_data)
     if response.status_code == 200:
@@ -484,13 +548,10 @@ def render():
 
 
 def controlnet_detect():
+    """
+        Call ControlNet active detector on the last rendered image, replace the canvas sketch by the detector result.
+    """
     global last_detect_time, detector
-
-    # if time.time() - last_detect_time > 0.25:
-    #     # detector = detectors[detectors.index(detector)+1 % len(detectors)]
-    #     time.sleep(0.25)
-    #     controlnet_detect()
-    #     return
 
     img = canvas.subsurface(pygame.Rect(0, 0, width, height)).copy()
 
@@ -526,9 +587,6 @@ def controlnet_detect():
         pil_img = pil_img.convert('RGB')
         img_surface = pygame.image.fromstring(pil_img.tobytes(), pil_img.size, pil_img.mode)
 
-        # if soft_upscale != 1.0:
-        #     img_surface = pygame.transform.smoothscale(img_surface, (img_surface.get_width() * soft_upscale, img_surface.get_height() * soft_upscale))
-
         canvas.blit(img_surface, (width, 0))
     else:
         print(f"Error code returned: HTTP {response.status_code}")
@@ -549,6 +607,7 @@ while running:
             running = False
 
         elif event.type == pygame.MOUSEBUTTONDOWN or event.type == pygame.FINGERDOWN:
+            # Handle brush stroke start and modifiers
             need_redraw = True
             last_draw_time = time.time()
 
@@ -576,10 +635,11 @@ while running:
 
         elif event.type == pygame.MOUSEBUTTONUP or event.type == pygame.FINGERUP \
             or (event.type == pygame.KEYDOWN and event.key in ACCEPTED_KEYDOWN_EVENTS):
+            # Handle brush stoke end, and rendering
             need_redraw = True
             last_draw_time = time.time()
 
-            # Handle rendering shortcuts
+            # Handle keyboard rendering shortcuts
             if event.type == pygame.KEYDOWN:
                 event.button = 1
                 if event.key == pygame.K_UP:
@@ -650,6 +710,7 @@ while running:
                 t.start()
 
         elif event.type == pygame.MOUSEMOTION or event.type == pygame.FINGERMOTION:
+            # Handle drawing brush strokes
             need_redraw = True
 
             if event.type == pygame.FINGERMOTION:
@@ -671,7 +732,7 @@ while running:
         elif event.type == pygame.KEYDOWN:
             need_redraw = True
 
-            # Handle shortcuts
+            # Handle keyboard shortcuts
             if event.key == pygame.K_BACKSPACE:
                 pygame.draw.rect(canvas, (255, 255, 255), (width, 0, width, height))
 
@@ -714,6 +775,7 @@ while running:
                 exit(0)
 
         elif event.type == pygame.KEYUP:
+            # Handle special keys release
             if event.key == pygame.K_e:
                 eraser_down = False
                 brush_pos['e'] = None
@@ -736,10 +798,6 @@ while running:
 
     # Handle OSD
     osd()
-
-    # for button, pos in brush_pos.items():
-    #     if pos is not None and button in brush_colors:
-    #         pygame.draw.circle(screen, brush_colors[button], pos, brush_size[button])
 
     # Update the display
     if need_redraw:
