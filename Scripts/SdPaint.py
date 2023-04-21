@@ -101,6 +101,9 @@ json_file = "payload.json"
 if img2img:
     json_file = "img2img.json"
 
+if not os.path.exists(json_file):
+    json_file = f"{json_file}-dist"
+
 with open(json_file, "r") as f:
     settings = json.load(f)
 
@@ -223,7 +226,7 @@ def upload_image_path(file_path):
     with open(file_path, "rb") as f:
         data = f.read()
     data = base64.b64encode(data).decode('utf-8')
-    with open("payload.json", "r") as f:
+    with open(json_file, "r") as f:
         payload = json.load(f)
     payload['controlnet_units'][0]['input_image'] = data
     response = requests.post(url=f'{url}/controlnet/txt2img', json=payload)
@@ -233,16 +236,17 @@ def upload_image_path(file_path):
 
 
 def new_random_seed_for_payload():
-    global seed
+    global seed, json_file
     seed = random.randint(0, 2**32-1)
-    json_path = "payload.json"
-    if img2img:
-        json_path = "img2img.json"
-    with open(json_path, "r") as f:
+    with open(json_file, "r") as f:
         payload = json.load(f)
     # write the seed to the selected payload
     payload['seed'] = seed
-    with open(json_path, "w") as f:
+
+    if json_file.endswith("-dist"):
+        json_file = json_file[:-5]
+
+    with open(json_file, "w") as f:
         json.dump(payload, f, indent=4)
     return payload
 
