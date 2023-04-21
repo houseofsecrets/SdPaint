@@ -35,7 +35,7 @@ url = config.get('url', 'http://127.0.0.1:7860')
 
 ACCEPTED_FILE_TYPES = ["png", "jpg", "jpeg", "bmp"]
 ACCEPTED_KEYDOWN_EVENTS = (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_UP,
-                           pygame.K_DOWN, pygame.K_n, pygame.K_l, pygame.K_m,
+                           pygame.K_DOWN, pygame.K_n, pygame.K_m,
                            pygame.K_o, pygame.K_h, pygame.K_q)
 img2img = None
 img2img_waiting = False
@@ -483,6 +483,57 @@ def render():
             t.start()
 
 
+def controlnet_detect():
+    global last_detect_time, detector
+
+    # if time.time() - last_detect_time > 0.25:
+    #     # detector = detectors[detectors.index(detector)+1 % len(detectors)]
+    #     time.sleep(0.25)
+    #     controlnet_detect()
+    #     return
+
+    img = canvas.subsurface(pygame.Rect(0, 0, width, height)).copy()
+
+    # Convert the Pygame surface to a PIL image
+    pil_img = Image.frombytes('RGB', img.get_size(), pygame.image.tostring(img, 'RGB'))
+
+    # Invert the colors of the PIL image
+    pil_img = ImageOps.invert(pil_img)
+
+    # Convert the PIL image back to a Pygame surface
+    img = pygame.image.fromstring(pil_img.tobytes(), pil_img.size, pil_img.mode).convert_alpha()
+
+    # Save the inverted image as base64-encoded data
+    data = io.BytesIO()
+    pygame.image.save(img, data)
+    data = base64.b64encode(data.getvalue()).decode('utf-8')
+
+    json_data = {
+        "controlnet_module": detector,
+        "controlnet_input_images": [data],
+        "controlnet_processor_res": min(img.get_width(), img.get_height()),
+        "controlnet_threshold_a": 64,
+        "controlnet_threshold_b": 64
+    }
+
+    response = requests.post(url=f'{url}/controlnet/detect', json=json_data)
+    if response.status_code == 200:
+        r = response.json()
+        return_img = r['images'][0]
+        img_bytes = io.BytesIO(base64.b64decode(return_img))
+        pil_img = Image.open(img_bytes)
+        pil_img = ImageOps.invert(pil_img)
+        pil_img = pil_img.convert('RGB')
+        img_surface = pygame.image.fromstring(pil_img.tobytes(), pil_img.size, pil_img.mode)
+
+        # if soft_upscale != 1.0:
+        #     img_surface = pygame.transform.smoothscale(img_surface, (img_surface.get_width() * soft_upscale, img_surface.get_height() * soft_upscale))
+
+        canvas.blit(img_surface, (width, 0))
+    else:
+        print(f"Error code returned: HTTP {response.status_code}")
+
+
 # Initial img2img call
 if img2img:
     t = threading.Thread(target=img2img_submit)
@@ -545,10 +596,6 @@ while running:
                     instant_render = True
                     new_random_seed_for_payload()
                     osd(text=f"Seed: {seed}")
-
-                elif event.key == pygame.K_l and controlnet_model:
-                    controlnet_model = controlnet_models[(controlnet_models.index(controlnet_model) - 1) % len(controlnet_models)]
-                    osd(text=f"ControlNet model: {controlnet_model}")
 
                 elif event.key == pygame.K_m and controlnet_model:
                     controlnet_model = controlnet_models[(controlnet_models.index(controlnet_model) + 1) % len(controlnet_models)]
@@ -635,61 +682,12 @@ while running:
                 eraser_down = True
 
             elif event.key == pygame.K_d:
-                def controlnet_detect():
-                    global last_detect_time, detector
-
-                    # if time.time() - last_detect_time > 0.25:
-                    #     # detector = detectors[detectors.index(detector)+1 % len(detectors)]
-                    #     time.sleep(0.25)
-                    #     controlnet_detect()
-                    #     return
-
-                    img = canvas.subsurface(pygame.Rect(0, 0, width, height)).copy()
-
-                    # Convert the Pygame surface to a PIL image
-                    pil_img = Image.frombytes('RGB', img.get_size(), pygame.image.tostring(img, 'RGB'))
-
-                    # Invert the colors of the PIL image
-                    pil_img = ImageOps.invert(pil_img)
-
-                    # Convert the PIL image back to a Pygame surface
-                    img = pygame.image.fromstring(pil_img.tobytes(), pil_img.size, pil_img.mode).convert_alpha()
-
-                    # Save the inverted image as base64-encoded data
-                    data = io.BytesIO()
-                    pygame.image.save(img, data)
-                    data = base64.b64encode(data.getvalue()).decode('utf-8')
-
-                    json_data = {
-                        "controlnet_module": detector,
-                        "controlnet_input_images": [data],
-                        "controlnet_processor_res": min(img.get_width(), img.get_height()),
-                        "controlnet_threshold_a": 64,
-                        "controlnet_threshold_b": 64
-                    }
-
-                    response = requests.post(url=f'{url}/controlnet/detect', json=json_data)
-                    if response.status_code == 200:
-                        r = response.json()
-                        return_img = r['images'][0]
-                        img_bytes = io.BytesIO(base64.b64decode(return_img))
-                        pil_img = Image.open(img_bytes)
-                        pil_img = ImageOps.invert(pil_img)
-                        pil_img = pil_img.convert('RGB')
-                        img_surface = pygame.image.fromstring(pil_img.tobytes(), pil_img.size, pil_img.mode)
-
-                        # if soft_upscale != 1.0:
-                        #     img_surface = pygame.transform.smoothscale(img_surface, (img_surface.get_width() * soft_upscale, img_surface.get_height() * soft_upscale))
-
-                        canvas.blit(img_surface, (width, 0))
-                    else:
-                        print(f"Error code returned: HTTP {response.status_code}")
-
                 osd(text=f"Detect {detector}")
 
                 t = threading.Thread(target=controlnet_detect())
                 t.start()
 
+                # select next detector
                 detector = detectors[(detectors.index(detector)+1) % len(detectors)]
 
             elif event.key == pygame.K_t:
