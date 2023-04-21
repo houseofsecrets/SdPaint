@@ -37,6 +37,9 @@ hr_scale_prev = 1.0
 hr_scales = [1.0, 1.25, 1.5, 2.0]
 main_json_data = None
 quick_mode = False
+server_busy = False
+progress = 0.0
+
 
 if __name__ == '__main__':
     argParser = argparse.ArgumentParser()
@@ -47,8 +50,11 @@ if __name__ == '__main__':
     img2img = args.img2img
 
 
-def update_size(**kwargs):
+def update_size_thread(**kwargs):
     global width, height, soft_upscale, hr_scale
+
+    while server_busy:
+        time.sleep(0.25)
 
     interface_width = settings.get('interface_width', init_width * (1 if img2img else 2))
     interface_height = settings.get('interface_height', init_height)
@@ -79,6 +85,11 @@ def update_size(**kwargs):
 
     width = math.floor(width * soft_upscale)
     height = math.floor(height * soft_upscale)
+
+
+def update_size(**kwargs):
+    t = threading.Thread(target=functools.partial(update_size_thread, **kwargs))
+    t.start()
 
 
 # read settings from payload
@@ -150,10 +161,6 @@ last_draw_time = time.time()
 # Define the cursor size and color
 cursor_size = 1
 cursor_color = (0, 0, 0)
-
-# Set up flag to check if server is busy or not
-server_busy = False
-progress = 0.0
 
 
 def load_filepath_into_canvas(file_path):
