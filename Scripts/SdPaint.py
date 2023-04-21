@@ -22,13 +22,21 @@ import argparse
 pygame.init()
 clock = pygame.time.Clock()
 
-# setup sd inputs
-url = "http://127.0.0.1:7860"
+# Read configuration
+config_file = "config.json"
+if not os.path.exists(config_file):
+    config_file = f"{config_file}-dist"
+
+with open(config_file, "r") as f:
+    config = json.load(f)
+
+# Setup
+url = config.get('url', 'http://127.0.0.1:7860')
 
 ACCEPTED_FILE_TYPES = ["png", "jpg", "jpeg", "bmp"]
 ACCEPTED_KEYDOWN_EVENTS = (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_UP,
-                pygame.K_DOWN, pygame.K_n, pygame.K_l, pygame.K_m,
-                pygame.K_o,pygame.K_h,pygame.K_q)
+                           pygame.K_DOWN, pygame.K_n, pygame.K_l, pygame.K_m,
+                           pygame.K_o, pygame.K_h, pygame.K_q)
 img2img = None
 img2img_waiting = False
 img2img_time_prev = None
@@ -40,7 +48,8 @@ quick_mode = False
 server_busy = False
 instant_render = False
 progress = 0.0
-detectors = ['lineart', 'lineart_coarse', 'pidinet_sketch', 'pidinet_scribble']
+controlnet_models: list[str] = config.get("controlnet_models", [])
+detectors = config.get('detectors', ('lineart',))
 detector = detectors[0]
 last_detect_time = time.time()
 
@@ -60,8 +69,8 @@ def update_size_thread(**kwargs):
     while server_busy:
         time.sleep(0.25)
 
-    interface_width = settings.get('interface_width', init_width * (1 if img2img else 2))
-    interface_height = settings.get('interface_height', init_height)
+    interface_width = config.get('interface_width', init_width * (1 if img2img else 2))
+    interface_height = config.get('interface_height', init_height)
 
     if round(interface_width / interface_height * 100) != round(init_width * (1 if img2img else 2) / init_height * 100):
         ratio = init_width / init_height
@@ -72,7 +81,7 @@ def update_size_thread(**kwargs):
 
     soft_upscale = 1.0
     if interface_width != init_width * (1 if img2img else 2) or interface_height != init_height:
-        soft_upscale = min(settings['interface_width'] / init_width, settings['interface_height'] / init_height)
+        soft_upscale = min(config['interface_width'] / init_width, config['interface_height'] / init_height)
 
     if settings.get('enable_hr', 'false') == 'true':
         if kwargs.get('hr_scale', None) is not None:
@@ -97,7 +106,7 @@ def update_size(**kwargs):
 
 
 # read settings from payload
-json_file = "payload.json"
+json_file = "controlnet.json"
 if img2img:
     json_file = "img2img.json"
 
@@ -114,9 +123,10 @@ with open(json_file, "r") as f:
     init_width = width * 1.0
     init_height = height * 1.0
     soft_upscale = 1.0
-    controlnet_models: list[str] = settings.get("controlnet_models", [])
     if settings.get("controlnet_units", None):
         controlnet_model = settings.get("controlnet_units")[0]["model"]
+    elif controlnet_models:
+        controlnet_model = controlnet_models[0]
     else:
         controlnet_model = None
     update_size()

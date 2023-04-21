@@ -1,0 +1,16 @@
+{
+    "interface_width": 1920,
+    "interface_height": 1080,
+    "url": "http://127.0.0.1:7860",
+    "controlnet_models": [
+        "control_v11p_sd15_scribble_fp16",
+        "control_v11p_sd15_lineart_fp16",
+        "control_v11p_sd15_lineart_anime_fp16"
+    ],
+    "detectors": [
+    	"lineart",
+    	"lineart_coarse",
+    	"pidinet_sketch",
+    	"pidinet_scribble"
+	]
+}
