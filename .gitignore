@@ -1,4 +1,5 @@
 venv
-*.json-dist
+*.json
 *.iml
+*.local
 .idea
