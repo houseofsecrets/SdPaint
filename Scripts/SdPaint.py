@@ -20,7 +20,8 @@ seed = 3456456767
 
 # Set up the display
 screen = pygame.display.set_mode((1024, 512))
-pygame.display.set_caption("Sd Paint")
+display_caption = "Sd Paint"
+pygame.display.set_caption(display_caption)
 
 # Setup text
 font = pygame.font.SysFont(None, 24)
@@ -108,10 +109,15 @@ while running:
                     
                     def send_request():
                         global server_busy
+                        global display_caption
                         response = requests.post(url=f'{url}/controlnet/txt2img', json=payload)
                         r = response.json()
                         return_img = r['images'][0]
+                        r_info = json.loads(r['info'])
+                        return_prompt = r_info['prompt']
+                        return_seed = r_info['seed']
                         update_image(return_img)
+                        display_caption = f"Sd Paint | Seed: {return_seed} | Prompt: {return_prompt}"
                         server_busy = False
                     
                     t = threading.Thread(target=send_request)
@@ -139,6 +145,7 @@ while running:
 
     # Update the display
     pygame.display.update()
+    pygame.display.set_caption(display_caption)
 
 # Clean up Pygame
 pygame.quit()
