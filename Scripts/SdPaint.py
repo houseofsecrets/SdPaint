@@ -334,6 +334,9 @@ def img2img_submit(force=False):
 
         json_data['seed'] = seed
 
+        if quick_mode:
+            json_data['steps'] = json_data.get('quick_steps', json_data['steps'] // 2)  # use quick_steps setting, or halve steps if not set
+
         server_busy = True
 
         t = threading.Thread(target=progress_bar)
