@@ -38,7 +38,11 @@ hr_scales = [1.0, 1.25, 1.5, 2.0]
 main_json_data = None
 quick_mode = False
 server_busy = False
+instant_render = False
 progress = 0.0
+detectors = ['lineart', 'lineart_coarse', 'pidinet_sketch', 'pidinet_scribble']
+detector = detectors[0]
+last_detect_time = time.time()
 
 
 if __name__ == '__main__':
@@ -441,12 +445,14 @@ def render():
     """
         Call the API to launch the rendering, if another rendering is not in progress.
     """
-    global server_busy
+    global server_busy, instant_render
 
-    if time.time() - last_draw_time < render_wait:
+    if time.time() - last_draw_time < render_wait and not instant_render:
         time.sleep(0.25)
         render()
         return
+
+    instant_render = False
 
     if not server_busy:
         server_busy = True
@@ -511,14 +517,17 @@ while running:
             if event.type == pygame.KEYDOWN:
                 event.button = 1
                 if event.key == pygame.K_UP:
+                    instant_render = True
                     seed = seed + 1
                     osd(text=f"Seed: {seed}")
 
                 elif event.key == pygame.K_DOWN:
+                    instant_render = True
                     seed = seed - 1
                     osd(text=f"Seed: {seed}")
 
                 elif event.key == pygame.K_n:
+                    instant_render = True
                     new_random_seed_for_payload()
                     osd(text=f"Seed: {seed}")
 
@@ -541,9 +550,11 @@ while running:
                     update_size(hr_scale=hr_scale)
 
                 elif event.key in (pygame.K_KP_ENTER, pygame.K_RETURN):
+                    instant_render = True
                     osd(text=f"Rendering")
 
                 elif event.key == pygame.K_q:
+                    instant_render = True
                     quick_mode = not quick_mode
                     if quick_mode:
                         osd(text=f"Quick render: on")
@@ -598,12 +609,74 @@ while running:
         elif event.type == pygame.KEYDOWN:
             need_redraw = True
 
+            # Handle shortcuts
             if event.key == pygame.K_BACKSPACE:
                 pygame.draw.rect(canvas, (255, 255, 255), (width, 0, width, height))
+
             elif event.key == pygame.K_s:
                 save_file_dialog()
+
             elif event.key == pygame.K_e:
                 eraser_down = True
+
+            elif event.key == pygame.K_d:
+                def controlnet_detect():
+                    global last_detect_time, detector
+
+                    # if time.time() - last_detect_time > 0.25:
+                    #     # detector = detectors[detectors.index(detector)+1 % len(detectors)]
+                    #     time.sleep(0.25)
+                    #     controlnet_detect()
+                    #     return
+
+                    img = canvas.subsurface(pygame.Rect(0, 0, width, height)).copy()
+
+                    # Convert the Pygame surface to a PIL image
+                    pil_img = Image.frombytes('RGB', img.get_size(), pygame.image.tostring(img, 'RGB'))
+
+                    # Invert the colors of the PIL image
+                    pil_img = ImageOps.invert(pil_img)
+
+                    # Convert the PIL image back to a Pygame surface
+                    img = pygame.image.fromstring(pil_img.tobytes(), pil_img.size, pil_img.mode).convert_alpha()
+
+                    # Save the inverted image as base64-encoded data
+                    data = io.BytesIO()
+                    pygame.image.save(img, data)
+                    data = base64.b64encode(data.getvalue()).decode('utf-8')
+
+                    json_data = {
+                        "controlnet_module": detector,
+                        "controlnet_input_images": [data],
+                        "controlnet_processor_res": min(img.get_width(), img.get_height()),
+                        "controlnet_threshold_a": 64,
+                        "controlnet_threshold_b": 64
+                    }
+
+                    response = requests.post(url=f'{url}/controlnet/detect', json=json_data)
+                    if response.status_code == 200:
+                        r = response.json()
+                        return_img = r['images'][0]
+                        img_bytes = io.BytesIO(base64.b64decode(return_img))
+                        pil_img = Image.open(img_bytes)
+                        pil_img = ImageOps.invert(pil_img)
+                        pil_img = pil_img.convert('RGB')
+                        img_surface = pygame.image.fromstring(pil_img.tobytes(), pil_img.size, pil_img.mode)
+
+                        # if soft_upscale != 1.0:
+                        #     img_surface = pygame.transform.smoothscale(img_surface, (img_surface.get_width() * soft_upscale, img_surface.get_height() * soft_upscale))
+
+                        canvas.blit(img_surface, (width, 0))
+                    else:
+                        print(f"Error code returned: HTTP {response.status_code}")
+
+                osd(text=f"Detect {detector}")
+
+                t = threading.Thread(target=controlnet_detect())
+                t.start()
+
+                detector = detectors[(detectors.index(detector)+1) % len(detectors)]
+
             elif event.key == pygame.K_t:
                 if render_wait == 2.0:
                     render_wait = 0.0
@@ -611,22 +684,27 @@ while running:
                 else:
                     render_wait += 0.5
                     osd(text=f"Render wait: {render_wait}s")
+
             elif event.key == pygame.K_f:
                 fullscreen = not fullscreen
                 if fullscreen:
                     screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
                 else:
                     screen = pygame.display.set_mode((width*2, height))
+
             elif event.key in (pygame.K_LSHIFT, pygame.K_RSHIFT):
                 shift_down = True
+
             elif event.key in (pygame.K_ESCAPE, pygame.K_x):
                 running = False
                 pygame.quit()
                 exit(0)
+
         elif event.type == pygame.KEYUP:
             if event.key == pygame.K_e:
                 eraser_down = False
                 brush_pos['e'] = None
+
             elif event.key in (pygame.K_LSHIFT, pygame.K_RSHIFT):
                 shift_down = False
                 shift_pos = None

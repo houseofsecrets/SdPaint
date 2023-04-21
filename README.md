@@ -3,22 +3,23 @@ A simple python script that lets you paint on a canvas and sends that image ever
 
 ## Controls
 
-| Key / Mouse button                  | Control                                    |
-|-------------------------------------|--------------------------------------------|
-| Left button                         | Draw with the current brush size           |
-| Scroll up / down                    | Increase / decrease brush size             |
-| Middle button, or `e` + Left button | Eraser                                     |
-| `shift` + Left button               | Draw a line                                |
-| `s`                                 | Save the current generated image           |
-| `RETURN` or `ENTER`                 | Force image rendering                      |
-| `t`                                 | Cycle render wait time (+0.5s, or off)     |
-| `UP` / `DOWN`                       | Increase / decrease seed by 1              |
-| `n`                                 | Random seed value                          |
-| `o`                                 | Open new image                             |
-| `l` / `m`                           | Previous / next ControlNel model           |
-| `h`                                 | Cycle HR fix: off, 1.25, 1.5, 2.0          |
-| `q`                                 | Toggle quick rendering, low steps & HR off |
-| `x` or `ESC`                        | Quit                                       |
+| Key / Mouse button                  | Control                                          |
+|-------------------------------------|--------------------------------------------------|
+| Left button                         | Draw with the current brush size                 |
+| Scroll up / down                    | Increase / decrease brush size                   |
+| Middle button, or `e` + Left button | Eraser                                           |
+| `shift` + Left button               | Draw a line                                      |
+| `s`                                 | Save the current generated image                 |
+| `RETURN` or `ENTER`                 | Force image rendering                            |
+| `t`                                 | Cycle render wait time (+0.5s, or off)           |
+| `UP` / `DOWN`                       | Increase / decrease seed by 1                    |
+| `n`                                 | Random seed value                                |
+| `o`                                 | Open new image                                   |
+| `l` / `m`                           | Previous / next ControlNel model                 |
+| `h`                                 | Cycle HR fix: off, 1.25, 1.5, 2.0                |
+| `q`                                 | Toggle quick rendering, low steps & HR off       |
+| `d`                                 | Cycle detect lineart from render, replace sketch |
+| `x` or `ESC`                        | Quit                                             |
 
 
 ## Installation
