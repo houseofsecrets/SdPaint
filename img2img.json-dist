@@ -1,6 +1,6 @@
 {
     "prompt": "a castle",
-    "negative_prompt": "(worst quality,low quality,bad quality,normal quality:1.2)"
+    "negative_prompt": "(worst quality,low quality,bad quality,normal quality:1.2)",
     "denoising_strength": 0.6,
     "seed": 42,
     "sampler_name": "DDIM",
