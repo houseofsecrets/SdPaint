@@ -1,6 +1,6 @@
 {
-    "interface_width": 1920,
-    "interface_height": 1080,
+    "interface_width": 1280,
+    "interface_height": 720,
     "url": "http://127.0.0.1:7860",
     "controlnet_models": [
         "control_v11p_sd15_scribble_fp16",
