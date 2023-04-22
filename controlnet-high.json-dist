@@ -19,7 +19,7 @@
             "guidance_start": 0.0,
             "guidance_end": 1.0,
             "module": "none",
-            "model": "control_v11p_sd15_scribble_fp16",
+            "model": "",
             "guessmode": "false"
         }
     ]

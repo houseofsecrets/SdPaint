@@ -180,7 +180,7 @@ if img2img:
     json_file = "img2img.json"
 
 if not os.path.exists(json_file):
-    json_file = f"{json_file}-dist"
+    shutil.copy(f"{json_file}-dist", json_file)
 
 with open(json_file, "r") as f:
     settings = json.load(f)
@@ -192,13 +192,18 @@ with open(json_file, "r") as f:
     init_width = width * 1.0
     init_height = height * 1.0
     soft_upscale = 1.0
-    if settings.get("controlnet_units", None):
+    if settings.get("controlnet_units", None) and settings.get("controlnet_units")[0].get('model', None):
         controlnet_model = settings.get("controlnet_units")[0]["model"]
     elif controlnet_models:
         controlnet_model = controlnet_models[0]
     else:
         controlnet_model = None
     update_size()
+
+if controlnet_model and settings.get("controlnet_units", None) and not settings.get("controlnet_units")[0].get('model', None):
+    settings['controlnet_units'][0]['model'] = controlnet_model
+    with open(json_file, "w") as f:
+        json.dump(settings, f, indent=4)
 
 if img2img:
     if not os.path.exists(img2img):
