@@ -1,6 +1,7 @@
 import functools
 import os
 import random
+import shutil
 import sys
 
 import pygame
@@ -25,7 +26,7 @@ clock = pygame.time.Clock()
 # Read JSON main configuration file
 config_file = "config.json"
 if not os.path.exists(config_file):
-    config_file = f"{config_file}-dist"
+    shutil.copy(f"{config_file}-dist", config_file)
 
 with open(config_file, "r") as f:
     config = json.load(f)
@@ -124,6 +125,52 @@ def update_size(**kwargs):
     """
 
     t = threading.Thread(target=functools.partial(update_size_thread, **kwargs))
+    t.start()
+
+
+def fetch_controlnet_models():
+    """
+        Fetch the available ControlNet models list from the API.
+    :return: The ControlNet models.
+    """
+    global controlnet_models
+
+    controlnet_models = []
+    response = requests.get(url=f'{url}/controlnet/model_list')
+    if response.status_code == 200:
+        r = response.json()
+        for model in r.get('model_list', []):  # type: str
+            if 'scribble' not in model and 'lineart' not in model:
+                continue
+
+            if ' [' in model:
+                model = model[:model.rindex(' [')]
+
+            controlnet_models.append(model)
+
+        def cmp_model(o1, o2):
+            # Sort scribble first
+            if 'scribble' in o1 and 'scribble' not in o2:
+                return -1
+            elif o1 < o2:
+                return -1
+            elif o1 > o2:
+                return 1
+            else:
+                return 0
+
+        controlnet_models.sort(key=functools.cmp_to_key(cmp_model))
+
+        if controlnet_models != config['controlnet_models']:
+            with open(config_file, "w") as f:
+                config['controlnet_models'] = controlnet_models
+                json.dump(config, f, indent=4)
+    else:
+        print(f"Error code returned: HTTP {response.status_code}")
+
+
+if not config['controlnet_models']:
+    t = threading.Thread(target=fetch_controlnet_models)
     t.start()
 
 

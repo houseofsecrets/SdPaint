@@ -2,11 +2,7 @@
     "interface_width": 1280,
     "interface_height": 720,
     "url": "http://127.0.0.1:7860",
-    "controlnet_models": [
-        "control_v11p_sd15_scribble_fp16",
-        "control_v11p_sd15_lineart_fp16",
-        "control_v11p_sd15_lineart_anime_fp16"
-    ],
+    "controlnet_models": [],
     "detectors": [
     	"lineart",
     	"lineart_coarse",
