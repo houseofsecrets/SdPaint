@@ -35,14 +35,16 @@ You also need to make sure the "Allow other script to control this extension" op
 
 ## Configuration
 
-You can customize your settings by copying any `.json-dist` file to a file with `.json` extension. If a local configuration file 
-is not present, the script will read values from the default distribution files.
+On first launch, the script will create the `config.json`, `controlnet.json` and `img2img.json` configuration files as needed. The ControlNet
+available models for scribble and lineart will be automatically fetched from your API and set in configuration.
 
-The `config.json` file handles global script configuration. The `controlnet.json` or `img2img.json`
-files can be used to configure the prompt, negative, seed, controlnet model, etc. When you save the json file the program will use it after the next brush stroke
-or when you press `enter`. 
+The `config.json` file handles global interface and script configuration.
 
-You can find your installed models with this URL http://127.0.0.1:7860/controlnet/model_list if the webui is launched in API mode.
+The `controlnet.json` or `img2img.json` files can be used to configure the prompt, negative prompt, seed, controlnet model, etc. 
+When you save the json file the program will use it after the next brush stroke or when you press `enter`.
+
+A `controlnet-high.json-dist` example configuration file is available for better image quality, at the cost of longer rendering time.
+Use only with a powerful graphics card.
 
 If you want to add additional models into your controlnet extension you can do so by adding the model folder into the models folder of the controlnet extension.
 ```
