@@ -170,8 +170,7 @@ def fetch_controlnet_models():
 
 
 if not config['controlnet_models']:
-    t = threading.Thread(target=fetch_controlnet_models)
-    t.start()
+    fetch_controlnet_models()
 
 
 # Read JSON rendering configuration files
