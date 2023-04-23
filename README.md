@@ -3,24 +3,25 @@ A Python script that lets you paint on a canvas and sends that image every strok
 
 ## Controls
 
-| Key / Mouse button                  | Control                                     |
-|-------------------------------------|---------------------------------------------|
-| Left button                         | Draw with the current brush size            |
-| Scroll up / down                    | Increase / decrease brush size              |
-| Middle button, or `e` + Left button | Use the eraser brush                        |
-| `backspace`                         | Erase the entire sketch                     |
-| `shift` + Left button               | Draw a line between two clicks              |
-| `RETURN` or `ENTER`                 | Force image rendering                       |
-| `t`                                 | Cycle render wait time (+0.5s, or off)      |
-| `UP` / `DOWN`                       | Increase / decrease seed by 1               |
-| `n`                                 | Random seed value                           |
-| `s`                                 | Save the current generated image            |
-| `o`                                 | Open an image file as sketch                |
-| `m`                                 | Cycle ControlNel models                     |
-| `d`                                 | Cycle ControlNet detectors, replace sketch  |
-| `h`                                 | Cycle HR fix: off, 1.25, 1.5, 2.0           |
-| `q`                                 | Toggle quick rendering : low steps & HR off |
-| `x` or `ESC`                        | Quit                                        |
+| Key / Mouse button    | Control                                     |
+|-----------------------|---------------------------------------------|
+| Left button           | Draw with the current brush size            |
+| Middle button         | Draw with a white color brush               |
+| `e` + Left button     | Eraser brush (bigger)                       |
+| Scroll up / down      | Increase / decrease brush size              |
+| `backspace`           | Erase the entire sketch                     |
+| `shift` + Left button | Draw a line between two clicks              |
+| `RETURN` or `ENTER`   | Force image rendering                       |
+| `t`                   | Cycle render wait time (+0.5s, or off)      |
+| `UP` / `DOWN`         | Increase / decrease seed by 1               |
+| `n`                   | Random seed value                           |
+| `s`                   | Save the current generated image            |
+| `o`                   | Open an image file as sketch                |
+| `m`                   | Cycle ControlNel models                     |
+| `d`                   | Cycle ControlNet detectors, replace sketch  |
+| `h`                   | Cycle HR fix: off, 1.25, 1.5, 2.0           |
+| `q`                   | Toggle quick rendering : low steps & HR off |
+| `x` or `ESC`          | Quit                                        |
 
 
 ## Installation
