@@ -12,7 +12,11 @@
     "quick_steps": 12,
     "cfg_scale": 7,
     "width": 640,
-    "height": 720,
+    "height": 720,,
+    "override_settings": {
+        "CLIP_stop_at_last_layers": 1
+    },
+    "override_settings_restore_afterwards": "true"
     "controlnet_units": [
         {
             "weight": 0.6,

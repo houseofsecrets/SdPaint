@@ -7,5 +7,9 @@
     "batch_size": 1,
     "steps": 16,
     "quick_steps": 12,
-    "cfg_scale": 7
+    "cfg_scale": 7,
+	"override_settings": {
+		"CLIP_stop_at_last_layers": 1
+	},
+	"override_settings_restore_afterwards": "true"
 }
