@@ -234,7 +234,7 @@ canvas = pygame.Surface((width*2, height))
 pygame.draw.rect(canvas, (255, 255, 255), (0, 0, width * (1 if img2img else 2), height))
 
 # Set up the brush
-brush_size = {1: 2, 2: 10, 'e': 10}
+brush_size = {1: 2, 2: 2, 'e': 10}
 brush_colors = {
     1: (0, 0, 0),  # Left mouse button color
     2: (255, 255, 255),  # Middle mouse button color
@@ -399,7 +399,7 @@ def img2img_submit(force=False):
             return_img = r['images'][0]
             update_image(return_img)
         else:
-            print(f"Error code returned: HTTP {response.status_code}")
+            osd(text=f"Error code returned: HTTP {response.status_code}")
 
         server_busy = False
 
@@ -422,7 +422,7 @@ def progress_request():
         r = response.json()
         return r
     else:
-        print(f"Error code returned: HTTP {response.status_code}")
+        osd(text=f"Error code returned: HTTP {response.status_code}")
         return {}
 
 
@@ -570,7 +570,7 @@ def send_request():
         return_img = r['images'][0]
         update_image(return_img)
     else:
-        print(f"Error code returned: HTTP {response.status_code}")
+        osd(text=f"Error code returned: HTTP {response.status_code}")
     server_busy = False
 
 
@@ -643,7 +643,7 @@ def controlnet_detect():
 
         canvas.blit(img_surface, (width, 0))
     else:
-        print(f"Error code returned: HTTP {response.status_code}")
+        osd(text=f"Error code returned: HTTP {response.status_code}")
 
 
 # Initial img2img call
@@ -677,8 +677,10 @@ while running:
                 brush_pos[brush_key] = event.pos
             elif event.button == 4:  # scroll up
                 brush_size[1] = max(1, brush_size[1] + 1)
+                brush_size[2] = max(1, brush_size[2] + 1)
             elif event.button == 5:  # scroll down
                 brush_size[1] = max(1, brush_size[1] - 1)
+                brush_size[2] = max(1, brush_size[2] - 1)
 
             if shift_down and brush_pos[brush_key] is not None:
                 if shift_pos is None:
@@ -779,8 +781,6 @@ while running:
                         prev_pos = None
                     else:
                         pygame.draw.polygon(canvas, brush_colors[button], [prev_pos, event.pos], brush_size[button] * 2)
-                        # pygame.draw.line(canvas, brush_colors[button], prev_pos, event.pos, brush_size[button] * 2)
-
                     prev_pos = event.pos
 
         elif event.type == pygame.KEYDOWN:
