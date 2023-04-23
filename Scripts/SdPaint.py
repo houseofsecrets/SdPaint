@@ -5,6 +5,7 @@ import shutil
 import sys
 
 import pygame
+import pygame.gfxdraw
 import requests
 import threading
 # import numpy as np
@@ -242,6 +243,7 @@ brush_colors = {
 }
 brush_pos = {1: None, 2: None, 'e': None}
 prev_pos = None
+prev_pos2 = None
 shift_down = False
 shift_pos = None
 eraser_down = False
@@ -601,6 +603,59 @@ def render():
             t.start()
 
 
+def get_angle(pos1, pos2):
+    """
+        Get the angle between two position.
+    :param tuple[int]|list[int] pos1: First position.
+    :param tuple[int]|list[int] pos2: Second position.
+    :param bool deg: Get the angle as degrees, otherwise radians.
+    :return: radians, degrees, cos, sin
+    """
+
+    dx = pos1[0] - pos2[0]
+    dy = pos1[1] - pos2[1]
+    rads = math.atan2(-dy, dx)
+    rads %= 2 * math.pi
+
+    return rads, math.degrees(rads), math.cos(rads), math.sin(rads)
+
+
+def brush_stroke(pos):
+    """
+        Draw the brush stroke.
+    :param tuple[int]|list[int] pos: The brush current position.
+    """
+
+    global prev_pos, prev_pos2
+
+    if prev_pos is None or (abs(event.pos[0] - prev_pos[0]) < brush_size[button] // 4 and abs(event.pos[1] - prev_pos[1]) < brush_size[button] // 4):
+        # Slow brush stroke, draw circles
+        pygame.draw.circle(canvas, brush_colors[button], event.pos, brush_size[button])
+
+    elif not prev_pos2 or brush_size[button] < 4:
+        # Draw a simple polygon for small brush sizes
+        pygame.draw.polygon(canvas, brush_colors[button], [prev_pos, event.pos], brush_size[button] * 2)
+
+    else:
+        # Draw a complex shape with gfxdraw for bigger bush sizes to avoid gaps
+        angle_prev = get_angle(prev_pos, prev_pos2)
+        angle = get_angle(event.pos, prev_pos)
+
+        offset_pos_prev = [(brush_size[button] * angle_prev[3]), (brush_size[button] * angle_prev[2])]
+        offset_pos = [(brush_size[button] * angle[3]), (brush_size[button] * angle[2])]
+        pygame.gfxdraw.filled_polygon(canvas, [
+            (prev_pos2[0] - offset_pos_prev[0], prev_pos2[1] - offset_pos_prev[1]),
+            (prev_pos[0] - offset_pos[0], prev_pos[1] - offset_pos[1]),
+            (event.pos[0] - offset_pos[0], event.pos[1] - offset_pos[1]),
+            (event.pos[0] + offset_pos[0], event.pos[1] + offset_pos[1]),
+            (prev_pos[0] + offset_pos[0], prev_pos[1] + offset_pos[1]),
+            (prev_pos2[0] + offset_pos_prev[0], prev_pos2[1] + offset_pos_prev[1])
+        ], brush_colors[button])
+
+    prev_pos2 = prev_pos
+    prev_pos = event.pos
+
+
 def controlnet_detect():
     """
         Call ControlNet active detector on the last rendered image, replace the canvas sketch by the detector result.
@@ -678,9 +733,12 @@ while running:
             elif event.button == 4:  # scroll up
                 brush_size[1] = max(1, brush_size[1] + 1)
                 brush_size[2] = max(1, brush_size[2] + 1)
+                osd(text=f"Brush size {brush_size[1]}")
+
             elif event.button == 5:  # scroll down
                 brush_size[1] = max(1, brush_size[1] - 1)
                 brush_size[2] = max(1, brush_size[2] - 1)
+                osd(text=f"Brush size {brush_size[1]}")
 
             if shift_down and brush_pos[brush_key] is not None:
                 if shift_pos is None:
@@ -775,13 +833,7 @@ while running:
             for button, pos in brush_pos.items():
                 if pos is not None and button in brush_colors:
                     last_draw_time = time.time()
-
-                    if prev_pos is None or (abs(event.pos[0] - prev_pos[0]) < brush_size[button] // 4 and abs(event.pos[1] - prev_pos[1]) < brush_size[button] // 4):
-                        pygame.draw.circle(canvas, brush_colors[button], event.pos, brush_size[button])
-                        prev_pos = None
-                    else:
-                        pygame.draw.polygon(canvas, brush_colors[button], [prev_pos, event.pos], brush_size[button] * 2)
-                    prev_pos = event.pos
+                    brush_stroke(pos)  # do the brush stroke
 
         elif event.type == pygame.KEYDOWN:
             need_redraw = True
