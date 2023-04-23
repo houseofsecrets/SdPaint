@@ -815,7 +815,7 @@ while running:
                 if eraser_down:
                     brush_key = 'e'
 
-                if brush_size[brush_key] >= 4:
+                if brush_size[brush_key] >= 4 and getattr(event, 'pos', None) is not None:
                     pygame.draw.circle(canvas, brush_colors[brush_key], event.pos, brush_size[brush_key])
 
                 brush_pos[brush_key] = None
