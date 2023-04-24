@@ -1,0 +1,5 @@
+pygame
+requests
+Pillow
+opencv-python-headless
+psd_tools
