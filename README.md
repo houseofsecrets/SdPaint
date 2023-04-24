@@ -24,15 +24,107 @@ A Python script that lets you paint on a canvas and sends that image every strok
 | `x` or `ESC`          | Quit                                        |
 
 
+# SdPaint
+A simple python script that lets you paint on a canvas and sends that image every stroke to the automatic1111 API and updates the canvas when the image is generated
+
+## Updates
+
+- Added the possibility to save the image created by pressing the ```s``` key
+- You can use the scrollmouse key to change the brush size
+
 ## Installation
 
-Run the `Start.bat` file, and it will create a venv and install needed packages.
+Assuming you started from no experience with SD, and some experience with GitHub. SDPaint presently only has a launch script for *Windows* through a .bat file. However, as it is a python program, launch scripts can be made for other OS that WebUI and ControlNet supports.
+
+Clone:
+
+The Tool
+```https://github.com/houseofsecrets/SdPaint```
+
+The AI models
+```https://huggingface.co/lllyasviel/ControlNet-v1-1```
+
+Follow the instructions for your OS to install the Web UI. It also installs Stable Diffusion and can be used independantly.
+```https://github.com/AUTOMATIC1111/stable-diffusion-webui```
+
+<img width="334" alt="Screenshot 2023-04-24 at 12 12 29 PM" src="https://user-images.githubusercontent.com/22615608/234093360-e8dfd171-08ea-411c-baac-7dae71161089.png">
+
+Run the Web UI by launching
+```stable-diffusion-webui\webui-user.bat```
+
+The first time will also install SD so you can use this independently if you wish.
+
+The Web UI is now running locally. In a browser, visit the default address at 
+```http://127.0.0.1:7860```
+
+<img width="1507" alt="Screenshot 2023-04-24 at 12 40 05 PM" src="https://user-images.githubusercontent.com/22615608/234099220-744da17c-d952-44b6-b160-2d8f71ce6988.png">
+
+In the Web UI, navigate to the "Extensions Tab" add go to the "Install from URL" tab. Then add the extension from
+```https://github.com/Mikubill/sd-webui-controlnet```
+
+Nothing will seem to happen, but if you go back to the "Installed" tab, it should be processing.
+<img width="1507" alt="Screenshot 2023-04-24 at 12 43 43 PM" src="https://user-images.githubusercontent.com/22615608/234099711-9f4d435d-54ec-4176-8f1b-dbbb2bde47d8.png">
+
+Press the "Check for Updates" button, just in case. Then press the "Apply and Restart UI".
+<img width="1507" alt="Screenshot 2023-04-24 at 12 45 04 PM" src="https://user-images.githubusercontent.com/22615608/234100186-23b9b745-b0d2-4486-96b8-3077910c3d7e.png">
+
+Once reloaded, navigate to the the settings of the Web UI, look for "Allow other script to control this extension" and enable it. Apply settings.
+<img width="1507" alt="Screenshot 2023-04-24 at 12 45 53 PM" src="https://user-images.githubusercontent.com/22615608/234100172-2f5f2a8f-719e-4bf4-bc74-ca59d8cc2ea3.png">
+
+Close the Web UI and the terminal window running the process. For extra certainty, restart your computer, but it should not be needed unless some background process is stuck or you are unsure how to reload it.
+
+Move the .pth files from the AI models folder
+```ControlNet-v1-1```
+To the folder at
+```stable-diffusion-webui\extensions\sd-webui-controlnet\models```
+
+Right click and edit the launch file
+```stable-diffusion-webui\webui-user.bat``
+
+Change the line
+```set COMMANDLINE_ARGS=```
+to read:
+```set COMMANDLINE_ARGS= --api```
+
+You can undo this anytime to disable api access. Just ensure you close and relaunch. You can still access the Web UI with API access on, but it is not recommended.
 
 ## Usage
 
-Make sure you have the [automatic1111 webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui) in API mode running in the background and that you have the controlnet extension installed and activated
-To start the webui with the API enabled modify the `webui-user.bat` file by adding `--api` after `set COMMANDLINE_ARGS=`.
-You also need to make sure the "Allow other script to control this extension" option is enabled in the settings of control net.
+Launch the Web UI as normal with
+```stable-diffusion-webui\webui-user.bat```
+
+Note: You need to wait until the "Startup time:" is shown before it is ready to be used, but you can launch SdPaint while the Web UI loads.
+
+Launch the file
+```SdPaint\Start.bat```
+Run the Start.bat file and it will create a venv and install a few packages the very first time. Then it will open the canvas.
+
+Right click and edit the file
+```SdPaint\payload.json```
+
+This contains your prompt parameters. For beginners, the following is the primary things you need to worry about:
+  prompt
+  negative_prompt
+  model
+
+A list of the working models you downloaded for convenience can be found in
+```SdPaint\extra\Modelnames.txt```
+
+Save this file after making your changes. You don't need to close this file or any program when you make changes, just save it. The changes will take effect after the next brush stroke or erasure, basically the next time SdPaint queries the API.
+
+## Controls
+
+```Left Mouse``` to draw
+```Scroll Wheel``` to change the draw size
+```Middle Mouse``` to erase - fixed size in present version
+```Backspace``` to erase the entire image
+```S``` to save the output image. Give it a name and location to save to.
+
+## Limitations
+
+The program is bound to 512x512 images right now. 
+The drawing canvas is very simple. Only functionality currently in #Controls is working.
+It is not presently possible to save or load drawings into the canvas.
 
 ## Configuration
 
