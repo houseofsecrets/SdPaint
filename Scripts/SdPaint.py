@@ -38,7 +38,7 @@ url = config.get('url', 'http://127.0.0.1:7860')
 ACCEPTED_FILE_TYPES = ["png", "jpg", "jpeg", "bmp"]
 ACCEPTED_KEYDOWN_EVENTS = (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_UP,
                            pygame.K_DOWN, pygame.K_n, pygame.K_m,
-                           pygame.K_o, pygame.K_h, pygame.K_q)
+                           pygame.K_o, pygame.K_h, pygame.K_q, pygame.K_c)
 
 # Global variables
 img2img = None
@@ -58,7 +58,7 @@ detector = detectors[0]
 last_detect_time = time.time()
 osd_text = None
 osd_text_display_start = None
-
+clip_skip = 1
 
 # Read command-line arguments
 if __name__ == '__main__':
@@ -185,8 +185,10 @@ if not os.path.exists(json_file):
 with open(json_file, "r") as f:
     settings = json.load(f)
 
-    prompt = settings.get('prompt', 'A painting by Monet')
     seed = settings.get('seed', 3456456767)
+    if settings.get('override_settings', None) is not None and settings['override_settings'].get('CLIP_stop_at_last_layers', None) is not None:
+        clip_skip = settings['override_settings']['CLIP_stop_at_last_layers']
+
     width = settings.get('width', 512)
     height = settings.get('height', 512)
     init_width = width * 1.0
@@ -386,6 +388,10 @@ def img2img_submit(force=False):
         json_data['init_images'] = [data]
 
         json_data['seed'] = seed
+        if json_data.get('override_settings', None) is None:
+            json_data['override_settings'] = {}
+
+        json_data['override_settings']['CLIP_stop_at_last_layers'] = clip_skip
 
         if quick_mode:
             json_data['steps'] = json_data.get('quick_steps', json_data['steps'] // 2)  # use quick_steps setting, or halve steps if not set
@@ -554,6 +560,11 @@ def payload_submit():
 
     json_data['seed'] = seed
     json_data['hr_scale'] = hr_scale
+
+    if json_data.get('override_settings', None) is None:
+        json_data['override_settings'] = {}
+
+    json_data['override_settings']['CLIP_stop_at_last_layers'] = clip_skip
 
     main_json_data = json_data
 
@@ -770,6 +781,12 @@ while running:
                     instant_render = True
                     new_random_seed_for_payload()
                     osd(text=f"Seed: {seed}")
+
+                elif event.key == pygame.K_c:
+                    clip_skip -= 1
+                    clip_skip = (clip_skip + 1) % 2
+                    clip_skip += 1
+                    osd(text=f"CLIP skip: {clip_skip}")
 
                 elif event.key == pygame.K_m and controlnet_model:
                     controlnet_model = controlnet_models[(controlnet_models.index(controlnet_model) + 1) % len(controlnet_models)]
