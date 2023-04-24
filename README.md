@@ -47,7 +47,9 @@ The AI models
 Follow the instructions for your OS to install the Web UI. It also installs Stable Diffusion and can be used independantly.
 ```https://github.com/AUTOMATIC1111/stable-diffusion-webui```
 
-<img width="334" alt="Screenshot 2023-04-24 at 12 12 29 PM" src="https://user-images.githubusercontent.com/22615608/234093360-e8dfd171-08ea-411c-baac-7dae71161089.png">
+You should now have the following folders:
+
+![image](https://user-images.githubusercontent.com/22615608/234105284-66051525-d434-48af-852f-c3c7add4fa39.png)
 
 Run the Web UI by launching
 ```stable-diffusion-webui\webui-user.bat```
@@ -57,7 +59,7 @@ The first time will also install SD so you can use this independently if you wis
 The Web UI is now running locally. In a browser, visit the default address at 
 ```http://127.0.0.1:7860```
 
-<img width="1507" alt="Screenshot 2023-04-24 at 12 40 05 PM" src="https://user-images.githubusercontent.com/22615608/234099220-744da17c-d952-44b6-b160-2d8f71ce6988.png">
+![WebUI_First_Open](https://user-images.githubusercontent.com/22615608/234109327-a1a58b3b-885e-448a-bfca-64bcb24e5e7f.jpg)
 
 In the Web UI, navigate to the "Extensions Tab" add go to the "Install from URL" tab. Then add the extension from
 ```https://github.com/Mikubill/sd-webui-controlnet```
@@ -78,8 +80,12 @@ Move the .pth files from the AI models folder
 To the folder at
 ```stable-diffusion-webui\extensions\sd-webui-controlnet\models```
 
+Also ensure that each .pth file has a matching .yaml file (the names must be the same except for the extension)
+
+![image](https://user-images.githubusercontent.com/22615608/234105622-8b391fdc-2885-4854-b143-d1b20b456e78.png)
+
 Right click and edit the launch file
-```stable-diffusion-webui\webui-user.bat``
+```stable-diffusion-webui\webui-user.bat```
 
 Change the line
 ```set COMMANDLINE_ARGS=```
@@ -88,43 +94,22 @@ to read:
 
 You can undo this anytime to disable api access. Just ensure you close and relaunch. You can still access the Web UI with API access on, but it is not recommended.
 
+![image](https://user-images.githubusercontent.com/22615608/234108398-150ac601-199c-4071-b9a3-d047b3ec9d7c.png)
+
 ## Usage
 
 Launch the Web UI as normal with
 ```stable-diffusion-webui\webui-user.bat```
 
-Note: You need to wait until the "Startup time:" is shown before it is ready to be used, but you can launch SdPaint while the Web UI loads.
+Note: You need to wait until the "Startup time:" is shown in the terminal before it is ready to be used.
 
 Launch the file
 ```SdPaint\Start.bat```
 Run the Start.bat file and it will create a venv and install a few packages the very first time. Then it will open the canvas.
 
-Right click and edit the file
-```SdPaint\payload.json```
+![image](https://user-images.githubusercontent.com/22615608/234108003-a0fe4045-eb12-4225-8edf-1072d1ec5566.png)
 
-This contains your prompt parameters. For beginners, the following is the primary things you need to worry about:
-  prompt
-  negative_prompt
-  model
-
-A list of the working models you downloaded for convenience can be found in
-```SdPaint\extra\Modelnames.txt```
-
-Save this file after making your changes. You don't need to close this file or any program when you make changes, just save it. The changes will take effect after the next brush stroke or erasure, basically the next time SdPaint queries the API.
-
-## Controls
-
-```Left Mouse``` to draw
-```Scroll Wheel``` to change the draw size
-```Middle Mouse``` to erase - fixed size in present version
-```Backspace``` to erase the entire image
-```S``` to save the output image. Give it a name and location to save to.
-
-## Limitations
-
-The program is bound to 512x512 images right now. 
-The drawing canvas is very simple. Only functionality currently in #Controls is working.
-It is not presently possible to save or load drawings into the canvas.
+With the basics ready, it is two terminal windows running the processes, and the once SD Paint program window. You can safely minimize the termial windows, but remember to close them when you are done to free up system memory.
 
 ## Configuration
 
