@@ -401,7 +401,7 @@ def img2img_submit(force=False):
         t = threading.Thread(target=progress_bar)
         t.start()
 
-        response = requests.post(url=f'{url}/controlnet/img2img', json=json_data)
+        response = requests.post(url=f'{url}/sdapi/v1/img2img', json=json_data)
         if response.status_code == 200:
             r = response.json()
             return_img = r['images'][0]
