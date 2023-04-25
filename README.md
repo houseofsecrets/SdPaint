@@ -21,6 +21,7 @@ A Python script that lets you paint on a canvas and sends that image every strok
 | `d`                   | Cycle ControlNet detectors, replace sketch  |
 | `h`                   | Cycle HR fix: off, 1.25, 1.5, 2.0           |
 | `q`                   | Toggle quick rendering : low steps & HR off |
+| `c`                   | Cycle CLIP skip settings                    |
 | `x` or `ESC`          | Quit                                        |
 
 

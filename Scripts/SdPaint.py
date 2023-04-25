@@ -1,3 +1,4 @@
+import copy
 import functools
 import os
 import random
@@ -38,7 +39,7 @@ url = config.get('url', 'http://127.0.0.1:7860')
 ACCEPTED_FILE_TYPES = ["png", "jpg", "jpeg", "bmp"]
 ACCEPTED_KEYDOWN_EVENTS = (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_UP,
                            pygame.K_DOWN, pygame.K_n, pygame.K_m,
-                           pygame.K_o, pygame.K_h, pygame.K_q)
+                           pygame.K_o, pygame.K_h, pygame.K_q, pygame.K_c)
 
 # Global variables
 img2img = None
@@ -47,7 +48,7 @@ img2img_time_prev = None
 hr_scale = 1.0
 hr_scale_prev = 1.0
 hr_scales = [1.0, 1.25, 1.5, 2.0]
-main_json_data = None
+main_json_data = {}
 quick_mode = False
 server_busy = False
 instant_render = False
@@ -58,7 +59,7 @@ detector = detectors[0]
 last_detect_time = time.time()
 osd_text = None
 osd_text_display_start = None
-
+clip_skip = 1
 
 # Read command-line arguments
 if __name__ == '__main__':
@@ -185,8 +186,10 @@ if not os.path.exists(json_file):
 with open(json_file, "r") as f:
     settings = json.load(f)
 
-    prompt = settings.get('prompt', 'A painting by Monet')
     seed = settings.get('seed', 3456456767)
+    if settings.get('override_settings', None) is not None and settings['override_settings'].get('CLIP_stop_at_last_layers', None) is not None:
+        clip_skip = settings['override_settings']['CLIP_stop_at_last_layers']
+
     width = settings.get('width', 512)
     height = settings.get('height', 512)
     init_width = width * 1.0
@@ -386,6 +389,10 @@ def img2img_submit(force=False):
         json_data['init_images'] = [data]
 
         json_data['seed'] = seed
+        if json_data.get('override_settings', None) is None:
+            json_data['override_settings'] = {}
+
+        json_data['override_settings']['CLIP_stop_at_last_layers'] = clip_skip
 
         if quick_mode:
             json_data['steps'] = json_data.get('quick_steps', json_data['steps'] // 2)  # use quick_steps setting, or halve steps if not set
@@ -395,7 +402,7 @@ def img2img_submit(force=False):
         t = threading.Thread(target=progress_bar)
         t.start()
 
-        response = requests.post(url=f'{url}/controlnet/img2img', json=json_data)
+        response = requests.post(url=f'{url}/sdapi/v1/img2img', json=json_data)
         if response.status_code == 200:
             r = response.json()
             return_img = r['images'][0]
@@ -418,8 +425,7 @@ def progress_request():
     :return: The API JSON response.
     """
 
-    json_data = {}
-    response = requests.post(url=f'{url}/internal/progress', json=json_data)
+    response = requests.get(url=f'{url}/sdapi/v1/progress')
     if response.status_code == 200:
         r = response.json()
         return r
@@ -473,7 +479,7 @@ def osd(**kwargs):
     text_time = kwargs.get('text_time', 2.0)
     need_redraw = kwargs.get('need_redraw', need_redraw)
 
-    if progress is not None and progress > 0.0:
+    if progress is not None and progress > 0.01:
         need_redraw = True
 
         # progress bar
@@ -555,7 +561,43 @@ def payload_submit():
     json_data['seed'] = seed
     json_data['hr_scale'] = hr_scale
 
+    if json_data.get('override_settings', None) is None:
+        json_data['override_settings'] = {}
+
+    json_data['override_settings']['CLIP_stop_at_last_layers'] = clip_skip
+
     main_json_data = json_data
+
+
+def controlnet_to_sdapi(json_data):
+    """
+        Convert deprecated ``/controlnet/*2img`` JSON data to the new ``sdapi/v1/*2img`` format.
+
+    :param dict json_data: The JSON API data.
+    :return: The converted payload content.
+    """
+
+    json_data = copy.deepcopy(json_data)  # ensure main_json_data is left untouched
+
+    if json_data.get('alwayson_scripts', None) is None:
+        json_data['alwayson_scripts'] = {}
+
+    if not json_data['alwayson_scripts'].get('controlnet', {}):
+        json_data['alwayson_scripts']['controlnet'] = {
+            'args': []
+        }
+
+    if json_data.get('controlnet_units', []) and not json_data.get('alwayson_scripts', {}).get('controlnet', {}).get('args', []):
+        if json_data.get('alwayson_scripts', None) is None:
+            json_data['alwayson_scripts'] = {}
+
+        json_data['alwayson_scripts']['controlnet'] = {
+            'args': json_data['controlnet_units']
+        }
+
+        del json_data['controlnet_units']
+
+    return json_data
 
 
 def send_request():
@@ -566,7 +608,7 @@ def send_request():
     """
 
     global server_busy
-    response = requests.post(url=f'{url}/controlnet/{"img2img" if img2img else "txt2img"}', json=main_json_data)
+    response = requests.post(url=f'{url}/sdapi/v1/{"img2img" if img2img else "txt2img"}', json=controlnet_to_sdapi(main_json_data))
     if response.status_code == 200:
         r = response.json()
         return_img = r['images'][0]
@@ -770,6 +812,12 @@ while running:
                     instant_render = True
                     new_random_seed_for_payload()
                     osd(text=f"Seed: {seed}")
+
+                elif event.key == pygame.K_c:
+                    clip_skip -= 1
+                    clip_skip = (clip_skip + 1) % 2
+                    clip_skip += 1
+                    osd(text=f"CLIP skip: {clip_skip}")
 
                 elif event.key == pygame.K_m and controlnet_model:
                     controlnet_model = controlnet_models[(controlnet_models.index(controlnet_model) + 1) % len(controlnet_models)]
