@@ -25,17 +25,9 @@ A Python script that lets you paint on a canvas and sends that image every strok
 | `x` or `ESC`          | Quit                                        |
 
 
-# SdPaint
-A simple python script that lets you paint on a canvas and sends that image every stroke to the automatic1111 API and updates the canvas when the image is generated
-
-## Updates
-
-- Added the possibility to save the image created by pressing the ```s``` key
-- You can use the scrollmouse key to change the brush size
-
 ## Installation
 
-Windows: [Link to step-by-step Windows installation instructions with screenshots](Installation_Windows.md)
+Windows: [Link to step-by-step Windows installation instructions with screenshots](INSTALL_Windows.md)
 
 Linux: To Do
 
