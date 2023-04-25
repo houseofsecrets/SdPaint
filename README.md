@@ -25,19 +25,27 @@ A Python script that lets you paint on a canvas and sends that image every strok
 | `x` or `ESC`          | Quit                                        |
 
 
+# SdPaint
+A simple python script that lets you paint on a canvas and sends that image every stroke to the automatic1111 API and updates the canvas when the image is generated
+
+## Updates
+
+- Added the possibility to save the image created by pressing the ```s``` key
+- You can use the scrollmouse key to change the brush size
+
 ## Installation
 
-Run the `Start.bat` file, and it will create a venv and install needed packages.
+Windows: [Link to step-by-step Windows installation instructions with screenshots](Installation_Windows.md)
 
-## Usage
+Linux: To Do
 
-Make sure you have the [automatic1111 webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui) in API mode running in the background and that you have the controlnet extension installed and activated
-To start the webui with the API enabled modify the `webui-user.bat` file by adding `--api` after `set COMMANDLINE_ARGS=`.
-You also need to make sure the "Allow other script to control this extension" option is enabled in the settings of control net.
+macOS: To Do
+
+TLDR; [Web UI](https://github.com/AUTOMATIC1111/stable-diffusion-webui) with the [ControlNet](https://github.com/Mikubill/sd-webui-controlnet) extension, API mode enabled in settings, and the [AI Models](https://huggingface.co/lllyasviel/ControlNet-v1-1)
 
 ## Configuration
 
-On first launch, the script will create the `config.json`, `controlnet.json` and `img2img.json` configuration files as needed. The ControlNet
+On first launch of the Start file, the script will create the `config.json`, `controlnet.json` and `img2img.json` configuration files as needed. The ControlNet
 available models for scribble and lineart will be automatically fetched from your API and set in configuration.
 
 The `config.json` file handles global interface and script configuration.
