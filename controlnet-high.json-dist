@@ -16,7 +16,7 @@
     "override_settings": {
         "CLIP_stop_at_last_layers": 1
     },
-    "override_settings_restore_afterwards": "true"
+    "override_settings_restore_afterwards": "true",
     "controlnet_units": [
         {
             "weight": 0.6,
