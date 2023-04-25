@@ -1,3 +1,4 @@
+import copy
 import functools
 import os
 import random
@@ -47,7 +48,7 @@ img2img_time_prev = None
 hr_scale = 1.0
 hr_scale_prev = 1.0
 hr_scales = [1.0, 1.25, 1.5, 2.0]
-main_json_data = None
+main_json_data = {}
 quick_mode = False
 server_busy = False
 instant_render = False
@@ -424,8 +425,7 @@ def progress_request():
     :return: The API JSON response.
     """
 
-    json_data = {}
-    response = requests.post(url=f'{url}/internal/progress', json=json_data)
+    response = requests.get(url=f'{url}/sdapi/v1/progress')
     if response.status_code == 200:
         r = response.json()
         return r
@@ -479,7 +479,7 @@ def osd(**kwargs):
     text_time = kwargs.get('text_time', 2.0)
     need_redraw = kwargs.get('need_redraw', need_redraw)
 
-    if progress is not None and progress > 0.0:
+    if progress is not None and progress > 0.01:
         need_redraw = True
 
         # progress bar
@@ -569,6 +569,37 @@ def payload_submit():
     main_json_data = json_data
 
 
+def controlnet_to_sdapi(json_data):
+    """
+        Convert deprecated ``/controlnet/*2img`` JSON data to the new ``sdapi/v1/*2img`` format.
+
+    :param dict json_data: The JSON API data.
+    :return: The converted payload content.
+    """
+
+    json_data = copy.deepcopy(json_data)  # ensure main_json_data is left untouched
+
+    if json_data.get('alwayson_scripts', None) is None:
+        json_data['alwayson_scripts'] = {}
+
+    if not json_data['alwayson_scripts'].get('controlnet', {}):
+        json_data['alwayson_scripts']['controlnet'] = {
+            'args': []
+        }
+
+    if json_data.get('controlnet_units', []) and not json_data.get('alwayson_scripts', {}).get('controlnet', {}).get('args', []):
+        if json_data.get('alwayson_scripts', None) is None:
+            json_data['alwayson_scripts'] = {}
+
+        json_data['alwayson_scripts']['controlnet'] = {
+            'args': json_data['controlnet_units']
+        }
+
+        del json_data['controlnet_units']
+
+    return json_data
+
+
 def send_request():
     """
         Send the API request.
@@ -577,7 +608,7 @@ def send_request():
     """
 
     global server_busy
-    response = requests.post(url=f'{url}/controlnet/{"img2img" if img2img else "txt2img"}', json=main_json_data)
+    response = requests.post(url=f'{url}/sdapi/v1/{"img2img" if img2img else "txt2img"}', json=controlnet_to_sdapi(main_json_data))
     if response.status_code == 200:
         r = response.json()
         return_img = r['images'][0]
