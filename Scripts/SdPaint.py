@@ -252,6 +252,7 @@ shift_pos = None
 eraser_down = False
 render_wait = 0.5 if not img2img else 0.0  # wait time max between 2 draw before launching the render
 last_draw_time = time.time()
+last_render_bytes: io.BytesIO = None
 
 # Define the cursor size and color
 cursor_size = 1
@@ -284,15 +285,23 @@ def save_file_dialog():
 
     :return: The saved file path.
     """
+    global last_render_bytes
 
     root = tk.Tk()
     root.withdraw()
     file_path = filedialog.asksaveasfilename(defaultextension=".png")
-    saveimg = canvas.subsurface(pygame.Rect(0, 0, width, height)).copy()
-    if soft_upscale != 1.0:
-        saveimg = pygame.transform.smoothscale(saveimg, (saveimg.get_width() // soft_upscale, saveimg.get_height() // soft_upscale))
+
     if file_path:
-        pygame.image.save(saveimg, file_path)
+        file_name, file_ext = os.path.splitext(file_path)
+
+        # save last rendered image
+        with open(file_path, "wb") as image_file:
+            image_file.write(last_render_bytes.getbuffer().tobytes())
+
+        # save sketch
+        sketch_img = canvas.subsurface(pygame.Rect(width, 0, width, height)).copy()
+        pygame.image.save(sketch_img, f"{file_name}-sketch{file_ext}")
+
         time.sleep(1)  # add a 1-second delay
     return file_path
 
@@ -319,10 +328,13 @@ def update_image(image_data):
 
     :param str image_data: Base64 encoded image data, from API response.
     """
+    global last_render_bytes
 
     # Decode base64 image data
     img_bytes = io.BytesIO(base64.b64decode(image_data))
     img_surface = pygame.image.load(img_bytes)
+    last_render_bytes = io.BytesIO(base64.b64decode(image_data))
+
     if soft_upscale != 1.0:
         img_surface = pygame.transform.smoothscale(img_surface, (img_surface.get_width() * soft_upscale, img_surface.get_height() * soft_upscale))
 
