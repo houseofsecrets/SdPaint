@@ -226,7 +226,8 @@ if img2img:
 # Set up the display
 fullscreen = False
 screen = pygame.display.set_mode((width * (1 if img2img else 2), height))
-pygame.display.set_caption("Sd Paint")
+display_caption = "Sd Paint"
+pygame.display.set_caption(display_caption)
 
 # Setup text
 font = pygame.font.SysFont(None, size=24)
@@ -419,6 +420,11 @@ def img2img_submit(force=False):
             r = response.json()
             return_img = r['images'][0]
             update_image(return_img)
+            r_info = json.loads(r['info'])
+            return_prompt = r_info['prompt']
+            return_seed = r_info['seed']
+            global display_caption
+            display_caption = f"Sd Paint | Seed: {return_seed} | Prompt: {return_prompt}"
         else:
             osd(text=f"Error code returned: HTTP {response.status_code}")
 
@@ -625,6 +631,11 @@ def send_request():
         r = response.json()
         return_img = r['images'][0]
         update_image(return_img)
+        r_info = json.loads(r['info'])
+        return_prompt = r_info['prompt']
+        return_seed = r_info['seed']
+        global display_caption
+        display_caption = f"Sd Paint | Seed: {return_seed} | Prompt: {return_prompt}"
     else:
         osd(text=f"Error code returned: HTTP {response.status_code}")
     server_busy = False
@@ -971,6 +982,7 @@ while running:
     # Update the display
     if need_redraw:
         pygame.display.flip()
+        pygame.display.set_caption(display_caption)
         need_redraw = False
 
     # Set max FPS
