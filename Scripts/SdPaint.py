@@ -71,15 +71,22 @@ ACCEPTED_KEYDOWN_RENDER_EVENTS = (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_U
 img2img = None
 img2img_waiting = False
 img2img_time_prev = None
-hr_scale = 1.0
-hr_scale_prev = 1.0
+
 hr_scales = config.get("hr_scales", [1.0, 1.25, 1.5, 2.0])
 if 1.0 not in hr_scales:
     hr_scales.insert(0, 1.0)
+hr_scale = hr_scales[0]
+hr_scale_prev = hr_scales[1]
+
 hr_upscalers = config.get("hr_upscalers", ['Latent (bicubic)'])
 hr_upscaler = hr_upscalers[0]
+
 denoising_strengths = config.get("denoising_strengths", [0.6])
 denoising_strength = denoising_strengths[0]
+
+samplers = config.get("samplers", ["DDIM"])
+sampler = samplers[0]
+
 main_json_data = {}
 quick_mode = False
 server_busy = False
@@ -87,8 +94,10 @@ instant_render = False
 pause_render = False
 progress = 0.0
 controlnet_models: list[str] = config.get("controlnet_models", [])
+
 detectors = config.get('detectors', ('lineart',))
 detector = detectors[0]
+
 last_detect_time = time.time()
 osd_text = None
 osd_text_display_start = None
@@ -135,18 +144,12 @@ def update_size_thread(**kwargs):
     if interface_width != init_width * (1 if img2img else 2) or interface_height != init_height:
         soft_upscale = min(config['interface_width'] / init_width, config['interface_height'] / init_height)
 
-    if settings.get('enable_hr', 'false') == 'true':
-        if kwargs.get('hr_scale', None) is not None:
-            hr_scale = kwargs.get('hr_scale')
-        else:
-            hr_scale = settings.get('hr_scale', 1.0)
-        soft_upscale = soft_upscale / hr_scale
-        width = math.floor(init_width * hr_scale)
-        height = math.floor(init_height * hr_scale)
-    else:
-        width = init_width * 1.0
-        height = init_height * 1.0
-        hr_scale = 1.0
+    if kwargs.get('hr_scale', None) is not None:
+        hr_scale = kwargs.get('hr_scale')
+
+    soft_upscale = soft_upscale / hr_scale
+    width = math.floor(init_width * hr_scale)
+    height = math.floor(init_height * hr_scale)
 
     width = math.floor(width * soft_upscale)
     height = math.floor(height * soft_upscale)
@@ -218,6 +221,9 @@ settings = load_config(json_file)
 seed = settings.get('seed', 3456456767)
 if settings.get('override_settings', None) is not None and settings['override_settings'].get('CLIP_stop_at_last_layers', None) is not None:
     clip_skip = settings['override_settings']['CLIP_stop_at_last_layers']
+
+if settings.get('enable_hr', 'false') == 'true':
+    hr_scale = hr_scales[1]
 
 width = settings.get('width', 512)
 height = settings.get('height', 512)
@@ -433,6 +439,7 @@ def img2img_submit(force=False):
 
         json_data['seed'] = seed
         json_data['denoising_strength'] = denoising_strength
+        json_data['sampler_name'] = sampler
 
         if json_data.get('override_settings', None) is None:
             json_data['override_settings'] = {}
@@ -596,7 +603,7 @@ def payload_submit():
 
     json_data['controlnet_units'][0]['input_image'] = data
     json_data['controlnet_units'][0]['model'] = controlnet_model
-    json_data['hr_second_pass_steps'] = max(8, math.floor(json_data['steps'] * json_data['denoising_strength']))  # at least 8 steps
+    json_data['hr_second_pass_steps'] = max(8, math.floor(json_data['steps'] * denoising_strength))  # at least 8 steps
 
     if hr_scale > 1.0:
         json_data['enable_hr'] = 'true'
@@ -607,6 +614,7 @@ def payload_submit():
     json_data['hr_scale'] = hr_scale
     json_data['hr_upscaler'] = hr_upscaler
     json_data['denoising_strength'] = denoising_strength
+    json_data['sampler_name'] = sampler
 
     if json_data.get('override_settings', None) is None:
         json_data['override_settings'] = {}
@@ -966,7 +974,11 @@ while running:
                 pygame.draw.rect(canvas, (255, 255, 255), (width, 0, width, height))
 
             elif event.key == pygame.K_s:
-                save_file_dialog()
+                if shift_down:
+                    sampler = samplers[(samplers.index(sampler) + 1) % len(samplers)]
+                    osd(text=f"Sampler: {sampler}")
+                else:
+                    save_file_dialog()
 
             elif event.key == pygame.K_e:
                 eraser_down = True
@@ -999,6 +1011,10 @@ while running:
 
                     # select next detector
                     detector = detectors[(detectors.index(detector)+1) % len(detectors)]
+
+            elif event.key == pygame.K_w:
+                if shift_down:
+                    pass
 
             elif event.key == pygame.K_f:
                 fullscreen = not fullscreen
