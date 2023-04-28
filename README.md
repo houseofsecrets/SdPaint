@@ -25,6 +25,7 @@ the canvas when the image is generated.
 | `h`                   | Toggle HR fix                               |
 | `shift+h`             | Cycle HR fix                                |
 | `shift+u`             | Cycle HR upscalers                          |
+| `p`                   | Pause dynamic rendering                     |
 | `q`                   | Toggle quick rendering : low steps & HR off |
 | `c`                   | Cycle CLIP skip settings                    |
 | `x` or `ESC`          | Quit                                        |
@@ -47,13 +48,14 @@ On first launch of the Start file, the script will create the `config.json`, `co
 configuration files as needed. The ControlNet
 available models for scribble and lineart will be automatically fetched from your API and set in configuration.
 
-The `config.json` file handles global interface and script configuration. Specifically the values used by keyboard shortcuts:
+The `config.json` file handles global interface and script configuration. Specifically the values used by keyboard
+shortcuts:
 
- - ControlNet detectors
- - ControlNet models
- - HR scales
- - HR upscalers
- - Denoising strengths (HR or img2img)
+- ControlNet detectors
+- ControlNet models
+- HR scales
+- HR upscalers
+- Denoising strengths (HR or img2img)
 
 The `controlnet.json` or `img2img.json` files can be used to configure the prompt, negative prompt, seed, controlnet
 model, etc.

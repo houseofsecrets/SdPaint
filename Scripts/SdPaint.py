@@ -64,8 +64,8 @@ url = config.get('url', 'http://127.0.0.1:7860')
 
 ACCEPTED_FILE_TYPES = ["png", "jpg", "jpeg", "bmp"]
 ACCEPTED_KEYDOWN_RENDER_EVENTS = (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_UP,
-                                  pygame.K_DOWN, pygame.K_n, pygame.K_m,
-                                  pygame.K_o, pygame.K_h, pygame.K_q, pygame.K_c)
+                                  pygame.K_DOWN, pygame.K_n, pygame.K_m, pygame.K_o,
+                                  pygame.K_p, pygame.K_h, pygame.K_q, pygame.K_c)
 
 # Global variables
 img2img = None
@@ -84,6 +84,7 @@ main_json_data = {}
 quick_mode = False
 server_busy = False
 instant_render = False
+pause_render = False
 progress = 0.0
 controlnet_models: list[str] = config.get("controlnet_models", [])
 detectors = config.get('detectors', ('lineart',))
@@ -913,7 +914,16 @@ while running:
 
                 elif event.key == pygame.K_o:
                     load_file_dialog()
-                    continue
+
+                elif event.key == pygame.K_p:
+                    pause_render = not pause_render
+
+                    if pause_render:
+                        osd(text=f"On-demand rendering (ENTER to render)")
+                        continue  # skip auto render
+                    else:
+                        osd(text=f"Dynamic rendering")
+
 
             elif event.type == pygame.FINGERUP:
                 event.button = 1
@@ -932,8 +942,9 @@ while running:
                 brush_color = brush_colors[brush_key]
 
                 # Call image render
-                t = threading.Thread(target=render)
-                t.start()
+                if not pause_render or instant_render:
+                    t = threading.Thread(target=render)
+                    t.start()
 
         elif event.type == pygame.MOUSEMOTION or event.type == pygame.FINGERMOTION:
             # Handle drawing brush strokes
