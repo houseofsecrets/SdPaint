@@ -18,6 +18,7 @@ the canvas when the image is generated.
 | `UP` / `DOWN`         | Increase / decrease seed by 1               |
 | `n`                   | Random seed value                           |
 | `s`                   | Save the current generated image            |
+| `shift+s`             | Cycle samplers                              |
 | `o`                   | Open an image file as sketch                |
 | `m`                   | Cycle ControlNel models                     |
 | `shift+d`             | Cycle denoising strengths                   |
@@ -48,14 +49,15 @@ On first launch of the Start file, the script will create the `config.json`, `co
 configuration files as needed. The ControlNet
 available models for scribble and lineart will be automatically fetched from your API and set in configuration.
 
-The `config.json` file handles global interface and script configuration. Specifically the values used by keyboard
-shortcuts:
+The `config.json` file handles global interface and script configuration. For these settings, the value used on application start is the
+first value of each of those list:
 
-- ControlNet detectors
-- ControlNet models
-- HR scales
-- HR upscalers
-- Denoising strengths (HR or img2img)
+- `controlnet_models`
+- `detectors`
+- `samplers`
+- `hr_scales`
+- `hr_upscalers`
+- `denoising_strengths`
 
 The `controlnet.json` or `img2img.json` files can be used to configure the prompt, negative prompt, seed, controlnet
 model, etc.
