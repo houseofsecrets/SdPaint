@@ -25,13 +25,39 @@ import argparse
 pygame.init()
 clock = pygame.time.Clock()
 
+
+def load_config(config_file):
+    """
+            Update a local configuration file with missing settings from distribution file, if needed.
+    :param str config_file: The configuration file name.
+    :return: The configuration file content.
+    """
+
+    if not os.path.exists(config_file):
+        shutil.copy(f"{config_file}-dist", config_file)
+
+    with open(config_file, "r") as f:
+        config_content: dict = json.load(f)
+
+    with open(f"{config_file}-dist", "r") as f:
+        config_dist_content: dict = json.load(f)
+
+    # Update local config with new settings
+    if config_content.keys() != config_dist_content.keys():
+        config_dist_content.update(config_content)
+        config_content = config_dist_content
+
+        print(f"Updated {config_file} with new settings.")
+
+        with open(config_file, "w") as f:
+            json.dump(config_content, f, indent=4)
+
+    return config_content
+
+
 # Read JSON main configuration file
 config_file = "config.json"
-if not os.path.exists(config_file):
-    shutil.copy(f"{config_file}-dist", config_file)
-
-with open(config_file, "r") as f:
-    config = json.load(f)
+config = load_config(config_file)
 
 # Setup
 url = config.get('url', 'http://127.0.0.1:7860')
@@ -180,28 +206,24 @@ json_file = "controlnet.json"
 if img2img:
     json_file = "img2img.json"
 
-if not os.path.exists(json_file):
-    shutil.copy(f"{json_file}-dist", json_file)
+settings = load_config(json_file)
 
-with open(json_file, "r") as f:
-    settings = json.load(f)
+seed = settings.get('seed', 3456456767)
+if settings.get('override_settings', None) is not None and settings['override_settings'].get('CLIP_stop_at_last_layers', None) is not None:
+    clip_skip = settings['override_settings']['CLIP_stop_at_last_layers']
 
-    seed = settings.get('seed', 3456456767)
-    if settings.get('override_settings', None) is not None and settings['override_settings'].get('CLIP_stop_at_last_layers', None) is not None:
-        clip_skip = settings['override_settings']['CLIP_stop_at_last_layers']
-
-    width = settings.get('width', 512)
-    height = settings.get('height', 512)
-    init_width = width * 1.0
-    init_height = height * 1.0
-    soft_upscale = 1.0
-    if settings.get("controlnet_units", None) and settings.get("controlnet_units")[0].get('model', None):
-        controlnet_model = settings.get("controlnet_units")[0]["model"]
-    elif controlnet_models:
-        controlnet_model = controlnet_models[0]
-    else:
-        controlnet_model = None
-    update_size()
+width = settings.get('width', 512)
+height = settings.get('height', 512)
+init_width = width * 1.0
+init_height = height * 1.0
+soft_upscale = 1.0
+if settings.get("controlnet_units", None) and settings.get("controlnet_units")[0].get('model', None):
+    controlnet_model = settings.get("controlnet_units")[0]["model"]
+elif controlnet_models:
+    controlnet_model = controlnet_models[0]
+else:
+    controlnet_model = None
+update_size()
 
 if controlnet_model and settings.get("controlnet_units", None) and not settings.get("controlnet_units")[0].get('model', None):
     settings['controlnet_units'][0]['model'] = controlnet_model
