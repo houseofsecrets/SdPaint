@@ -1,19 +1,26 @@
 
-## Installation
+# Installation
 
 These instructions are for getting started with SDPaint on a Windows machine. Assuming you started from no experience with SD, and some experience with GitHub.
 
-Clone:
+## Clone These repos:
 
-The Tool
-```https://github.com/houseofsecrets/SdPaint```
+### 1.) This Tool
+```git clone https://github.com/houseofsecrets/SdPaint```
 
-The AI models
-```https://huggingface.co/lllyasviel/ControlNet-v1-1```
+### 2.) The AI models 
+```
+git lfs install
+git clone https://huggingface.co/lllyasviel/ControlNet-v1-1
+```
+- Note: The large files in the huggingface repo requires running `git lfs install` before cloning. Details at https://git-lfs.com/
+- The `.pth` files in this directory should each be ~1.4GB after the `git clone` is done. If they are only ~2KB in file size, then `git lfs install` needs to be ran before cloneing again.
 
-Follow the instructions to install the Web UI for Windows. It can be used independently, and will install Stable Diffusion.
-```https://github.com/AUTOMATIC1111/stable-diffusion-webui```
+### 3.) stable-diffusion-webui
+```git clone https://github.com/AUTOMATIC1111/stable-diffusion-webui```
+- Follow the [instructions](https://github.com/AUTOMATIC1111/stable-diffusion-webui#installation-and-running) to install the Web UI for Windows. It can be used independently, and will install Stable Diffusion.
 
+## Setup
 You should now have the following folders:
 
 ![image](https://user-images.githubusercontent.com/22615608/234105284-66051525-d434-48af-852f-c3c7add4fa39.png)
