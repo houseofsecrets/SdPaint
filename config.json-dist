@@ -37,6 +37,7 @@
 		"DPM++ 2M Karras",
 		"DDIM",
 		"Euler",
+		"Euler a",
 		"DPM++ SDE Karras"
 	]
 }
