@@ -63,9 +63,9 @@ config = load_config(config_file)
 url = config.get('url', 'http://127.0.0.1:7860')
 
 ACCEPTED_FILE_TYPES = ["png", "jpg", "jpeg", "bmp"]
-ACCEPTED_KEYDOWN_EVENTS = (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_UP,
-                           pygame.K_DOWN, pygame.K_n, pygame.K_m,
-                           pygame.K_o, pygame.K_h, pygame.K_q, pygame.K_c)
+ACCEPTED_KEYDOWN_RENDER_EVENTS = (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_UP,
+                                  pygame.K_DOWN, pygame.K_n, pygame.K_m,
+                                  pygame.K_o, pygame.K_h, pygame.K_q, pygame.K_c)
 
 # Global variables
 img2img = None
@@ -73,7 +73,13 @@ img2img_waiting = False
 img2img_time_prev = None
 hr_scale = 1.0
 hr_scale_prev = 1.0
-hr_scales = [1.0, 1.25, 1.5, 2.0]
+hr_scales = config.get("hr_scales", [1.0, 1.25, 1.5, 2.0])
+if 1.0 not in hr_scales:
+    hr_scales.insert(0, 1.0)
+hr_upscalers = config.get("hr_upscalers", ['Latent (bicubic)'])
+hr_upscaler = hr_upscalers[0]
+denoising_strengths = config.get("denoising_strengths", [0.6])
+denoising_strength = denoising_strengths[0]
 main_json_data = {}
 quick_mode = False
 server_busy = False
@@ -270,6 +276,8 @@ brush_pos = {1: None, 2: None, 'e': None}
 prev_pos = None
 prev_pos2 = None
 shift_down = False
+ctrl_down = False
+alt_down = False
 shift_pos = None
 eraser_down = False
 render_wait = 0.5 if not img2img else 0.0  # wait time max between 2 draw before launching the render
@@ -423,6 +431,8 @@ def img2img_submit(force=False):
         json_data['init_images'] = [data]
 
         json_data['seed'] = seed
+        json_data['denoising_strength'] = denoising_strength
+
         if json_data.get('override_settings', None) is None:
             json_data['override_settings'] = {}
 
@@ -594,6 +604,8 @@ def payload_submit():
 
     json_data['seed'] = seed
     json_data['hr_scale'] = hr_scale
+    json_data['hr_upscaler'] = hr_upscaler
+    json_data['denoising_strength'] = denoising_strength
 
     if json_data.get('override_settings', None) is None:
         json_data['override_settings'] = {}
@@ -824,7 +836,7 @@ while running:
                     shift_pos = brush_pos[brush_key]
 
         elif event.type == pygame.MOUSEBUTTONUP or event.type == pygame.FINGERUP \
-            or (event.type == pygame.KEYDOWN and event.key in ACCEPTED_KEYDOWN_EVENTS):
+            or (event.type == pygame.KEYDOWN and event.key in ACCEPTED_KEYDOWN_RENDER_EVENTS):
             # Handle brush stoke end, and rendering
             need_redraw = True
             last_draw_time = time.time()
@@ -858,14 +870,29 @@ while running:
                     osd(text=f"ControlNet model: {controlnet_model}")
 
                 elif event.key == pygame.K_h:
-                    hr_scale = hr_scales[(hr_scales.index(hr_scale)+1) % len(hr_scales)]
+                    if shift_down:
+                        hr_scale = hr_scales[(hr_scales.index(hr_scale)+1) % len(hr_scales)]
 
-                    if hr_scale == 1.0:
-                        osd(text="HR scale: off")
+                        if hr_scale == 1.0:
+                            osd(text="HR scale: off")
+                        else:
+                            osd(text=f"HR scale: {hr_scale}")
+
+                        update_size(hr_scale=hr_scale)
+                        continue  # skip auto render
                     else:
-                        osd(text=f"HR scale: {hr_scale}")
+                        if hr_scale != 1.0:
+                            hr_scale_prev = hr_scale
+                            hr_scale = 1.0
+                        else:
+                            hr_scale = hr_scale_prev
 
-                    update_size(hr_scale=hr_scale)
+                        if hr_scale == 1.0:
+                            osd(text="HR scale: off")
+                        else:
+                            osd(text=f"HR scale: {hr_scale}")
+
+                        update_size(hr_scale=hr_scale)
 
                 elif event.key in (pygame.K_KP_ENTER, pygame.K_RETURN):
                     instant_render = True
@@ -933,15 +960,6 @@ while running:
             elif event.key == pygame.K_e:
                 eraser_down = True
 
-            elif event.key == pygame.K_d:
-                osd(text=f"Detect {detector}")
-
-                t = threading.Thread(target=controlnet_detect())
-                t.start()
-
-                # select next detector
-                detector = detectors[(detectors.index(detector)+1) % len(detectors)]
-
             elif event.key == pygame.K_t:
                 if render_wait == 2.0:
                     render_wait = 0.0
@@ -949,6 +967,27 @@ while running:
                 else:
                     render_wait += 0.5
                     osd(text=f"Render wait: {render_wait}s")
+
+            elif event.key == pygame.K_u:
+                if shift_down:
+                    hr_upscaler = hr_upscalers[(hr_upscalers.index(hr_upscaler) + 1) % len(hr_upscalers)]
+                    osd(text=f"HR upscaler: {hr_upscaler}")
+
+            elif event.key == pygame.K_d:
+                if shift_down:
+                    denoising_strength = denoising_strengths[(denoising_strengths.index(denoising_strength) + 1) % len(denoising_strengths)]
+                    if img2img:
+                        osd(text=f"Denoising: {denoising_strength}")
+                    else:
+                        osd(text=f"HR denoising: {denoising_strength}")
+                elif ctrl_down:
+                    osd(text=f"Detect {detector}")
+
+                    t = threading.Thread(target=controlnet_detect())
+                    t.start()
+
+                    # select next detector
+                    detector = detectors[(detectors.index(detector)+1) % len(detectors)]
 
             elif event.key == pygame.K_f:
                 fullscreen = not fullscreen
@@ -959,6 +998,12 @@ while running:
 
             elif event.key in (pygame.K_LSHIFT, pygame.K_RSHIFT):
                 shift_down = True
+
+            elif event.key in (pygame.K_LCTRL, pygame.K_RCTRL):
+                ctrl_down = True
+
+            elif event.key in (pygame.K_LALT, pygame.K_RALT):
+                alt_down = True
 
             elif event.key in (pygame.K_ESCAPE, pygame.K_x):
                 running = False
@@ -974,6 +1019,12 @@ while running:
             elif event.key in (pygame.K_LSHIFT, pygame.K_RSHIFT):
                 shift_down = False
                 shift_pos = None
+
+            elif event.key in (pygame.K_LCTRL, pygame.K_RCTRL):
+                ctrl_down = False
+
+            elif event.key in (pygame.K_LALT, pygame.K_RALT):
+                alt_down = False
 
     # Draw the canvas and brushes on the screen
     screen.blit(canvas, (0, 0))
