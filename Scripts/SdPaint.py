@@ -93,6 +93,8 @@ controlnet_guidance_end = controlnet_guidance_ends[0]
 main_json_data = {}
 quick_mode = False
 server_busy = False
+rendering = False
+rendering_key = False
 instant_render = False
 pause_render = False
 progress = 0.0
@@ -529,6 +531,8 @@ def osd(**kwargs):
     # osd_pos = (width*(1 if img2img else 2) // 2 - osd_size [0] // 2, osd_margin)  # top center
     # osd_progress_pos = (width*(1 if img2img else 2) - osd_size[0] - osd_margin, height - osd_size[1] - osd_margin)  # bottom right
 
+    osd_dot_size = osd_size[1] // 2
+
     osd_text_pos = (width*(1 if img2img else 2) - width + osd_margin, osd_margin)  # bottom left of canvas
     # osd_text_pos = (width*(1 if img2img else 2) - width + osd_margin, height - osd_size[1] - osd_margin)  # bottom left of canvas
     osd_text_offset = 0
@@ -539,6 +543,13 @@ def osd(**kwargs):
     text = kwargs.get('text', osd_text)  # type: str
     text_time = kwargs.get('text_time', 2.0)  # type: float
     need_redraw = kwargs.get('need_redraw', need_redraw)  # type: bool
+
+    if rendering or text:
+        rendering_dot_surface = pygame.Surface(osd_size, pygame.SRCALPHA)
+
+        pygame.draw.circle(rendering_dot_surface, (0, 0, 0), (osd_dot_size + 2, osd_dot_size + 2), osd_dot_size - 2)
+        pygame.draw.circle(rendering_dot_surface, (0, 200, 160), (osd_dot_size, osd_dot_size), osd_dot_size - 2)
+        screen.blit(rendering_dot_surface, pygame.Rect(width*(1 if img2img else 2) - osd_dot_size * 2 - osd_margin, osd_margin - osd_dot_size // 2, osd_dot_size, osd_dot_size))
 
     if progress is not None and progress > 0.01:
         need_redraw = True
@@ -828,6 +839,8 @@ if img2img:
 running = True
 need_redraw = True
 while running:
+    rendering = False
+
     # Handle events
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -868,6 +881,7 @@ while running:
         elif event.type == pygame.MOUSEBUTTONUP or event.type == pygame.FINGERUP:
             # Handle brush stoke end
             need_redraw = True
+            rendering = True
             last_draw_time = time.time()
 
             if event.type == pygame.FINGERUP:
@@ -885,11 +899,6 @@ while running:
                 brush_pos[brush_key] = None
                 prev_pos = None
                 brush_color = brush_colors[brush_key]
-
-                # Call image render
-                if not pause_render or instant_render:
-                    t = threading.Thread(target=render)
-                    t.start()
 
         elif event.type == pygame.MOUSEMOTION or event.type == pygame.FINGERMOTION:
             # Handle drawing brush strokes
@@ -929,18 +938,20 @@ while running:
                 osd(text=f"Seed: {seed}")
 
             elif event.key == pygame.K_c:
-                rendering = True
+                if shift_down:
+                    rendering_key = True
 
-                clip_skip -= 1
-                clip_skip = (clip_skip + 1) % 2
-                clip_skip += 1
-                osd(text=f"CLIP skip: {clip_skip}")
+                    clip_skip -= 1
+                    clip_skip = (clip_skip + 1) % 2
+                    clip_skip += 1
+                    osd(text=f"CLIP skip: {clip_skip}")
 
             elif event.key == pygame.K_m and controlnet_model:
-                rendering = True
+                if shift_down:
+                    rendering_key = True
 
-                controlnet_model = controlnet_models[(controlnet_models.index(controlnet_model) + 1) % len(controlnet_models)]
-                osd(text=f"ControlNet model: {controlnet_model}")
+                    controlnet_model = controlnet_models[(controlnet_models.index(controlnet_model) + 1) % len(controlnet_models)]
+                    osd(text=f"ControlNet model: {controlnet_model}")
 
             elif event.key == pygame.K_h:
                 if shift_down:
@@ -1009,11 +1020,12 @@ while running:
                 pygame.draw.rect(canvas, (255, 255, 255), (width, 0, width, height))
 
             elif event.key == pygame.K_s:
-                if shift_down:
+                if ctrl_down:
+                    save_file_dialog()
+                elif shift_down:
+                    rendering_key = True
                     sampler = samplers[(samplers.index(sampler) + 1) % len(samplers)]
                     osd(text=f"Sampler: {sampler}")
-                elif ctrl_down:
-                    save_file_dialog()
 
             elif event.key == pygame.K_e:
                 eraser_down = True
@@ -1028,21 +1040,25 @@ while running:
 
             elif event.key == pygame.K_u:
                 if shift_down:
+                    rendering_key = True
                     hr_upscaler = hr_upscalers[(hr_upscalers.index(hr_upscaler) + 1) % len(hr_upscalers)]
                     osd(text=f"HR upscaler: {hr_upscaler}")
 
             elif event.key == pygame.K_w:
                 if shift_down:
+                    rendering_key = True
                     controlnet_weight = controlnet_weights[(controlnet_weights.index(controlnet_weight) + 1) % len(controlnet_weights)]
                     osd(text=f"ControlNet weight: {controlnet_weight}")
 
             elif event.key == pygame.K_g:
                 if shift_down:
+                    rendering_key = True
                     controlnet_guidance_end = controlnet_guidance_ends[(controlnet_guidance_ends.index(controlnet_guidance_end) + 1) % len(controlnet_guidance_ends)]
                     osd(text=f"ControlNet guidance end: {controlnet_guidance_end}")
 
             elif event.key == pygame.K_d:
                 if shift_down:
+                    rendering_key = True
                     denoising_strength = denoising_strengths[(denoising_strengths.index(denoising_strength) + 1) % len(denoising_strengths)]
                     if img2img:
                         osd(text=f"Denoising: {denoising_strength}")
@@ -1082,11 +1098,6 @@ while running:
                 pygame.quit()
                 exit(0)
 
-            # Call image render
-            if (rendering and not pause_render) or instant_render:
-                t = threading.Thread(target=render)
-                t.start()
-
         elif event.type == pygame.KEYUP:
             # Handle special keys release
             if event.key == pygame.K_e:
@@ -1094,6 +1105,9 @@ while running:
                 brush_pos['e'] = None
 
             elif event.key in (pygame.K_LSHIFT, pygame.K_RSHIFT):
+                if rendering_key:
+                    rendering = True
+                    rendering_key = False
                 shift_down = False
                 shift_pos = None
 
@@ -1102,6 +1116,11 @@ while running:
 
             elif event.key in (pygame.K_LALT, pygame.K_RALT):
                 alt_down = False
+
+    # Call image render
+    if (rendering and not pause_render) or instant_render:
+        t = threading.Thread(target=render)
+        t.start()
 
     # Draw the canvas and brushes on the screen
     screen.blit(canvas, (0, 0))
