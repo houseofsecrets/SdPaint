@@ -5,7 +5,10 @@
     "preset_fields": [
         "hr_scale",
         "hr_upscaler",
-        "denoising_strength",
+        "denoising_strength"
+    ],
+    "cn_preset_fields": [
+        "controlnet_model",
         "controlnet_weight",
         "controlnet_guidance_end"
     ],
