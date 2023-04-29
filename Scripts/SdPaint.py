@@ -43,14 +43,15 @@ def load_config(config_file):
         config_dist_content: dict = json.load(f)
 
     # Update local config with new settings
-    if config_content.keys() != config_dist_content.keys():
-        config_dist_content.update(config_content)
-        config_content = config_dist_content
+    if isinstance(config_content, dict):
+        if config_content.keys() != config_dist_content.keys():
+            config_dist_content.update(config_content)
+            config_content = config_dist_content
 
-        print(f"Updated {config_file} with new settings.")
+            print(f"Updated {config_file} with new settings.")
 
-        with open(config_file, "w") as f:
-            json.dump(config_content, f, indent=4)
+            with open(config_file, "w") as f:
+                json.dump(config_content, f, indent=4)
 
     return config_content
 
@@ -58,6 +59,11 @@ def load_config(config_file):
 # Read JSON main configuration file
 config_file = "config.json"
 config = load_config(config_file)
+
+presets_file = "presets.json"
+presets = load_config(presets_file)
+
+settings = {}
 
 # Setup
 url = config.get('url', 'http://127.0.0.1:7860')
@@ -89,6 +95,8 @@ controlnet_weight = controlnet_weights[0]
 
 controlnet_guidance_ends = config.get("controlnet_guidance_ends", [1.0, 0.2, 0.3])
 controlnet_guidance_end = controlnet_guidance_ends[0]
+
+preset_fields = config.get('preset_fields', ["hr_enabled", "hr_scale", "hr_upscaler", "denoising_strength", "controlnet_weight", "controlnet_guidance_end"])
 
 main_json_data = {}
 quick_mode = False
@@ -300,6 +308,69 @@ last_render_bytes: io.BytesIO = None
 # Define the cursor size and color
 cursor_size = 1
 cursor_color = (0, 0, 0)
+
+
+def save_preset(index):
+    """
+        Save the current rendering settings as preset.
+    :param int index: The preset numeric keymap.
+    :return: The preset values.
+    """
+    global presets
+
+    if index == 0:
+        if len(presets) == 0:
+            presets = [{}]
+
+        presets[0] = {
+            'clip_skip':                    settings.get('override_settings', {}).get('CLIP_stop_at_last_layers', 1),
+            'hr_scale':                     config['hr_scales'][1] if settings.get('enable_hr', 'false') == 'true' else 1.0,
+            'hr_upscaler':                  config['hr_upscalers'][0],
+            'denoising_strength':           config['denoising_strengths'][0],
+            'controlnet_guidance_end':      config['controlnet_guidance_ends'][0],
+            'controlnet_weight':            config['controlnet_weights'][0],
+            'controlnet_model':             config['controlnet_models'][0],
+            'sampler':                      config['samplers'][0]
+        }
+    else:
+        # TODO
+        osd(text=f"Saved preset {index}")
+
+    with open(presets_file, 'w') as f:
+        json.dump(presets, f, indent=4)
+
+    return presets[index]
+
+
+def load_preset(index):
+    """
+        Load a preset values.
+    :param int index: The preset numeric keymap.
+
+    :return: The preset values, of ``None`` if not found.
+    """
+
+    if index >= len(presets):
+        return None
+
+    preset = presets[index]
+
+    if index == 0:
+        osd(text=f"Loaded default settings")
+    else:
+        osd(text=f"Loaded preset {index}")
+
+    # load preset
+    for preset_field in preset_fields:
+        globals()[preset_field] = preset[preset_field]
+
+    update_size()
+
+    return preset
+
+
+# Init the default preset
+save_preset(0)
 
 
 def load_filepath_into_canvas(file_path):
@@ -940,7 +1011,6 @@ while running:
             elif event.key == pygame.K_c:
                 if shift_down:
                     rendering_key = True
-
                     clip_skip -= 1
                     clip_skip = (clip_skip + 1) % 2
                     clip_skip += 1
@@ -949,12 +1019,12 @@ while running:
             elif event.key == pygame.K_m and controlnet_model:
                 if shift_down:
                     rendering_key = True
-
                     controlnet_model = controlnet_models[(controlnet_models.index(controlnet_model) + 1) % len(controlnet_models)]
                     osd(text=f"ControlNet model: {controlnet_model}")
 
             elif event.key == pygame.K_h:
                 if shift_down:
+                    rendering_key = True
                     hr_scale = hr_scales[(hr_scales.index(hr_scale)+1) % len(hr_scales)]
 
                     if hr_scale == 1.0:
@@ -1004,6 +1074,15 @@ while running:
                     rendering = True
                     instant_render = True
                     load_file_dialog()
+
+            elif event.key in (pygame.K_KP0,):
+                keymap = {
+                    pygame.K_KP0:   0
+                }
+
+                rendering = True
+                instant_render = True
+                load_preset(keymap.get(event.key))
 
             elif event.key == pygame.K_p:
                 pause_render = not pause_render
@@ -1072,10 +1151,6 @@ while running:
 
                     # select next detector
                     detector = detectors[(detectors.index(detector)+1) % len(detectors)]
-
-            elif event.key == pygame.K_w:
-                if shift_down:
-                    pass
 
             elif event.key == pygame.K_f:
                 fullscreen = not fullscreen
