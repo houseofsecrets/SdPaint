@@ -63,9 +63,6 @@ config = load_config(config_file)
 url = config.get('url', 'http://127.0.0.1:7860')
 
 ACCEPTED_FILE_TYPES = ["png", "jpg", "jpeg", "bmp"]
-ACCEPTED_KEYDOWN_RENDER_EVENTS = (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_UP,
-                                  pygame.K_DOWN, pygame.K_n, pygame.K_m, pygame.K_o,
-                                  pygame.K_p, pygame.K_h, pygame.K_q, pygame.K_c)
 
 # Global variables
 img2img = None
@@ -868,96 +865,12 @@ while running:
                     pygame.draw.polygon(canvas, brush_colors[brush_key], [shift_pos, brush_pos[brush_key]], brush_size[brush_key] * 2)
                     shift_pos = brush_pos[brush_key]
 
-        elif event.type == pygame.MOUSEBUTTONUP or event.type == pygame.FINGERUP \
-            or (event.type == pygame.KEYDOWN and event.key in ACCEPTED_KEYDOWN_RENDER_EVENTS):
-            # Handle brush stoke end, and rendering
+        elif event.type == pygame.MOUSEBUTTONUP or event.type == pygame.FINGERUP:
+            # Handle brush stoke end
             need_redraw = True
             last_draw_time = time.time()
 
-            # Handle keyboard rendering shortcuts
-            if event.type == pygame.KEYDOWN:
-                event.button = 1
-                if event.key == pygame.K_UP:
-                    instant_render = True
-                    seed = seed + 1
-                    osd(text=f"Seed: {seed}")
-
-                elif event.key == pygame.K_DOWN:
-                    instant_render = True
-                    seed = seed - 1
-                    osd(text=f"Seed: {seed}")
-
-                elif event.key == pygame.K_n:
-                    instant_render = True
-                    new_random_seed_for_payload()
-                    osd(text=f"Seed: {seed}")
-
-                elif event.key == pygame.K_c:
-                    clip_skip -= 1
-                    clip_skip = (clip_skip + 1) % 2
-                    clip_skip += 1
-                    osd(text=f"CLIP skip: {clip_skip}")
-
-                elif event.key == pygame.K_m and controlnet_model:
-                    controlnet_model = controlnet_models[(controlnet_models.index(controlnet_model) + 1) % len(controlnet_models)]
-                    osd(text=f"ControlNet model: {controlnet_model}")
-
-                elif event.key == pygame.K_h:
-                    if shift_down:
-                        hr_scale = hr_scales[(hr_scales.index(hr_scale)+1) % len(hr_scales)]
-
-                        if hr_scale == 1.0:
-                            osd(text="HR scale: off")
-                        else:
-                            osd(text=f"HR scale: {hr_scale}")
-
-                        update_size(hr_scale=hr_scale)
-                        continue  # skip auto render
-                    else:
-                        if hr_scale != 1.0:
-                            hr_scale_prev = hr_scale
-                            hr_scale = 1.0
-                        else:
-                            hr_scale = hr_scale_prev
-
-                        if hr_scale == 1.0:
-                            osd(text="HR scale: off")
-                        else:
-                            osd(text=f"HR scale: {hr_scale}")
-
-                        update_size(hr_scale=hr_scale)
-
-                elif event.key in (pygame.K_KP_ENTER, pygame.K_RETURN):
-                    instant_render = True
-                    osd(text=f"Rendering")
-
-                elif event.key == pygame.K_q:
-                    instant_render = True
-                    quick_mode = not quick_mode
-                    if quick_mode:
-                        osd(text=f"Quick render: on")
-                        hr_scale_prev = hr_scale
-                        hr_scale = 1.0
-                    else:
-                        osd(text=f"Quick render: off")
-                        hr_scale = hr_scale_prev
-
-                    update_size(hr_scale=hr_scale)
-
-                elif event.key == pygame.K_o:
-                    if ctrl_down:
-                        load_file_dialog()
-
-                elif event.key == pygame.K_p:
-                    pause_render = not pause_render
-
-                    if pause_render:
-                        osd(text=f"On-demand rendering (ENTER to render)")
-                        continue  # skip auto render
-                    else:
-                        osd(text=f"Dynamic rendering")
-
-            elif event.type == pygame.FINGERUP:
+            if event.type == pygame.FINGERUP:
                 event.button = 1
                 event.pos = finger_pos(event.x, event.y)
 
@@ -991,10 +904,108 @@ while running:
                     brush_stroke(pos)  # do the brush stroke
 
         elif event.type == pygame.KEYDOWN:
-            need_redraw = True
-
             # Handle keyboard shortcuts
-            if event.key == pygame.K_BACKSPACE:
+            need_redraw = True
+            last_draw_time = time.time()
+            rendering = False
+
+            event.button = 1
+            if event.key == pygame.K_UP:
+                rendering = True
+                instant_render = True
+                seed = seed + 1
+                osd(text=f"Seed: {seed}")
+
+            elif event.key == pygame.K_DOWN:
+                rendering = True
+                instant_render = True
+                seed = seed - 1
+                osd(text=f"Seed: {seed}")
+
+            elif event.key == pygame.K_n:
+                rendering = True
+                instant_render = True
+                new_random_seed_for_payload()
+                osd(text=f"Seed: {seed}")
+
+            elif event.key == pygame.K_c:
+                rendering = True
+
+                clip_skip -= 1
+                clip_skip = (clip_skip + 1) % 2
+                clip_skip += 1
+                osd(text=f"CLIP skip: {clip_skip}")
+
+            elif event.key == pygame.K_m and controlnet_model:
+                rendering = True
+
+                controlnet_model = controlnet_models[(controlnet_models.index(controlnet_model) + 1) % len(controlnet_models)]
+                osd(text=f"ControlNet model: {controlnet_model}")
+
+            elif event.key == pygame.K_h:
+                if shift_down:
+                    hr_scale = hr_scales[(hr_scales.index(hr_scale)+1) % len(hr_scales)]
+
+                    if hr_scale == 1.0:
+                        osd(text="HR scale: off")
+                    else:
+                        osd(text=f"HR scale: {hr_scale}")
+
+                    update_size(hr_scale=hr_scale)
+
+                else:
+                    rendering = True
+
+                    if hr_scale != 1.0:
+                        hr_scale_prev = hr_scale
+                        hr_scale = 1.0
+                    else:
+                        hr_scale = hr_scale_prev
+
+                    if hr_scale == 1.0:
+                        osd(text="HR scale: off")
+                    else:
+                        osd(text=f"HR scale: {hr_scale}")
+
+                    update_size(hr_scale=hr_scale)
+
+            elif event.key in (pygame.K_KP_ENTER, pygame.K_RETURN):
+                rendering = True
+                instant_render = True
+                osd(text=f"Rendering")
+
+            elif event.key == pygame.K_q:
+                rendering = True
+                instant_render = True
+                quick_mode = not quick_mode
+                if quick_mode:
+                    osd(text=f"Quick render: on")
+                    hr_scale_prev = hr_scale
+                    hr_scale = 1.0
+                else:
+                    osd(text=f"Quick render: off")
+                    hr_scale = hr_scale_prev
+
+                update_size(hr_scale=hr_scale)
+
+            elif event.key == pygame.K_o:
+                if ctrl_down:
+                    rendering = True
+                    instant_render = True
+                    load_file_dialog()
+
+            elif event.key == pygame.K_p:
+                pause_render = not pause_render
+
+                if pause_render:
+                    osd(text=f"On-demand rendering (ENTER to render)")
+
+                else:
+                    rendering = True
+                    instant_render = True
+                    osd(text=f"Dynamic rendering")
+
+            elif event.key == pygame.K_BACKSPACE:
                 pygame.draw.rect(canvas, (255, 255, 255), (width, 0, width, height))
 
             elif event.key == pygame.K_s:
@@ -1070,6 +1081,11 @@ while running:
                 running = False
                 pygame.quit()
                 exit(0)
+
+            # Call image render
+            if (rendering and not pause_render) or instant_render:
+                t = threading.Thread(target=render)
+                t.start()
 
         elif event.type == pygame.KEYUP:
             # Handle special keys release
