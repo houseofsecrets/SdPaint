@@ -96,7 +96,8 @@ controlnet_weight = controlnet_weights[0]
 controlnet_guidance_ends = config.get("controlnet_guidance_ends", [1.0, 0.2, 0.3])
 controlnet_guidance_end = controlnet_guidance_ends[0]
 
-preset_fields = config.get('preset_fields', ["hr_enabled", "hr_scale", "hr_upscaler", "denoising_strength", "controlnet_weight", "controlnet_guidance_end"])
+preset_fields = config.get('preset_fields', ["hr_enabled", "hr_scale", "hr_upscaler", "denoising_strength"])
+cn_preset_fields = config.get('cn_preset_fields', ["controlnet_model", "controlnet_weight", "controlnet_guidance_end"])
 
 main_json_data = {}
 quick_mode = False
@@ -296,9 +297,6 @@ brush_colors = {
 brush_pos = {1: None, 2: None, 'e': None}
 prev_pos = None
 prev_pos2 = None
-shift_down = False
-ctrl_down = False
-alt_down = False
 shift_pos = None
 eraser_down = False
 render_wait = 0.5 if not img2img else 0.0  # wait time max between 2 draw before launching the render
@@ -310,67 +308,94 @@ cursor_size = 1
 cursor_color = (0, 0, 0)
 
 
-def save_preset(index):
+def save_preset(preset_type, index):
     """
         Save the current rendering settings as preset.
+    :param str preset_type: The preset type. ``[render, controlnet]``
     :param int index: The preset numeric keymap.
-    :return: The preset values.
     """
     global presets
 
-    if index == 0:
-        if len(presets) == 0:
-            presets = [{}]
+    if presets.get(preset_type, None) is None:
+        presets[preset_type] = {}
 
-        presets[0] = {
-            'clip_skip':                    settings.get('override_settings', {}).get('CLIP_stop_at_last_layers', 1),
-            'hr_scale':                     config['hr_scales'][1] if settings.get('enable_hr', 'false') == 'true' else 1.0,
-            'hr_upscaler':                  config['hr_upscalers'][0],
-            'denoising_strength':           config['denoising_strengths'][0],
-            'controlnet_guidance_end':      config['controlnet_guidance_ends'][0],
-            'controlnet_weight':            config['controlnet_weights'][0],
-            'controlnet_model':             config['controlnet_models'][0],
-            'sampler':                      config['samplers'][0]
-        }
+    index = str(index)
+
+    if index == '0':
+        if preset_type == 'render':
+            presets[preset_type][index] = {
+                'clip_skip':                    settings.get('override_settings', {}).get('CLIP_stop_at_last_layers', 1),
+                'hr_scale':                     config['hr_scales'][1] if settings.get('enable_hr', 'false') == 'true' else 1.0,
+                'hr_upscaler':                  config['hr_upscalers'][0],
+                'denoising_strength':           config['denoising_strengths'][0],
+                'sampler':                      config['samplers'][0]
+            }
+        elif preset_type == 'controlnet':
+            presets[preset_type][index] = {
+                'controlnet_guidance_end':      config['controlnet_guidance_ends'][0],
+                'controlnet_weight':            config['controlnet_weights'][0],
+                'controlnet_model':             config['controlnet_models'][0]
+            }
     else:
-        # TODO
-        osd(text=f"Saved preset {index}")
+        if presets[preset_type].get(index, None) is None:
+            presets[preset_type][index] = {}
+
+        if preset_type == 'render':
+            presets[preset_type][index] = {
+                'clip_skip':                    clip_skip,
+                'hr_scale':                     hr_scale,
+                'hr_upscaler':                  hr_upscaler,
+                'denoising_strength':           denoising_strength,
+                'sampler':                      sampler
+            }
+        elif preset_type == 'controlnet':
+            presets[preset_type][index] = {
+                'controlnet_guidance_end':      controlnet_guidance_end,
+                'controlnet_weight':            controlnet_weight,
+                'controlnet_model':             controlnet_model
+            }
+
+        osd(text=f"Save {preset_type} preset {index}")
+
+    # print(f"Save {preset_type} preset {index}")
+    # print(presets[preset_type][index])
 
     with open(presets_file, 'w') as f:
         json.dump(presets, f, indent=4)
 
-    return presets[index]
 
-
-def load_preset(index):
+def load_preset(preset_type, index):
     """
         Load a preset values.
+    :param str preset_type: The preset type. ``[render, controlnet]``
     :param int index: The preset numeric keymap.
-
-    :return: The preset values, of ``None`` if not found.
     """
 
-    if index >= len(presets):
+    index = str(index)
+
+    if presets[preset_type].get(index, None) is None:
+        osd(text=f"No {preset_type} preset {index}")
         return None
 
-    preset = presets[index]
+    preset = presets[preset_type][index]
 
-    if index == 0:
-        osd(text=f"Loaded default settings")
+    if index == '0':
+        osd(text=f"Load default settings")
     else:
-        osd(text=f"Loaded preset {index}")
+        osd(text=f"Load {preset_type} preset {index}")
 
     # load preset
-    for preset_field in preset_fields:
+    print(f"Load {preset_type} preset {index}:")
+    for preset_field in (preset_fields if preset_type == 'render' else cn_preset_fields):
         globals()[preset_field] = preset[preset_field]
+        print(f"  {preset_field} = {preset[preset_field]}")
 
     update_size()
 
-    return preset
-
 
 # Init the default preset
-save_preset(0)
+save_preset('render', 0)
+save_preset('controlnet', 0)
 
 
 def load_filepath_into_canvas(file_path):
@@ -856,6 +881,18 @@ def brush_stroke(pos):
     prev_pos = event.pos
 
 
+def shift_down():
+    return pygame.key.get_mods() & pygame.KMOD_SHIFT
+
+
+def ctrl_down():
+    return pygame.key.get_mods() & pygame.KMOD_CTRL
+
+
+def alt_down():
+    return pygame.key.get_mods() & pygame.KMOD_ALT
+
+
 def controlnet_detect():
     """
         Call ControlNet active detector on the last rendered image, replace the canvas sketch by the detector result.
@@ -942,7 +979,7 @@ while running:
                 brush_size[2] = max(1, brush_size[2] - 1)
                 osd(text=f"Brush size {brush_size[1]}")
 
-            if shift_down and brush_pos[brush_key] is not None:
+            if shift_down() and brush_pos[brush_key] is not None:
                 if shift_pos is None:
                     shift_pos = brush_pos[brush_key]
                 else:
@@ -984,6 +1021,12 @@ while running:
                     brush_stroke(pos)  # do the brush stroke
 
         elif event.type == pygame.KEYDOWN:
+            # DBG key & modifiers
+            # print(f"key down {event.key}, modifiers:")
+            # print(f" shift:      {pygame.key.get_mods() & pygame.KMOD_SHIFT}")
+            # print(f" ctrl:       {pygame.key.get_mods() & pygame.KMOD_CTRL}")
+            # print(f" alt:        {pygame.key.get_mods() & pygame.KMOD_ALT}")
+
             # Handle keyboard shortcuts
             need_redraw = True
             last_draw_time = time.time()
@@ -1009,7 +1052,7 @@ while running:
                 osd(text=f"Seed: {seed}")
 
             elif event.key == pygame.K_c:
-                if shift_down:
+                if shift_down():
                     rendering_key = True
                     clip_skip -= 1
                     clip_skip = (clip_skip + 1) % 2
@@ -1017,13 +1060,13 @@ while running:
                     osd(text=f"CLIP skip: {clip_skip}")
 
             elif event.key == pygame.K_m and controlnet_model:
-                if shift_down:
+                if shift_down():
                     rendering_key = True
                     controlnet_model = controlnet_models[(controlnet_models.index(controlnet_model) + 1) % len(controlnet_models)]
                     osd(text=f"ControlNet model: {controlnet_model}")
 
             elif event.key == pygame.K_h:
-                if shift_down:
+                if shift_down():
                     rendering_key = True
                     hr_scale = hr_scales[(hr_scales.index(hr_scale)+1) % len(hr_scales)]
 
@@ -1070,19 +1113,39 @@ while running:
                 update_size(hr_scale=hr_scale)
 
             elif event.key == pygame.K_o:
-                if ctrl_down:
+                if ctrl_down():
                     rendering = True
                     instant_render = True
                     load_file_dialog()
 
-            elif event.key in (pygame.K_KP0,):
+            elif event.key in (pygame.K_KP0, pygame.K_KP1, pygame.K_KP2, pygame.K_KP3, pygame.K_KP4,
+                               pygame.K_KP5, pygame.K_KP6, pygame.K_KP7, pygame.K_KP8, pygame.K_KP9):
                 keymap = {
-                    pygame.K_KP0:   0
+                    pygame.K_KP0:   0,
+                    pygame.K_KP1:   1,
+                    pygame.K_KP2:   2,
+                    pygame.K_KP3:   3,
+                    pygame.K_KP4:   4,
+                    pygame.K_KP5:   5,
+                    pygame.K_KP6:   6,
+                    pygame.K_KP7:   7,
+                    pygame.K_KP8:   8,
+                    pygame.K_KP9:   9
                 }
 
-                rendering = True
-                instant_render = True
-                load_preset(keymap.get(event.key))
+                if ctrl_down():
+                    if event.key != pygame.K_KP0:
+                        save_preset('controlnet' if alt_down() else 'render', keymap.get(event.key))
+                else:
+                    rendering = True
+                    instant_render = True
+
+                    if event.key == pygame.K_KP0:
+                        # Reset both render & controlnet settings if keypad 0
+                        load_preset('render', keymap.get(event.key))
+                        load_preset('controlnet', keymap.get(event.key))
+                    else:
+                        load_preset('controlnet' if alt_down() else 'render', keymap.get(event.key))
 
             elif event.key == pygame.K_p:
                 pause_render = not pause_render
@@ -1099,9 +1162,9 @@ while running:
                 pygame.draw.rect(canvas, (255, 255, 255), (width, 0, width, height))
 
             elif event.key == pygame.K_s:
-                if ctrl_down:
+                if ctrl_down():
                     save_file_dialog()
-                elif shift_down:
+                elif shift_down():
                     rendering_key = True
                     sampler = samplers[(samplers.index(sampler) + 1) % len(samplers)]
                     osd(text=f"Sampler: {sampler}")
@@ -1118,32 +1181,32 @@ while running:
                     osd(text=f"Render wait: {render_wait}s")
 
             elif event.key == pygame.K_u:
-                if shift_down:
+                if shift_down():
                     rendering_key = True
                     hr_upscaler = hr_upscalers[(hr_upscalers.index(hr_upscaler) + 1) % len(hr_upscalers)]
                     osd(text=f"HR upscaler: {hr_upscaler}")
 
             elif event.key == pygame.K_w:
-                if shift_down:
+                if shift_down():
                     rendering_key = True
                     controlnet_weight = controlnet_weights[(controlnet_weights.index(controlnet_weight) + 1) % len(controlnet_weights)]
                     osd(text=f"ControlNet weight: {controlnet_weight}")
 
             elif event.key == pygame.K_g:
-                if shift_down:
+                if shift_down():
                     rendering_key = True
                     controlnet_guidance_end = controlnet_guidance_ends[(controlnet_guidance_ends.index(controlnet_guidance_end) + 1) % len(controlnet_guidance_ends)]
                     osd(text=f"ControlNet guidance end: {controlnet_guidance_end}")
 
             elif event.key == pygame.K_d:
-                if shift_down:
+                if shift_down():
                     rendering_key = True
                     denoising_strength = denoising_strengths[(denoising_strengths.index(denoising_strength) + 1) % len(denoising_strengths)]
                     if img2img:
                         osd(text=f"Denoising: {denoising_strength}")
                     else:
                         osd(text=f"HR denoising: {denoising_strength}")
-                elif ctrl_down:
+                elif ctrl_down():
                     osd(text=f"Detect {detector}")
 
                     t = threading.Thread(target=controlnet_detect())
@@ -1158,15 +1221,6 @@ while running:
                     screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
                 else:
                     screen = pygame.display.set_mode((width*2, height))
-
-            elif event.key in (pygame.K_LSHIFT, pygame.K_RSHIFT):
-                shift_down = True
-
-            elif event.key in (pygame.K_LCTRL, pygame.K_RCTRL):
-                ctrl_down = True
-
-            elif event.key in (pygame.K_LALT, pygame.K_RALT):
-                alt_down = True
 
             elif event.key in (pygame.K_ESCAPE, pygame.K_x):
                 running = False
@@ -1183,14 +1237,7 @@ while running:
                 if rendering_key:
                     rendering = True
                     rendering_key = False
-                shift_down = False
                 shift_pos = None
-
-            elif event.key in (pygame.K_LCTRL, pygame.K_RCTRL):
-                ctrl_down = False
-
-            elif event.key in (pygame.K_LALT, pygame.K_RALT):
-                alt_down = False
 
     # Call image render
     if (rendering and not pause_render) or instant_render:
