@@ -87,6 +87,12 @@ denoising_strength = denoising_strengths[0]
 samplers = config.get("samplers", ["DDIM"])
 sampler = samplers[0]
 
+controlnet_weights = config.get("controlnet_weights", [0.6, 1.0, 1.6])
+controlnet_weight = controlnet_weights[0]
+
+controlnet_guidance_ends = config.get("controlnet_guidance_ends", [1.0, 0.2, 0.3])
+controlnet_guidance_end = controlnet_guidance_ends[0]
+
 main_json_data = {}
 quick_mode = False
 server_busy = False
@@ -532,10 +538,10 @@ def osd(**kwargs):
 
     global progress, need_redraw
 
-    progress = kwargs.get('progress', progress)
-    text = kwargs.get('text', osd_text)
-    text_time = kwargs.get('text_time', 2.0)
-    need_redraw = kwargs.get('need_redraw', need_redraw)
+    progress = kwargs.get('progress', progress)  # type: float
+    text = kwargs.get('text', osd_text)  # type: str
+    text_time = kwargs.get('text_time', 2.0)  # type: float
+    need_redraw = kwargs.get('need_redraw', need_redraw)  # type: bool
 
     if progress is not None and progress > 0.01:
         need_redraw = True
@@ -564,14 +570,17 @@ def osd(**kwargs):
             osd_text_display_start = time.time()
         osd_text = text
 
-        need_redraw = True
-        text_surface = font.render(text, True, (0, 0, 0))
-        screen.blit(text_surface, pygame.Rect(osd_text_pos[0]+1, osd_text_pos[1]+1 + osd_text_offset, osd_size[0], osd_size[1]))
-        screen.blit(text_surface, pygame.Rect(osd_text_pos[0]+1, osd_text_pos[1]-1 + osd_text_offset, osd_size[0], osd_size[1]))
-        screen.blit(text_surface, pygame.Rect(osd_text_pos[0]-1, osd_text_pos[1]+1 + osd_text_offset, osd_size[0], osd_size[1]))
-        screen.blit(text_surface, pygame.Rect(osd_text_pos[0]-1, osd_text_pos[1]-1 + osd_text_offset, osd_size[0], osd_size[1]))
-        text_surface = font.render(text, True, (255, 255, 255))
-        screen.blit(text_surface, pygame.Rect(osd_text_pos[0], osd_text_pos[1] + osd_text_offset, osd_size[0], osd_size[1]))
+        for line in osd_text.split('\n'):
+            need_redraw = True
+            text_surface = font.render(line, True, (0, 0, 0))
+            screen.blit(text_surface, pygame.Rect(osd_text_pos[0]+1, osd_text_pos[1]+1 + osd_text_offset, osd_size[0], osd_size[1]))
+            screen.blit(text_surface, pygame.Rect(osd_text_pos[0]+1, osd_text_pos[1]-1 + osd_text_offset, osd_size[0], osd_size[1]))
+            screen.blit(text_surface, pygame.Rect(osd_text_pos[0]-1, osd_text_pos[1]+1 + osd_text_offset, osd_size[0], osd_size[1]))
+            screen.blit(text_surface, pygame.Rect(osd_text_pos[0]-1, osd_text_pos[1]-1 + osd_text_offset, osd_size[0], osd_size[1]))
+            text_surface = font.render(line, True, (255, 255, 255))
+            screen.blit(text_surface, pygame.Rect(osd_text_pos[0], osd_text_pos[1] + osd_text_offset, osd_size[0], osd_size[1]))
+
+            osd_text_offset += osd_size[1]
 
         if time.time() - osd_text_display_start > text_time:
             osd_text = None
@@ -609,6 +618,10 @@ def payload_submit():
 
     json_data['controlnet_units'][0]['input_image'] = data
     json_data['controlnet_units'][0]['model'] = controlnet_model
+    json_data['controlnet_units'][0]['weight'] = controlnet_weight
+    if json_data['controlnet_units'][0].get('guidance_start', None) is None:
+        json_data['controlnet_units'][0]['guidance_start'] = 0.0
+    json_data['controlnet_units'][0]['guidance_end'] = controlnet_guidance_end
     json_data['hr_second_pass_steps'] = max(8, math.floor(json_data['steps'] * denoising_strength))  # at least 8 steps
 
     if hr_scale > 1.0:
@@ -1006,6 +1019,16 @@ while running:
                 if shift_down:
                     hr_upscaler = hr_upscalers[(hr_upscalers.index(hr_upscaler) + 1) % len(hr_upscalers)]
                     osd(text=f"HR upscaler: {hr_upscaler}")
+
+            elif event.key == pygame.K_w:
+                if shift_down:
+                    controlnet_weight = controlnet_weights[(controlnet_weights.index(controlnet_weight) + 1) % len(controlnet_weights)]
+                    osd(text=f"ControlNet weight: {controlnet_weight}")
+
+            elif event.key == pygame.K_g:
+                if shift_down:
+                    controlnet_guidance_end = controlnet_guidance_ends[(controlnet_guidance_ends.index(controlnet_guidance_end) + 1) % len(controlnet_guidance_ends)]
+                    osd(text=f"ControlNet guidance end: {controlnet_guidance_end}")
 
             elif event.key == pygame.K_d:
                 if shift_down:
