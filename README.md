@@ -31,6 +31,11 @@ the canvas when the image is generated.
 | `shift+m`             | Cycle ControlNel models                                    |
 | `shift+w`             | Cycle ControlNel weights                                   |
 | `shift+g`             | Cycle ControlNel guidance ends                             |
+| `keypad 0`            | Restore starting settings                                  |
+| `keypad 1-9`          | Load custom rendering preset                               |
+| `ctrl+keypad 1-9`     | Save custom rendering preset                               |
+| `alt+keypad 1-9`      | Load custom ControlNet preset                              |
+| `ctrl+alt+keypad 1-9` | Save custom ControlNet preset                              |
 | `x` or `ESC`          | Quit                                                       |
 
 ## Installation
@@ -104,6 +109,16 @@ The default detectors are:
 - Scribble (pidinet)
 
 You can find the full list of supported modules with this URL http://127.0.0.1:7860/controlnet/module_list .
+
+### Custom presets
+
+You can save the current rendering settings by using `ctrl` + `keypad 1-9`, and the current ControlNet settings by using 
+`ctrl` + `alt` + `keypad 1-9`. Those presets persist in a local `presets.json` file and are available even after the application
+is restarted.
+
+You can load rendering settings with `keypad 1-9`, and ControlNet settings with `alt` + `keypad 1-9`. Not all the saved fields
+are applied by default : the settings that are applied are determined respectively by the `preset_fields` and `cn_preset_fields` entries of the `config.json` file. For example, if you 
+want to also apply the sampler value of the preset on recall, add `'sampler'` to your `preset_fields` list.
 
 ## Img2img Experimental mode
 
