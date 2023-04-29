@@ -96,7 +96,7 @@ controlnet_weight = controlnet_weights[0]
 controlnet_guidance_ends = config.get("controlnet_guidance_ends", [1.0, 0.2, 0.3])
 controlnet_guidance_end = controlnet_guidance_ends[0]
 
-preset_fields = config.get('preset_fields', ["hr_enabled", "hr_scale", "hr_upscaler", "denoising_strength"])
+render_preset_fields = config.get('preset_fields', ["hr_enabled", "hr_scale", "hr_upscaler", "denoising_strength"])
 cn_preset_fields = config.get('cn_preset_fields', ["controlnet_model", "controlnet_weight", "controlnet_guidance_end"])
 
 main_json_data = {}
@@ -380,16 +380,21 @@ def load_preset(preset_type, index):
     preset = presets[preset_type][index]
 
     if index == '0':
-        osd(text=f"Load default settings")
+        text = f"Load default settings:"
+
+        if preset_type == 'controlnet':
+            # prepend OSD output with render preset values for default settings display (both called successively)
+            for preset_field in render_preset_fields:
+                text += f"\n  {preset_field[:1].upper()}{preset_field[1:].replace('_', ' ')}: {presets['render'][index][preset_field]}"
     else:
-        osd(text=f"Load {preset_type} preset {index}")
+        text = f"Load {preset_type} preset {index}:"
 
     # load preset
-    print(f"Load {preset_type} preset {index}:")
-    for preset_field in (preset_fields if preset_type == 'render' else cn_preset_fields):
+    for preset_field in (render_preset_fields if preset_type == 'render' else cn_preset_fields):
         globals()[preset_field] = preset[preset_field]
-        print(f"  {preset_field} = {preset[preset_field]}")
+        text += f"\n  {preset_field[:1].upper()}{preset_field[1:].replace('_', ' ')}: {preset[preset_field]}"
 
+    osd(text=text, text_time=4.0)
     update_size()
 
 
