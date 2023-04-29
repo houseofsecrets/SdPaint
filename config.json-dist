@@ -3,41 +3,41 @@
     "interface_height": 720,
     "url": "http://127.0.0.1:7860",
     "hr_scales": [
-    	1.25,
-    	1.5,
-    	2
+        1.25,
+        1.5,
+        2
     ],
     "hr_upscalers": [
-    	"Latent (bicubic)",
-    	"R-ESRGAN 4x+"
+        "Latent (bicubic)",
+        "R-ESRGAN 4x+"
     ],
     "denoising_strengths": [
-    	0.6,
-    	0.4,
-    	0.5
+        0.6,
+        0.4,
+        0.5
     ],
     "controlnet_guidance_ends": [
-    	1.0,
-    	0.2,
-    	0.3
+        1.0,
+        0.2,
+        0.3
     ],
     "controlnet_weights": [
-    	0.6,
-    	1.0,
-    	1.6
+        0.6,
+        1.0,
+        1.6
     ],
     "controlnet_models": [],
     "detectors": [
-    	"lineart",
-    	"lineart_coarse",
-    	"pidinet_sketch",
-    	"pidinet_scribble"
-	],
-	"samplers": [
-		"DPM++ 2M Karras",
-		"DDIM",
-		"Euler",
-		"Euler a",
-		"DPM++ SDE Karras"
-	]
+        "lineart",
+        "lineart_coarse",
+        "pidinet_sketch",
+        "pidinet_scribble"
+    ],
+    "samplers": [
+        "DPM++ 2M Karras",
+        "DDIM",
+        "Euler",
+        "Euler a",
+        "DPM++ SDE Karras"
+    ]
 }
