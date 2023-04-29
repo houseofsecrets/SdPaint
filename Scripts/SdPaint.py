@@ -25,37 +25,93 @@ import argparse
 pygame.init()
 clock = pygame.time.Clock()
 
+
+def load_config(config_file):
+    """
+            Update a local configuration file with missing settings from distribution file, if needed.
+    :param str config_file: The configuration file name.
+    :return: The configuration file content.
+    """
+
+    if not os.path.exists(config_file):
+        shutil.copy(f"{config_file}-dist", config_file)
+
+    with open(config_file, "r") as f:
+        config_content: dict = json.load(f)
+
+    with open(f"{config_file}-dist", "r") as f:
+        config_dist_content: dict = json.load(f)
+
+    # Update local config with new settings
+    if isinstance(config_content, dict):
+        if config_content.keys() != config_dist_content.keys():
+            config_dist_content.update(config_content)
+            config_content = config_dist_content
+
+            print(f"Updated {config_file} with new settings.")
+
+            with open(config_file, "w") as f:
+                json.dump(config_content, f, indent=4)
+
+    return config_content
+
+
 # Read JSON main configuration file
 config_file = "config.json"
-if not os.path.exists(config_file):
-    shutil.copy(f"{config_file}-dist", config_file)
+config = load_config(config_file)
 
-with open(config_file, "r") as f:
-    config = json.load(f)
+presets_file = "presets.json"
+presets = load_config(presets_file)
+
+settings = {}
 
 # Setup
 url = config.get('url', 'http://127.0.0.1:7860')
 
 ACCEPTED_FILE_TYPES = ["png", "jpg", "jpeg", "bmp"]
-ACCEPTED_KEYDOWN_EVENTS = (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_UP,
-                           pygame.K_DOWN, pygame.K_n, pygame.K_m,
-                           pygame.K_o, pygame.K_h, pygame.K_q, pygame.K_c)
 
 # Global variables
 img2img = None
 img2img_waiting = False
 img2img_time_prev = None
-hr_scale = 1.0
-hr_scale_prev = 1.0
-hr_scales = [1.0, 1.25, 1.5, 2.0]
+
+hr_scales = config.get("hr_scales", [1.0, 1.25, 1.5, 2.0])
+if 1.0 not in hr_scales:
+    hr_scales.insert(0, 1.0)
+hr_scale = hr_scales[0]
+hr_scale_prev = hr_scales[1]
+
+hr_upscalers = config.get("hr_upscalers", ['Latent (bicubic)'])
+hr_upscaler = hr_upscalers[0]
+
+denoising_strengths = config.get("denoising_strengths", [0.6])
+denoising_strength = denoising_strengths[0]
+
+samplers = config.get("samplers", ["DDIM"])
+sampler = samplers[0]
+
+controlnet_weights = config.get("controlnet_weights", [0.6, 1.0, 1.6])
+controlnet_weight = controlnet_weights[0]
+
+controlnet_guidance_ends = config.get("controlnet_guidance_ends", [1.0, 0.2, 0.3])
+controlnet_guidance_end = controlnet_guidance_ends[0]
+
+render_preset_fields = config.get('preset_fields', ["hr_enabled", "hr_scale", "hr_upscaler", "denoising_strength"])
+cn_preset_fields = config.get('cn_preset_fields', ["controlnet_model", "controlnet_weight", "controlnet_guidance_end"])
+
 main_json_data = {}
 quick_mode = False
 server_busy = False
+rendering = False
+rendering_key = False
 instant_render = False
+pause_render = False
 progress = 0.0
 controlnet_models: list[str] = config.get("controlnet_models", [])
+
 detectors = config.get('detectors', ('lineart',))
 detector = detectors[0]
+
 last_detect_time = time.time()
 osd_text = None
 osd_text_display_start = None
@@ -102,18 +158,12 @@ def update_size_thread(**kwargs):
     if interface_width != init_width * (1 if img2img else 2) or interface_height != init_height:
         soft_upscale = min(config['interface_width'] / init_width, config['interface_height'] / init_height)
 
-    if settings.get('enable_hr', 'false') == 'true':
-        if kwargs.get('hr_scale', None) is not None:
-            hr_scale = kwargs.get('hr_scale')
-        else:
-            hr_scale = settings.get('hr_scale', 1.0)
-        soft_upscale = soft_upscale / hr_scale
-        width = math.floor(init_width * hr_scale)
-        height = math.floor(init_height * hr_scale)
-    else:
-        width = init_width * 1.0
-        height = init_height * 1.0
-        hr_scale = 1.0
+    if kwargs.get('hr_scale', None) is not None:
+        hr_scale = kwargs.get('hr_scale')
+
+    soft_upscale = soft_upscale / hr_scale
+    width = math.floor(init_width * hr_scale)
+    height = math.floor(init_height * hr_scale)
 
     width = math.floor(width * soft_upscale)
     height = math.floor(height * soft_upscale)
@@ -180,28 +230,27 @@ json_file = "controlnet.json"
 if img2img:
     json_file = "img2img.json"
 
-if not os.path.exists(json_file):
-    shutil.copy(f"{json_file}-dist", json_file)
+settings = load_config(json_file)
 
-with open(json_file, "r") as f:
-    settings = json.load(f)
+seed = settings.get('seed', 3456456767)
+if settings.get('override_settings', None) is not None and settings['override_settings'].get('CLIP_stop_at_last_layers', None) is not None:
+    clip_skip = settings['override_settings']['CLIP_stop_at_last_layers']
 
-    seed = settings.get('seed', 3456456767)
-    if settings.get('override_settings', None) is not None and settings['override_settings'].get('CLIP_stop_at_last_layers', None) is not None:
-        clip_skip = settings['override_settings']['CLIP_stop_at_last_layers']
+if settings.get('enable_hr', 'false') == 'true':
+    hr_scale = hr_scales[1]
 
-    width = settings.get('width', 512)
-    height = settings.get('height', 512)
-    init_width = width * 1.0
-    init_height = height * 1.0
-    soft_upscale = 1.0
-    if settings.get("controlnet_units", None) and settings.get("controlnet_units")[0].get('model', None):
-        controlnet_model = settings.get("controlnet_units")[0]["model"]
-    elif controlnet_models:
-        controlnet_model = controlnet_models[0]
-    else:
-        controlnet_model = None
-    update_size()
+width = settings.get('width', 512)
+height = settings.get('height', 512)
+init_width = width * 1.0
+init_height = height * 1.0
+soft_upscale = 1.0
+if settings.get("controlnet_units", None) and settings.get("controlnet_units")[0].get('model', None):
+    controlnet_model = settings.get("controlnet_units")[0]["model"]
+elif controlnet_models:
+    controlnet_model = controlnet_models[0]
+else:
+    controlnet_model = None
+update_size()
 
 if controlnet_model and settings.get("controlnet_units", None) and not settings.get("controlnet_units")[0].get('model', None):
     settings['controlnet_units'][0]['model'] = controlnet_model
@@ -248,7 +297,6 @@ brush_colors = {
 brush_pos = {1: None, 2: None, 'e': None}
 prev_pos = None
 prev_pos2 = None
-shift_down = False
 shift_pos = None
 eraser_down = False
 render_wait = 0.5 if not img2img else 0.0  # wait time max between 2 draw before launching the render
@@ -258,6 +306,101 @@ last_render_bytes: io.BytesIO = None
 # Define the cursor size and color
 cursor_size = 1
 cursor_color = (0, 0, 0)
+
+
+def save_preset(preset_type, index):
+    """
+        Save the current rendering settings as preset.
+    :param str preset_type: The preset type. ``[render, controlnet]``
+    :param int index: The preset numeric keymap.
+    """
+    global presets
+
+    if presets.get(preset_type, None) is None:
+        presets[preset_type] = {}
+
+    index = str(index)
+
+    if index == '0':
+        if preset_type == 'render':
+            presets[preset_type][index] = {
+                'clip_skip':                    settings.get('override_settings', {}).get('CLIP_stop_at_last_layers', 1),
+                'hr_scale':                     config['hr_scales'][1] if settings.get('enable_hr', 'false') == 'true' else 1.0,
+                'hr_upscaler':                  config['hr_upscalers'][0],
+                'denoising_strength':           config['denoising_strengths'][0],
+                'sampler':                      config['samplers'][0]
+            }
+        elif preset_type == 'controlnet':
+            presets[preset_type][index] = {
+                'controlnet_weight':            config['controlnet_weights'][0],
+                'controlnet_guidance_end':      config['controlnet_guidance_ends'][0],
+                'controlnet_model':             config['controlnet_models'][0]
+            }
+    else:
+        if presets[preset_type].get(index, None) is None:
+            presets[preset_type][index] = {}
+
+        if preset_type == 'render':
+            presets[preset_type][index] = {
+                'clip_skip':                    clip_skip,
+                'hr_scale':                     hr_scale,
+                'hr_upscaler':                  hr_upscaler,
+                'denoising_strength':           denoising_strength,
+                'sampler':                      sampler
+            }
+        elif preset_type == 'controlnet':
+            presets[preset_type][index] = {
+                'controlnet_weight':            controlnet_weight,
+                'controlnet_guidance_end':      controlnet_guidance_end,
+                'controlnet_model':             controlnet_model
+            }
+
+        osd(text=f"Save {preset_type} preset {index}")
+
+    # print(f"Save {preset_type} preset {index}")
+    # print(presets[preset_type][index])
+
+    with open(presets_file, 'w') as f:
+        json.dump(presets, f, indent=4)
+
+
+def load_preset(preset_type, index):
+    """
+        Load a preset values.
+    :param str preset_type: The preset type. ``[render, controlnet]``
+    :param int index: The preset numeric keymap.
+    """
+
+    index = str(index)
+
+    if presets[preset_type].get(index, None) is None:
+        osd(text=f"No {preset_type} preset {index}")
+        return None
+
+    preset = presets[preset_type][index]
+
+    if index == '0':
+        text = f"Load default settings:"
+
+        if preset_type == 'controlnet':
+            # prepend OSD output with render preset values for default settings display (both called successively)
+            for preset_field in render_preset_fields:
+                text += f"\n  {preset_field[:1].upper()}{preset_field[1:].replace('_', ' ')}: {presets['render'][index][preset_field]}"
+    else:
+        text = f"Load {preset_type} preset {index}:"
+
+    # load preset
+    for preset_field in (render_preset_fields if preset_type == 'render' else cn_preset_fields):
+        globals()[preset_field] = preset[preset_field]
+        text += f"\n  {preset_field[:1].upper()}{preset_field[1:].replace('_', ' ')}: {preset[preset_field]}"
+
+    osd(text=text, text_time=4.0)
+    update_size()
+
+
+# Init the default preset
+save_preset('render', 0)
+save_preset('controlnet', 0)
 
 
 def load_filepath_into_canvas(file_path):
@@ -402,6 +545,9 @@ def img2img_submit(force=False):
         json_data['init_images'] = [data]
 
         json_data['seed'] = seed
+        json_data['denoising_strength'] = denoising_strength
+        json_data['sampler_name'] = sampler
+
         if json_data.get('override_settings', None) is None:
             json_data['override_settings'] = {}
 
@@ -486,16 +632,25 @@ def osd(**kwargs):
     # osd_pos = (width*(1 if img2img else 2) // 2 - osd_size [0] // 2, osd_margin)  # top center
     # osd_progress_pos = (width*(1 if img2img else 2) - osd_size[0] - osd_margin, height - osd_size[1] - osd_margin)  # bottom right
 
+    osd_dot_size = osd_size[1] // 2
+
     osd_text_pos = (width*(1 if img2img else 2) - width + osd_margin, osd_margin)  # bottom left of canvas
     # osd_text_pos = (width*(1 if img2img else 2) - width + osd_margin, height - osd_size[1] - osd_margin)  # bottom left of canvas
     osd_text_offset = 0
 
     global progress, need_redraw
 
-    progress = kwargs.get('progress', progress)
-    text = kwargs.get('text', osd_text)
-    text_time = kwargs.get('text_time', 2.0)
-    need_redraw = kwargs.get('need_redraw', need_redraw)
+    progress = kwargs.get('progress', progress)  # type: float
+    text = kwargs.get('text', osd_text)  # type: str
+    text_time = kwargs.get('text_time', 2.0)  # type: float
+    need_redraw = kwargs.get('need_redraw', need_redraw)  # type: bool
+
+    if rendering or text:
+        rendering_dot_surface = pygame.Surface(osd_size, pygame.SRCALPHA)
+
+        pygame.draw.circle(rendering_dot_surface, (0, 0, 0), (osd_dot_size + 2, osd_dot_size + 2), osd_dot_size - 2)
+        pygame.draw.circle(rendering_dot_surface, (0, 200, 160), (osd_dot_size, osd_dot_size), osd_dot_size - 2)
+        screen.blit(rendering_dot_surface, pygame.Rect(width*(1 if img2img else 2) - osd_dot_size * 2 - osd_margin, osd_margin - osd_dot_size // 2, osd_dot_size, osd_dot_size))
 
     if progress is not None and progress > 0.01:
         need_redraw = True
@@ -524,14 +679,17 @@ def osd(**kwargs):
             osd_text_display_start = time.time()
         osd_text = text
 
-        need_redraw = True
-        text_surface = font.render(text, True, (0, 0, 0))
-        screen.blit(text_surface, pygame.Rect(osd_text_pos[0]+1, osd_text_pos[1]+1 + osd_text_offset, osd_size[0], osd_size[1]))
-        screen.blit(text_surface, pygame.Rect(osd_text_pos[0]+1, osd_text_pos[1]-1 + osd_text_offset, osd_size[0], osd_size[1]))
-        screen.blit(text_surface, pygame.Rect(osd_text_pos[0]-1, osd_text_pos[1]+1 + osd_text_offset, osd_size[0], osd_size[1]))
-        screen.blit(text_surface, pygame.Rect(osd_text_pos[0]-1, osd_text_pos[1]-1 + osd_text_offset, osd_size[0], osd_size[1]))
-        text_surface = font.render(text, True, (255, 255, 255))
-        screen.blit(text_surface, pygame.Rect(osd_text_pos[0], osd_text_pos[1] + osd_text_offset, osd_size[0], osd_size[1]))
+        for line in osd_text.split('\n'):
+            need_redraw = True
+            text_surface = font.render(line, True, (0, 0, 0))
+            screen.blit(text_surface, pygame.Rect(osd_text_pos[0]+1, osd_text_pos[1]+1 + osd_text_offset, osd_size[0], osd_size[1]))
+            screen.blit(text_surface, pygame.Rect(osd_text_pos[0]+1, osd_text_pos[1]-1 + osd_text_offset, osd_size[0], osd_size[1]))
+            screen.blit(text_surface, pygame.Rect(osd_text_pos[0]-1, osd_text_pos[1]+1 + osd_text_offset, osd_size[0], osd_size[1]))
+            screen.blit(text_surface, pygame.Rect(osd_text_pos[0]-1, osd_text_pos[1]-1 + osd_text_offset, osd_size[0], osd_size[1]))
+            text_surface = font.render(line, True, (255, 255, 255))
+            screen.blit(text_surface, pygame.Rect(osd_text_pos[0], osd_text_pos[1] + osd_text_offset, osd_size[0], osd_size[1]))
+
+            osd_text_offset += osd_size[1]
 
         if time.time() - osd_text_display_start > text_time:
             osd_text = None
@@ -569,7 +727,11 @@ def payload_submit():
 
     json_data['controlnet_units'][0]['input_image'] = data
     json_data['controlnet_units'][0]['model'] = controlnet_model
-    json_data['hr_second_pass_steps'] = max(8, math.floor(json_data['steps'] * json_data['denoising_strength']))  # at least 8 steps
+    json_data['controlnet_units'][0]['weight'] = controlnet_weight
+    if json_data['controlnet_units'][0].get('guidance_start', None) is None:
+        json_data['controlnet_units'][0]['guidance_start'] = 0.0
+    json_data['controlnet_units'][0]['guidance_end'] = controlnet_guidance_end
+    json_data['hr_second_pass_steps'] = max(8, math.floor(json_data['steps'] * denoising_strength))  # at least 8 steps
 
     if hr_scale > 1.0:
         json_data['enable_hr'] = 'true'
@@ -578,6 +740,9 @@ def payload_submit():
 
     json_data['seed'] = seed
     json_data['hr_scale'] = hr_scale
+    json_data['hr_upscaler'] = hr_upscaler
+    json_data['denoising_strength'] = denoising_strength
+    json_data['sampler_name'] = sampler
 
     if json_data.get('override_settings', None) is None:
         json_data['override_settings'] = {}
@@ -721,6 +886,18 @@ def brush_stroke(pos):
     prev_pos = event.pos
 
 
+def shift_down():
+    return pygame.key.get_mods() & pygame.KMOD_SHIFT
+
+
+def ctrl_down():
+    return pygame.key.get_mods() & pygame.KMOD_CTRL
+
+
+def alt_down():
+    return pygame.key.get_mods() & pygame.KMOD_ALT
+
+
 def controlnet_detect():
     """
         Call ControlNet active detector on the last rendered image, replace the canvas sketch by the detector result.
@@ -775,6 +952,8 @@ if img2img:
 running = True
 need_redraw = True
 while running:
+    rendering = False
+
     # Handle events
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -805,79 +984,20 @@ while running:
                 brush_size[2] = max(1, brush_size[2] - 1)
                 osd(text=f"Brush size {brush_size[1]}")
 
-            if shift_down and brush_pos[brush_key] is not None:
+            if shift_down() and brush_pos[brush_key] is not None:
                 if shift_pos is None:
                     shift_pos = brush_pos[brush_key]
                 else:
                     pygame.draw.polygon(canvas, brush_colors[brush_key], [shift_pos, brush_pos[brush_key]], brush_size[brush_key] * 2)
                     shift_pos = brush_pos[brush_key]
 
-        elif event.type == pygame.MOUSEBUTTONUP or event.type == pygame.FINGERUP \
-            or (event.type == pygame.KEYDOWN and event.key in ACCEPTED_KEYDOWN_EVENTS):
-            # Handle brush stoke end, and rendering
+        elif event.type == pygame.MOUSEBUTTONUP or event.type == pygame.FINGERUP:
+            # Handle brush stoke end
             need_redraw = True
+            rendering = True
             last_draw_time = time.time()
 
-            # Handle keyboard rendering shortcuts
-            if event.type == pygame.KEYDOWN:
-                event.button = 1
-                if event.key == pygame.K_UP:
-                    instant_render = True
-                    seed = seed + 1
-                    osd(text=f"Seed: {seed}")
-
-                elif event.key == pygame.K_DOWN:
-                    instant_render = True
-                    seed = seed - 1
-                    osd(text=f"Seed: {seed}")
-
-                elif event.key == pygame.K_n:
-                    instant_render = True
-                    new_random_seed_for_payload()
-                    osd(text=f"Seed: {seed}")
-
-                elif event.key == pygame.K_c:
-                    clip_skip -= 1
-                    clip_skip = (clip_skip + 1) % 2
-                    clip_skip += 1
-                    osd(text=f"CLIP skip: {clip_skip}")
-
-                elif event.key == pygame.K_m and controlnet_model:
-                    controlnet_model = controlnet_models[(controlnet_models.index(controlnet_model) + 1) % len(controlnet_models)]
-                    osd(text=f"ControlNet model: {controlnet_model}")
-
-                elif event.key == pygame.K_h:
-                    hr_scale = hr_scales[(hr_scales.index(hr_scale)+1) % len(hr_scales)]
-
-                    if hr_scale == 1.0:
-                        osd(text="HR scale: off")
-                    else:
-                        osd(text=f"HR scale: {hr_scale}")
-
-                    update_size(hr_scale=hr_scale)
-
-                elif event.key in (pygame.K_KP_ENTER, pygame.K_RETURN):
-                    instant_render = True
-                    osd(text=f"Rendering")
-
-                elif event.key == pygame.K_q:
-                    instant_render = True
-                    quick_mode = not quick_mode
-                    if quick_mode:
-                        osd(text=f"Quick render: on")
-                        hr_scale_prev = hr_scale
-                        hr_scale = 1.0
-                    else:
-                        osd(text=f"Quick render: off")
-                        hr_scale = hr_scale_prev
-
-                    update_size(hr_scale=hr_scale)
-
-                elif event.key == pygame.K_o:
-                    load_file_dialog()
-                    continue
-
-            elif event.type == pygame.FINGERUP:
+            if event.type == pygame.FINGERUP:
                 event.button = 1
                 event.pos = finger_pos(event.x, event.y)
 
@@ -893,10 +1013,6 @@ while running:
                 prev_pos = None
                 brush_color = brush_colors[brush_key]
 
-                # Call image render
-                t = threading.Thread(target=render)
-                t.start()
-
         elif event.type == pygame.MOUSEMOTION or event.type == pygame.FINGERMOTION:
             # Handle drawing brush strokes
             need_redraw = True
@@ -910,26 +1026,156 @@ while running:
                     brush_stroke(pos)  # do the brush stroke
 
         elif event.type == pygame.KEYDOWN:
-            need_redraw = True
+            # DBG key & modifiers
+            # print(f"key down {event.key}, modifiers:")
+            # print(f" shift:      {pygame.key.get_mods() & pygame.KMOD_SHIFT}")
+            # print(f" ctrl:       {pygame.key.get_mods() & pygame.KMOD_CTRL}")
+            # print(f" alt:        {pygame.key.get_mods() & pygame.KMOD_ALT}")
 
             # Handle keyboard shortcuts
-            if event.key == pygame.K_BACKSPACE:
+            need_redraw = True
+            last_draw_time = time.time()
+            rendering = False
+
+            event.button = 1
+            if event.key == pygame.K_UP:
+                rendering = True
+                instant_render = True
+                seed = seed + 1
+                osd(text=f"Seed: {seed}")
+
+            elif event.key == pygame.K_DOWN:
+                rendering = True
+                instant_render = True
+                seed = seed - 1
+                osd(text=f"Seed: {seed}")
+
+            elif event.key == pygame.K_n:
+                rendering = True
+                instant_render = True
+                new_random_seed_for_payload()
+                osd(text=f"Seed: {seed}")
+
+            elif event.key == pygame.K_c:
+                if shift_down():
+                    rendering_key = True
+                    clip_skip -= 1
+                    clip_skip = (clip_skip + 1) % 2
+                    clip_skip += 1
+                    osd(text=f"CLIP skip: {clip_skip}")
+
+            elif event.key == pygame.K_m and controlnet_model:
+                if shift_down():
+                    rendering_key = True
+                    controlnet_model = controlnet_models[(controlnet_models.index(controlnet_model) + 1) % len(controlnet_models)]
+                    osd(text=f"ControlNet model: {controlnet_model}")
+
+            elif event.key == pygame.K_h:
+                if shift_down():
+                    rendering_key = True
+                    hr_scale = hr_scales[(hr_scales.index(hr_scale)+1) % len(hr_scales)]
+
+                    if hr_scale == 1.0:
+                        osd(text="HR scale: off")
+                    else:
+                        osd(text=f"HR scale: {hr_scale}")
+
+                    update_size(hr_scale=hr_scale)
+
+                else:
+                    rendering = True
+
+                    if hr_scale != 1.0:
+                        hr_scale_prev = hr_scale
+                        hr_scale = 1.0
+                    else:
+                        hr_scale = hr_scale_prev
+
+                    if hr_scale == 1.0:
+                        osd(text="HR scale: off")
+                    else:
+                        osd(text=f"HR scale: {hr_scale}")
+
+                    update_size(hr_scale=hr_scale)
+
+            elif event.key in (pygame.K_KP_ENTER, pygame.K_RETURN):
+                rendering = True
+                instant_render = True
+                osd(text=f"Rendering")
+
+            elif event.key == pygame.K_q:
+                rendering = True
+                instant_render = True
+                quick_mode = not quick_mode
+                if quick_mode:
+                    osd(text=f"Quick render: on")
+                    hr_scale_prev = hr_scale
+                    hr_scale = 1.0
+                else:
+                    osd(text=f"Quick render: off")
+                    hr_scale = hr_scale_prev
+
+                update_size(hr_scale=hr_scale)
+
+            elif event.key == pygame.K_o:
+                if ctrl_down():
+                    rendering = True
+                    instant_render = True
+                    load_file_dialog()
+
+            elif event.key in (pygame.K_KP0, pygame.K_KP1, pygame.K_KP2, pygame.K_KP3, pygame.K_KP4,
+                               pygame.K_KP5, pygame.K_KP6, pygame.K_KP7, pygame.K_KP8, pygame.K_KP9):
+                keymap = {
+                    pygame.K_KP0:   0,
+                    pygame.K_KP1:   1,
+                    pygame.K_KP2:   2,
+                    pygame.K_KP3:   3,
+                    pygame.K_KP4:   4,
+                    pygame.K_KP5:   5,
+                    pygame.K_KP6:   6,
+                    pygame.K_KP7:   7,
+                    pygame.K_KP8:   8,
+                    pygame.K_KP9:   9
+                }
+
+                if ctrl_down():
+                    if event.key != pygame.K_KP0:
+                        save_preset('controlnet' if alt_down() else 'render', keymap.get(event.key))
+                else:
+                    rendering = True
+                    instant_render = True
+
+                    if event.key == pygame.K_KP0:
+                        # Reset both render & controlnet settings if keypad 0
+                        load_preset('render', keymap.get(event.key))
+                        load_preset('controlnet', keymap.get(event.key))
+                    else:
+                        load_preset('controlnet' if alt_down() else 'render', keymap.get(event.key))
+
+            elif event.key == pygame.K_p:
+                pause_render = not pause_render
+
+                if pause_render:
+                    osd(text=f"On-demand rendering (ENTER to render)")
+
+                else:
+                    rendering = True
+                    instant_render = True
+                    osd(text=f"Dynamic rendering")
+
+            elif event.key == pygame.K_BACKSPACE:
                 pygame.draw.rect(canvas, (255, 255, 255), (width, 0, width, height))
 
             elif event.key == pygame.K_s:
-                save_file_dialog()
+                if ctrl_down():
+                    save_file_dialog()
+                elif shift_down():
+                    rendering_key = True
+                    sampler = samplers[(samplers.index(sampler) + 1) % len(samplers)]
+                    osd(text=f"Sampler: {sampler}")
 
             elif event.key == pygame.K_e:
                 eraser_down = True
-
-            elif event.key == pygame.K_d:
-                osd(text=f"Detect {detector}")
-
-                t = threading.Thread(target=controlnet_detect())
-                t.start()
-
-                # select next detector
-                detector = detectors[(detectors.index(detector)+1) % len(detectors)]
 
             elif event.key == pygame.K_t:
                 if render_wait == 2.0:
@@ -939,15 +1185,47 @@ while running:
                     render_wait += 0.5
                     osd(text=f"Render wait: {render_wait}s")
 
+            elif event.key == pygame.K_u:
+                if shift_down():
+                    rendering_key = True
+                    hr_upscaler = hr_upscalers[(hr_upscalers.index(hr_upscaler) + 1) % len(hr_upscalers)]
+                    osd(text=f"HR upscaler: {hr_upscaler}")
+
+            elif event.key == pygame.K_w:
+                if shift_down():
+                    rendering_key = True
+                    controlnet_weight = controlnet_weights[(controlnet_weights.index(controlnet_weight) + 1) % len(controlnet_weights)]
+                    osd(text=f"ControlNet weight: {controlnet_weight}")
+
+            elif event.key == pygame.K_g:
+                if shift_down():
+                    rendering_key = True
+                    controlnet_guidance_end = controlnet_guidance_ends[(controlnet_guidance_ends.index(controlnet_guidance_end) + 1) % len(controlnet_guidance_ends)]
+                    osd(text=f"ControlNet guidance end: {controlnet_guidance_end}")
+
+            elif event.key == pygame.K_d:
+                if shift_down():
+                    rendering_key = True
+                    denoising_strength = denoising_strengths[(denoising_strengths.index(denoising_strength) + 1) % len(denoising_strengths)]
+                    if img2img:
+                        osd(text=f"Denoising: {denoising_strength}")
+                    else:
+                        osd(text=f"HR denoising: {denoising_strength}")
+                elif ctrl_down():
+                    osd(text=f"Detect {detector}")
+
+                    t = threading.Thread(target=controlnet_detect())
+                    t.start()
+
+                    # select next detector
+                    detector = detectors[(detectors.index(detector)+1) % len(detectors)]
+
             elif event.key == pygame.K_f:
                 fullscreen = not fullscreen
                 if fullscreen:
                     screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
                 else:
                     screen = pygame.display.set_mode((width*2, height))
-
-            elif event.key in (pygame.K_LSHIFT, pygame.K_RSHIFT):
-                shift_down = True
 
             elif event.key in (pygame.K_ESCAPE, pygame.K_x):
                 running = False
@@ -961,8 +1239,15 @@ while running:
                 brush_pos['e'] = None
 
             elif event.key in (pygame.K_LSHIFT, pygame.K_RSHIFT):
-                shift_down = False
+                if rendering_key:
+                    rendering = True
+                    rendering_key = False
                 shift_pos = None
+
+    # Call image render
+    if (rendering and not pause_render) or instant_render:
+        t = threading.Thread(target=render)
+        t.start()
 
     # Draw the canvas and brushes on the screen
     screen.blit(canvas, (0, 0))

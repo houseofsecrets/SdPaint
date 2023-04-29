@@ -1,15 +1,13 @@
 {
     "prompt": "a castle",
     "negative_prompt": "(worst quality,low quality,bad quality,normal quality:1.2)",
-    "denoising_strength": 0.6,
     "seed": 42,
-    "sampler_name": "DDIM",
     "batch_size": 1,
     "steps": 16,
     "quick_steps": 12,
     "cfg_scale": 7,
-	"override_settings": {
-		"CLIP_stop_at_last_layers": 1
-	},
-	"override_settings_restore_afterwards": "true"
+    "override_settings": {
+        "CLIP_stop_at_last_layers": 1
+    },
+    "override_settings_restore_afterwards": "true"
 }
