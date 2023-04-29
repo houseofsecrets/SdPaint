@@ -945,7 +945,8 @@ while running:
                     update_size(hr_scale=hr_scale)
 
                 elif event.key == pygame.K_o:
-                    load_file_dialog()
+                    if ctrl_down:
+                        load_file_dialog()
 
                 elif event.key == pygame.K_p:
                     pause_render = not pause_render
@@ -955,7 +956,6 @@ while running:
                         continue  # skip auto render
                     else:
                         osd(text=f"Dynamic rendering")
-
 
             elif event.type == pygame.FINGERUP:
                 event.button = 1
@@ -1001,7 +1001,7 @@ while running:
                 if shift_down:
                     sampler = samplers[(samplers.index(sampler) + 1) % len(samplers)]
                     osd(text=f"Sampler: {sampler}")
-                else:
+                elif ctrl_down:
                     save_file_dialog()
 
             elif event.key == pygame.K_e:
