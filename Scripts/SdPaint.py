@@ -332,8 +332,8 @@ def save_preset(preset_type, index):
             }
         elif preset_type == 'controlnet':
             presets[preset_type][index] = {
-                'controlnet_guidance_end':      config['controlnet_guidance_ends'][0],
                 'controlnet_weight':            config['controlnet_weights'][0],
+                'controlnet_guidance_end':      config['controlnet_guidance_ends'][0],
                 'controlnet_model':             config['controlnet_models'][0]
             }
     else:
@@ -350,8 +350,8 @@ def save_preset(preset_type, index):
             }
         elif preset_type == 'controlnet':
             presets[preset_type][index] = {
-                'controlnet_guidance_end':      controlnet_guidance_end,
                 'controlnet_weight':            controlnet_weight,
+                'controlnet_guidance_end':      controlnet_guidance_end,
                 'controlnet_model':             controlnet_model
             }
 
