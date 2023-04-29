@@ -5,31 +5,33 @@ the canvas when the image is generated.
 
 ## Controls
 
-| Key / Mouse button    | Control                                     |
-|-----------------------|---------------------------------------------|
-| Left button           | Draw with the current brush size            |
-| Middle button         | Draw with a white color brush               |
-| `e` + Left button     | Eraser brush (bigger)                       |
-| Scroll up / down      | Increase / decrease brush size              |
-| `backspace`           | Erase the entire sketch                     |
-| `shift` + Left button | Draw a line between two clicks              |
-| `RETURN` or `ENTER`   | Force image rendering                       |
-| `t`                   | Cycle render wait time (+0.5s, or off)      |
-| `UP` / `DOWN`         | Increase / decrease seed by 1               |
-| `n`                   | Random seed value                           |
-| `s`                   | Save the current generated image            |
-| `shift+s`             | Cycle samplers                              |
-| `o`                   | Open an image file as sketch                |
-| `m`                   | Cycle ControlNel models                     |
-| `shift+d`             | Cycle denoising strengths                   |
-| `ctrl+d`              | Cycle ControlNet detectors, replace sketch  |
-| `h`                   | Toggle HR fix                               |
-| `shift+h`             | Cycle HR fix                                |
-| `shift+u`             | Cycle HR upscalers                          |
-| `p`                   | Pause dynamic rendering                     |
-| `q`                   | Toggle quick rendering : low steps & HR off |
-| `c`                   | Cycle CLIP skip settings                    |
-| `x` or `ESC`          | Quit                                        |
+| Key / Mouse button    | Control                                                    |
+|-----------------------|------------------------------------------------------------|
+| Left button           | Draw with the current brush size                           |
+| Middle button         | Draw with a white color brush                              |
+| `e` + Left button     | Eraser brush (bigger)                                      |
+| Scroll up / down      | Increase / decrease brush size                             |
+| `backspace`           | Erase the entire sketch                                    |
+| `shift` + Left button | Draw a line between two clicks                             |
+| `RETURN` or `ENTER`   | Force image rendering                                      |
+| `t`                   | Cycle render wait time (+0.5s, or off)                     |
+| `p`                   | Pause dynamic rendering                                    |
+| `q`                   | Toggle quick rendering : low steps & HR off                |
+| `n`                   | Random seed value                                          |
+| `UP` / `DOWN`         | Increase / decrease seed by 1                              |
+| `ctrl+s`              | Save the current generated image                           |
+| `ctrl+o`              | Open an image file as sketch                               |
+| `ctrl+d`              | Call ControlNet detector, cycle detectors (replace sketch) |
+| `h`                   | Toggle HR fix                                              |
+| `shift+h`             | Cycle HR fix scale                                         |
+| `shift+u`             | Cycle HR upscalers                                         |
+| `shift+d`             | Cycle denoising strengths                                  |
+| `shift+s`             | Cycle samplers                                             |
+| `shift+c`             | Cycle CLIP skip settings                                   |
+| `shift+m`             | Cycle ControlNel models                                    |
+| `shift+w`             | Cycle ControlNel weights                                   |
+| `shift+g`             | Cycle ControlNel guidance ends                             |
+| `x` or `ESC`          | Quit                                                       |
 
 ## Installation
 
@@ -49,7 +51,8 @@ On first launch of the Start file, the script will create the `config.json`, `co
 configuration files as needed. The ControlNet
 available models for scribble and lineart will be automatically fetched from your API and set in configuration.
 
-The `config.json` file handles global interface and script configuration. For these settings, the value used on application start is the
+The `config.json` file handles global interface and script configuration. For these settings, the value used on
+application start is the
 first value of each of those list:
 
 - `controlnet_models`
