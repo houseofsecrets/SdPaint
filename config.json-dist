@@ -2,6 +2,13 @@
     "interface_width": 1280,
     "interface_height": 720,
     "url": "http://127.0.0.1:7860",
+    "preset_fields": [
+        "hr_scale",
+        "hr_upscaler",
+        "denoising_strength",
+        "controlnet_weight",
+        "controlnet_guidance_end"
+    ],
     "hr_scales": [
         1.25,
         1.5,
@@ -16,15 +23,15 @@
         0.4,
         0.5
     ],
-    "controlnet_guidance_ends": [
-        1.0,
-        0.2,
-        0.3
-    ],
     "controlnet_weights": [
         0.6,
         1.0,
         1.6
+    ],
+    "controlnet_guidance_ends": [
+        1.0,
+        0.2,
+        0.3
     ],
     "controlnet_models": [],
     "detectors": [
