@@ -5,38 +5,39 @@ the canvas when the image is generated.
 
 ## Controls
 
-| Key / Mouse button    | Control                                                    |
-|-----------------------|------------------------------------------------------------|
-| Left button           | Draw with the current brush size                           |
-| Middle button         | Draw with a white color brush                              |
-| `e` + Left button     | Eraser brush (bigger)                                      |
-| Scroll up / down      | Increase / decrease brush size                             |
-| `backspace`           | Erase the entire sketch                                    |
-| `shift` + Left button | Draw a line between two clicks                             |
-| `RETURN` or `ENTER`   | Force image rendering                                      |
-| `t`                   | Cycle render wait time (+0.5s, or off)                     |
-| `p`                   | Pause dynamic rendering                                    |
-| `q`                   | Toggle quick rendering : low steps & HR off                |
-| `n`                   | Random seed value                                          |
-| `UP` / `DOWN`         | Increase / decrease seed by 1                              |
-| `ctrl+s`              | Save the current generated image                           |
-| `ctrl+o`              | Open an image file as sketch                               |
-| `ctrl+d`              | Call ControlNet detector, cycle detectors (replace sketch) |
-| `h`                   | Toggle HR fix                                              |
-| `shift+h`             | Cycle HR fix scale                                         |
-| `shift+u`             | Cycle HR upscalers                                         |
-| `shift+d`             | Cycle denoising strengths                                  |
-| `shift+s`             | Cycle samplers                                             |
-| `shift+c`             | Cycle CLIP skip settings                                   |
-| `shift+m`             | Cycle ControlNel models                                    |
-| `shift+w`             | Cycle ControlNel weights                                   |
-| `shift+g`             | Cycle ControlNel guidance ends                             |
-| `keypad 0`            | Restore starting settings                                  |
-| `keypad 1-9`          | Load custom rendering preset                               |
-| `ctrl+keypad 1-9`     | Save custom rendering preset                               |
-| `alt+keypad 1-9`      | Load custom ControlNet preset                              |
-| `ctrl+alt+keypad 1-9` | Save custom ControlNet preset                              |
-| `x` or `ESC`          | Quit                                                       |
+| Key / Mouse button            | Control                                                    |
+|-------------------------------|------------------------------------------------------------|
+| Left button                   | Draw with the current brush size                           |
+| Middle button                 | Draw with a white color brush                              |
+| `e` + Left button             | Eraser brush (bigger)                                      |
+| Scroll up / down              | Increase / decrease brush size                             |
+| `backspace`                   | Erase the entire sketch                                    |
+| `shift` + Left button         | Draw a line between two clicks                             |
+| `c`                           | Display current configuration while holding                |
+| `RETURN` or `ENTER`           | Force image rendering                                      |
+| `t`                           | Cycle render wait time (+0.5s, or off)                     |
+| `p`                           | Pause dynamic rendering                                    |
+| `q`                           | Toggle quick rendering : low steps & HR off                |
+| `n`                           | Random seed value                                          |
+| `UP` / `DOWN`                 | Increase / decrease seed by 1                              |
+| `ctrl`+ `s`                   | Save the current generated image                           |
+| `ctrl`+ `o`                   | Open an image file as sketch                               |
+| `ctrl`+ `d`                   | Call ControlNet detector, cycle detectors (replace sketch) |
+| `h`                           | Toggle HR fix                                              |
+| `shift` + `h`                 | Cycle HR fix scale                                         |
+| `shift` + `u`                 | Cycle HR upscalers                                         |
+| `shift` + `d`                 | Cycle denoising strengths                                  |
+| `shift` + `s`                 | Cycle samplers                                             |
+| `shift` + `c`                 | Cycle CLIP skip settings                                   |
+| `shift` + `m`                 | Cycle ControlNel models                                    |
+| `shift` + `w`                 | Cycle ControlNel weights                                   |
+| `shift` + `g`                 | Cycle ControlNel guidance ends                             |
+| `keypad 0`                    | Restore starting settings                                  |
+| `keypad 1-9`                  | Load custom rendering preset                               |
+| `ctrl` + `keypad 1-9`         | Save custom rendering preset                               |
+| `alt` + `keypad 1-9`          | Load custom ControlNet preset                              |
+| `ctrl` + `alt` + `keypad 1-9` | Save custom ControlNet preset                              |
+| `x` or `ESC`                  | Quit                                                       |
 
 ## Installation
 
@@ -112,12 +113,15 @@ You can find the full list of supported modules with this URL http://127.0.0.1:7
 
 ### Custom presets
 
-You can save the current rendering settings by using `ctrl` + `keypad 1-9`, and the current ControlNet settings by using 
-`ctrl` + `alt` + `keypad 1-9`. Those presets persist in a local `presets.json` file and are available even after the application
+You can save the current rendering settings by using `ctrl` + `keypad 1-9`, and the current ControlNet settings by using
+`ctrl` + `alt` + `keypad 1-9`. Those presets persist in a local `presets.json` file and are available even after the
+application
 is restarted.
 
-You can load rendering settings with `keypad 1-9`, and ControlNet settings with `alt` + `keypad 1-9`. Not all the saved fields
-are applied by default : the settings that are applied are determined respectively by the `preset_fields` and `cn_preset_fields` entries of the `config.json` file. For example, if you 
+You can load rendering settings with `keypad 1-9`, and ControlNet settings with `alt` + `keypad 1-9`. Not all the saved
+fields
+are applied by default : the settings that are applied are determined respectively by the `preset_fields`
+and `cn_preset_fields` entries of the `config.json` file. For example, if you
 want to also apply the sampler value of the preset on recall, add `'sampler'` to your `preset_fields` list.
 
 ## Img2img Experimental mode
