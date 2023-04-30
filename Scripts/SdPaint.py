@@ -781,6 +781,8 @@ def payload_submit():
     if json_data['controlnet_units'][0].get('guidance_start', None) is None:
         json_data['controlnet_units'][0]['guidance_start'] = 0.0
     json_data['controlnet_units'][0]['guidance_end'] = controlnet_guidance_end
+    json_data['controlnet_units'][0]['pixel_perfect'] = True
+
     json_data['hr_second_pass_steps'] = max(8, math.floor(json_data['steps'] * denoising_strength))  # at least 8 steps
 
     if hr_scale > 1.0:
@@ -847,6 +849,7 @@ def send_request():
         return_img = r['images'][0]
         update_image(return_img)
         r_info = json.loads(r['info'])
+        print(json.dumps(r_info, indent=4))
         return_prompt = r_info['prompt']
         return_seed = r_info['seed']
         global display_caption
