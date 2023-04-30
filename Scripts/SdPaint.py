@@ -106,6 +106,7 @@ rendering = False
 rendering_key = False
 instant_render = False
 pause_render = False
+osd_always_on_text: str|None = None
 progress = 0.0
 controlnet_models: list[str] = config.get("controlnet_models", [])
 
@@ -385,14 +386,14 @@ def load_preset(preset_type, index):
         if preset_type == 'controlnet':
             # prepend OSD output with render preset values for default settings display (both called successively)
             for preset_field in render_preset_fields:
-                text += f"\n  {preset_field[:1].upper()}{preset_field[1:].replace('_', ' ')}: {presets['render'][index][preset_field]}"
+                text += f"\n  {preset_field[:1].upper()}{preset_field[1:].replace('_', ' ')} : {presets['render'][index][preset_field]}"
     else:
         text = f"Load {preset_type} preset {index}:"
 
     # load preset
     for preset_field in (render_preset_fields if preset_type == 'render' else cn_preset_fields):
         globals()[preset_field] = preset[preset_field]
-        text += f"\n  {preset_field[:1].upper()}{preset_field[1:].replace('_', ' ')}: {preset[preset_field]}"
+        text += f"\n  {preset_field[:1].upper()}{preset_field[1:].replace('_', ' ')} : {preset[preset_field]}"
 
     osd(text=text, text_time=4.0)
     update_size()
@@ -633,24 +634,27 @@ def osd(**kwargs):
     # osd_progress_pos = (width*(1 if img2img else 2) - osd_size[0] - osd_margin, height - osd_size[1] - osd_margin)  # bottom right
 
     osd_dot_size = osd_size[1] // 2
+    # osd_dot_pos = (width*(0 if img2img else 1) + osd_margin, osd_margin, osd_dot_size, osd_dot_size)  # top left
+    osd_dot_pos = (width*(1 if img2img else 2) - osd_dot_size * 2 - osd_margin, osd_margin, osd_dot_size, osd_dot_size)  # top right
 
-    osd_text_pos = (width*(1 if img2img else 2) - width + osd_margin, osd_margin)  # bottom left of canvas
-    # osd_text_pos = (width*(1 if img2img else 2) - width + osd_margin, height - osd_size[1] - osd_margin)  # bottom left of canvas
+    osd_text_pos = (width*(0 if img2img else 1) + osd_margin, osd_margin)  # top left of canvas
+    # osd_text_pos = (width*(0 if img2img else 1) + osd_margin, height - osd_size[1] - osd_margin)  # bottom left of canvas
     osd_text_offset = 0
 
-    global progress, need_redraw
+    global progress, need_redraw, osd_always_on_text
 
     progress = kwargs.get('progress', progress)  # type: float
     text = kwargs.get('text', osd_text)  # type: str
     text_time = kwargs.get('text_time', 2.0)  # type: float
     need_redraw = kwargs.get('need_redraw', need_redraw)  # type: bool
+    osd_always_on_text = kwargs.get('always_on', osd_always_on_text)
 
-    if rendering or text:
+    if rendering or (server_busy and progress < 0.02):
         rendering_dot_surface = pygame.Surface(osd_size, pygame.SRCALPHA)
 
         pygame.draw.circle(rendering_dot_surface, (0, 0, 0), (osd_dot_size + 2, osd_dot_size + 2), osd_dot_size - 2)
         pygame.draw.circle(rendering_dot_surface, (0, 200, 160), (osd_dot_size, osd_dot_size), osd_dot_size - 2)
-        screen.blit(rendering_dot_surface, pygame.Rect(width*(1 if img2img else 2) - osd_dot_size * 2 - osd_margin, osd_margin - osd_dot_size // 2, osd_dot_size, osd_dot_size))
+        screen.blit(rendering_dot_surface, osd_dot_pos)
 
     if progress is not None and progress > 0.01:
         need_redraw = True
@@ -673,7 +677,25 @@ def osd(**kwargs):
 
         osd_text_offset = osd_size[1] + osd_margin
 
+    if osd_always_on_text:
+        need_redraw = True
+
+        # OSD always-on text
+        for line in osd_always_on_text.split('\n'):
+            need_redraw = True
+            text_surface = font.render(line, True, (0, 0, 0))
+            screen.blit(text_surface, pygame.Rect(osd_text_pos[0]+1, osd_text_pos[1]+1 + osd_text_offset, osd_size[0], osd_size[1]))
+            screen.blit(text_surface, pygame.Rect(osd_text_pos[0]+1, osd_text_pos[1]-1 + osd_text_offset, osd_size[0], osd_size[1]))
+            screen.blit(text_surface, pygame.Rect(osd_text_pos[0]-1, osd_text_pos[1]+1 + osd_text_offset, osd_size[0], osd_size[1]))
+            screen.blit(text_surface, pygame.Rect(osd_text_pos[0]-1, osd_text_pos[1]-1 + osd_text_offset, osd_size[0], osd_size[1]))
+            text_surface = font.render(line, True, (255, 255, 255))
+            screen.blit(text_surface, pygame.Rect(osd_text_pos[0], osd_text_pos[1] + osd_text_offset, osd_size[0], osd_size[1]))
+
+            osd_text_offset += osd_size[1]
+
     if text:
+        need_redraw = True
+
         # OSD text
         if osd_text_display_start is None or text != osd_text:
             osd_text_display_start = time.time()
@@ -943,6 +965,54 @@ def controlnet_detect():
         osd(text=f"Error code returned: HTTP {response.status_code}")
 
 
+def display_configuration():
+    fields = [
+        '--Prompt',
+        'settings.prompt',
+        'settings.negative_prompt',
+        'seed',
+        '--Render',
+        'settings.steps',
+        'settings.cfg_scale',
+        'hr_scale',
+        'hr_upscaler',
+        'denoising_strength',
+        'clip_skip',
+        '--ControlNet',
+        'controlnet_model',
+        'controlnet_weight',
+        'controlnet_guidance_end'
+    ]
+
+    text = ''
+
+    for field in fields:
+        if field == 'settings.steps' and quick_mode:
+            field = 'settings.quick_steps'
+
+        if field.startswith('--'):
+            text += '\n'+field[2:]
+        elif '.' in field:
+            field = field.split('.')
+            var = globals().get(field[0], None)
+            if var is None:
+                continue
+
+            if isinstance(var, dict) and var.get(field[1], None):
+                text += f"    {field[1].replace('_', ' ')} : {var.get(field[1])}"
+            elif (isinstance(var, list) or isinstance(var, tuple)) and field[1].isnumeric() and int(field[1]) < len(var):
+                text += f"    {field[0].replace('_', ' ')} : {var[int(field[1])]}"
+            elif getattr(var, field[1], None):
+                text += f"    {field[1].replace('_', ' ')} : {getattr(var, field[1])}"
+        else:
+            if globals().get(field, None):
+                text += f"    {field.replace('_', ' ')} : {globals().get(field)}"
+
+        text += '\n'
+
+    osd(always_on=text.strip('\n'))
+
+
 # Initial img2img call
 if img2img:
     t = threading.Thread(target=img2img_submit)
@@ -1063,6 +1133,8 @@ while running:
                     clip_skip = (clip_skip + 1) % 2
                     clip_skip += 1
                     osd(text=f"CLIP skip: {clip_skip}")
+                else:
+                    display_configuration()
 
             elif event.key == pygame.K_m and controlnet_model:
                 if shift_down():
@@ -1243,6 +1315,11 @@ while running:
                     rendering = True
                     rendering_key = False
                 shift_pos = None
+
+            elif event.key in (pygame.K_c,):
+                # Remove OSD always-on text
+                need_redraw = True
+                osd(always_on=None)
 
     # Call image render
     if (rendering and not pause_render) or instant_render:
