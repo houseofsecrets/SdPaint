@@ -849,7 +849,6 @@ def send_request():
         return_img = r['images'][0]
         update_image(return_img)
         r_info = json.loads(r['info'])
-        print(json.dumps(r_info, indent=4))
         return_prompt = r_info['prompt']
         return_seed = r_info['seed']
         global display_caption
