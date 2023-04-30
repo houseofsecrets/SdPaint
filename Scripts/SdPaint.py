@@ -106,6 +106,7 @@ rendering = False
 rendering_key = False
 instant_render = False
 pause_render = False
+osd_always_on_text: str|None = None
 progress = 0.0
 controlnet_models: list[str] = config.get("controlnet_models", [])
 
@@ -385,14 +386,14 @@ def load_preset(preset_type, index):
         if preset_type == 'controlnet':
             # prepend OSD output with render preset values for default settings display (both called successively)
             for preset_field in render_preset_fields:
-                text += f"\n  {preset_field[:1].upper()}{preset_field[1:].replace('_', ' ')}: {presets['render'][index][preset_field]}"
+                text += f"\n  {preset_field[:1].upper()}{preset_field[1:].replace('_', ' ')} :: {presets['render'][index][preset_field]}"
     else:
         text = f"Load {preset_type} preset {index}:"
 
     # load preset
     for preset_field in (render_preset_fields if preset_type == 'render' else cn_preset_fields):
         globals()[preset_field] = preset[preset_field]
-        text += f"\n  {preset_field[:1].upper()}{preset_field[1:].replace('_', ' ')}: {preset[preset_field]}"
+        text += f"\n  {preset_field[:1].upper()}{preset_field[1:].replace('_', ' ')} :: {preset[preset_field]}"
 
     osd(text=text, text_time=4.0)
     update_size()
@@ -617,6 +618,30 @@ def progress_bar():
         progress_bar()
 
 
+def draw_osd_text(text, rect, color=(255, 255, 255), shadow_color=(0, 0, 0), distance=1, right_align=False):
+    """
+        Draw OSD text with outline.
+    :param str text: The text to draw.
+    :param list[int]|tuple[int]|pygame.Rect rect: Destination rect.
+    :param tuple|int color: Text color.
+    :param tuple|int shadow_color: Outline color.
+    :param int distance: Outline/shadow size.
+    :param bool right_align: Align text to the right.
+    """
+
+    align_offset = 0
+    if right_align:
+        align_offset = -1
+
+    text_surface = font.render(text, True, shadow_color)
+    screen.blit(text_surface, (rect[0] + text_surface.get_width() * align_offset + distance, rect[1] + distance, rect[2], rect[3]))
+    screen.blit(text_surface, (rect[0] + text_surface.get_width() * align_offset - distance, rect[1] + distance, rect[2], rect[3]))
+    screen.blit(text_surface, (rect[0] + text_surface.get_width() * align_offset + distance, rect[1] - distance, rect[2], rect[3]))
+    screen.blit(text_surface, (rect[0] + text_surface.get_width() * align_offset - distance, rect[1] - distance, rect[2], rect[3]))
+    text_surface = font.render(text, True, color)
+    screen.blit(text_surface, (rect[0] + text_surface.get_width() * align_offset, rect[1], rect[2], rect[3]))
+
+
 def osd(**kwargs):
     """
         OSD display: progress bar and text messages.
@@ -633,24 +658,29 @@ def osd(**kwargs):
     # osd_progress_pos = (width*(1 if img2img else 2) - osd_size[0] - osd_margin, height - osd_size[1] - osd_margin)  # bottom right
 
     osd_dot_size = osd_size[1] // 2
+    # osd_dot_pos = (width*(0 if img2img else 1) + osd_margin, osd_margin, osd_dot_size, osd_dot_size)  # top left
+    osd_dot_pos = (width*(1 if img2img else 2) - osd_dot_size * 2 - osd_margin, osd_margin, osd_dot_size, osd_dot_size)  # top right
 
-    osd_text_pos = (width*(1 if img2img else 2) - width + osd_margin, osd_margin)  # bottom left of canvas
-    # osd_text_pos = (width*(1 if img2img else 2) - width + osd_margin, height - osd_size[1] - osd_margin)  # bottom left of canvas
+    osd_text_pos = (width*(0 if img2img else 1) + osd_margin, osd_margin)  # top left of canvas
+    # osd_text_pos = (width*(0 if img2img else 1) + osd_margin, height - osd_size[1] - osd_margin)  # bottom left of canvas
     osd_text_offset = 0
 
-    global progress, need_redraw
+    osd_text_split_offset = 250
+
+    global progress, need_redraw, osd_always_on_text
 
     progress = kwargs.get('progress', progress)  # type: float
     text = kwargs.get('text', osd_text)  # type: str
     text_time = kwargs.get('text_time', 2.0)  # type: float
     need_redraw = kwargs.get('need_redraw', need_redraw)  # type: bool
+    osd_always_on_text = kwargs.get('always_on', osd_always_on_text)
 
-    if rendering or text:
+    if rendering or (server_busy and progress < 0.02):
         rendering_dot_surface = pygame.Surface(osd_size, pygame.SRCALPHA)
 
         pygame.draw.circle(rendering_dot_surface, (0, 0, 0), (osd_dot_size + 2, osd_dot_size + 2), osd_dot_size - 2)
         pygame.draw.circle(rendering_dot_surface, (0, 200, 160), (osd_dot_size, osd_dot_size), osd_dot_size - 2)
-        screen.blit(rendering_dot_surface, pygame.Rect(width*(1 if img2img else 2) - osd_dot_size * 2 - osd_margin, osd_margin - osd_dot_size // 2, osd_dot_size, osd_dot_size))
+        screen.blit(rendering_dot_surface, osd_dot_pos)
 
     if progress is not None and progress > 0.01:
         need_redraw = True
@@ -663,17 +693,33 @@ def osd(**kwargs):
         screen.blit(progress_surface, pygame.Rect(osd_progress_pos[0], osd_progress_pos[1], osd_size[0], osd_size[1]))
 
         # progress text
-        text_surface = font.render(f"{progress*100:.0f}%", True, (0, 0, 0))
-        screen.blit(text_surface, pygame.Rect(osd_size[0] - osd_margin + osd_progress_pos[0]+1 - text_surface.get_width(), 3 + osd_progress_pos[1]+1, osd_size[0], osd_size[1]))
-        screen.blit(text_surface, pygame.Rect(osd_size[0] - osd_margin + osd_progress_pos[0]+1 - text_surface.get_width(), 3 + osd_progress_pos[1]-1, osd_size[0], osd_size[1]))
-        screen.blit(text_surface, pygame.Rect(osd_size[0] - osd_margin + osd_progress_pos[0]-1 - text_surface.get_width(), 3 + osd_progress_pos[1]+1, osd_size[0], osd_size[1]))
-        screen.blit(text_surface, pygame.Rect(osd_size[0] - osd_margin + osd_progress_pos[0]-1 - text_surface.get_width(), 3 + osd_progress_pos[1]-1, osd_size[0], osd_size[1]))
-        text_surface = font.render(f"{progress*100:.0f}%", True, (255, 255, 255))
-        screen.blit(text_surface, pygame.Rect(osd_size[0] - osd_margin + osd_progress_pos[0] - text_surface.get_width(), 3 + osd_progress_pos[1], osd_size[0], osd_size[1]))
+        draw_osd_text(f"{progress * 100:.0f}%", (osd_size[0] - osd_margin + osd_progress_pos[0], 3 + osd_progress_pos[1], osd_size[0], osd_size[1]), right_align=True)
 
         osd_text_offset = osd_size[1] + osd_margin
 
+    if osd_always_on_text:
+        need_redraw = True
+
+        # OSD always-on text
+        for line in osd_always_on_text.split('\n'):
+            need_redraw = True
+
+            if '::' in line:
+                line, line_value = line.split('::')
+                line = line.rstrip(' ')
+                line_value = line_value.lstrip(' ')
+            else:
+                line_value = None
+
+            draw_osd_text(line, (osd_text_pos[0], osd_text_pos[1] + osd_text_offset, osd_size[0], osd_size[1]))
+            if line_value:
+                draw_osd_text(line_value, (osd_text_pos[0] + osd_text_split_offset, osd_text_pos[1] + osd_text_offset, osd_size[0], osd_size[1]))
+
+            osd_text_offset += osd_size[1]
+
     if text:
+        need_redraw = True
+
         # OSD text
         if osd_text_display_start is None or text != osd_text:
             osd_text_display_start = time.time()
@@ -681,13 +727,17 @@ def osd(**kwargs):
 
         for line in osd_text.split('\n'):
             need_redraw = True
-            text_surface = font.render(line, True, (0, 0, 0))
-            screen.blit(text_surface, pygame.Rect(osd_text_pos[0]+1, osd_text_pos[1]+1 + osd_text_offset, osd_size[0], osd_size[1]))
-            screen.blit(text_surface, pygame.Rect(osd_text_pos[0]+1, osd_text_pos[1]-1 + osd_text_offset, osd_size[0], osd_size[1]))
-            screen.blit(text_surface, pygame.Rect(osd_text_pos[0]-1, osd_text_pos[1]+1 + osd_text_offset, osd_size[0], osd_size[1]))
-            screen.blit(text_surface, pygame.Rect(osd_text_pos[0]-1, osd_text_pos[1]-1 + osd_text_offset, osd_size[0], osd_size[1]))
-            text_surface = font.render(line, True, (255, 255, 255))
-            screen.blit(text_surface, pygame.Rect(osd_text_pos[0], osd_text_pos[1] + osd_text_offset, osd_size[0], osd_size[1]))
+
+            if '::' in line:
+                line, line_value = line.split('::')
+                line = line.rstrip(' ')
+                line_value = line_value.lstrip(' ')
+            else:
+                line_value = None
+
+            draw_osd_text(line, (osd_text_pos[0], osd_text_pos[1] + osd_text_offset, osd_size[0], osd_size[1]))
+            if line_value:
+                draw_osd_text(line_value, (osd_text_pos[0] + osd_text_split_offset, osd_text_pos[1] + osd_text_offset, osd_size[0], osd_size[1]))
 
             osd_text_offset += osd_size[1]
 
@@ -943,6 +993,100 @@ def controlnet_detect():
         osd(text=f"Error code returned: HTTP {response.status_code}")
 
 
+def display_configuration(wrap=True):
+    """
+        Display configuration on screen.
+    :param bool wrap: Wrap long text.
+    """
+
+    fields = [
+        '--Prompt',
+        'settings.prompt',
+        'settings.negative_prompt',
+        'seed',
+        '--Render',
+        'settings.steps',
+        'settings.cfg_scale',
+        'hr_scale',
+        'hr_upscaler',
+        'denoising_strength',
+        'clip_skip',
+        '--ControlNet',
+        'controlnet_model',
+        'controlnet_weight',
+        'controlnet_guidance_end'
+    ]
+
+    if wrap and width < 800:
+        wrap = 50
+    elif wrap:
+        wrap = 80
+
+    text = ''
+
+    for field in fields:
+        if field == 'settings.steps' and quick_mode:
+            field = 'settings.quick_steps'
+
+        # Display separator
+        if field.startswith('--'):
+            text += '\n'+field[2:]+'\n'
+            continue
+
+        # Field value
+        label = ''
+        value = ''
+
+        if '.' in field:
+            field = field.split('.')
+            var = globals().get(field[0], None)
+            if var is None:
+                continue
+
+            if isinstance(var, dict) and var.get(field[1], None):
+                label = field[1]
+                value = var.get(field[1])
+            elif (isinstance(var, list) or isinstance(var, tuple)) and field[1].isnumeric() and int(field[1]) < len(var):
+                label = field[0]
+                value = var[int(field[1])]
+            elif getattr(var, field[1], None):
+                label = field[1]
+                value = getattr(var, field[1])
+        else:
+            if globals().get(field, None):
+                label = field
+                value = globals().get(field)
+
+        if label and value:
+            value = str(value)
+            label = label.replace('_', ' ')
+            if label.endswith('prompt'):
+                value = value.replace(', ', ',').replace(',', ', ')  # nicer prompt display
+
+            # wrap text
+            if wrap and len(value) > wrap:
+                new_value = ''
+                to_wrap = 0
+                for i in range(len(value)):
+                    if i % wrap == wrap - 1:
+                        to_wrap = i
+
+                    if to_wrap and value[i] in [' ', ')'] or (to_wrap and i - to_wrap > 5):  # try to wrap after space
+                        new_value += value[i]+'\n::'
+                        to_wrap = 0
+                        continue
+
+                    new_value += value[i]
+
+                value = new_value
+
+            text += f"    {label} :: {value}"
+
+        text += '\n'
+
+    osd(always_on=text.strip('\n'))
+
+
 # Initial img2img call
 if img2img:
     t = threading.Thread(target=img2img_submit)
@@ -1063,6 +1207,8 @@ while running:
                     clip_skip = (clip_skip + 1) % 2
                     clip_skip += 1
                     osd(text=f"CLIP skip: {clip_skip}")
+                else:
+                    display_configuration()
 
             elif event.key == pygame.K_m and controlnet_model:
                 if shift_down():
@@ -1243,6 +1389,11 @@ while running:
                     rendering = True
                     rendering_key = False
                 shift_pos = None
+
+            elif event.key in (pygame.K_c,):
+                # Remove OSD always-on text
+                need_redraw = True
+                osd(always_on=None)
 
     # Call image render
     if (rendering and not pause_render) or instant_render:
