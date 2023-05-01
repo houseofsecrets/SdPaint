@@ -35,6 +35,7 @@ the canvas when the image is generated.
 | `shift` + `m`                 | Cycle ControlNel models                                    |
 | `shift` + `w`                 | Cycle ControlNel weights                                   |
 | `shift` + `g`                 | Cycle ControlNel guidance ends                             |
+| `shift` + `ctrl` + `g`        | Toggle ControlNel pixel perfect mode                       |
 | `keypad 0`                    | Restore starting settings                                  |
 | `keypad 1-9`                  | Load custom rendering preset                               |
 | `ctrl` + `keypad 1-9`         | Save custom rendering preset                               |
@@ -98,6 +99,9 @@ on https://huggingface.co/comfyanonymous/ControlNet-v1-1_fp16_safetensors :
 - Scribble
 - Lineart
 - Lineart anime
+
+**Note**: "pixel perfect" preprocessor mode is disabled by default, because it can be detrimental with scribble and
+lineart models when used with a resolution > 512. Try out and compare the results.
 
 ### ControlNet detectors
 
