@@ -2,6 +2,9 @@
     "interface_width": 1280,
     "interface_height": 720,
     "url": "http://127.0.0.1:7860",
+    "autosave_seed": "true",
+    "autosave_prompt": "true",
+    "autosave_negative_prompt": "true",
     "preset_fields": [
         "hr_scale",
         "hr_upscaler",

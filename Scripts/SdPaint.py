@@ -28,7 +28,8 @@ clock = pygame.time.Clock()
 
 def load_config(config_file):
     """
-            Update a local configuration file with missing settings from distribution file, if needed.
+        Load a configuration file, update the local configuration file with missing settings
+        from distribution file if needed.
     :param str config_file: The configuration file name.
     :return: The configuration file content.
     """
@@ -52,6 +53,30 @@ def load_config(config_file):
 
             with open(config_file, "w") as f:
                 json.dump(config_content, f, indent=4)
+
+    return config_content
+
+
+def update_config(config_file, write=False, values=None):
+    """
+        Update configuration, overwriting given fields. Optionally save the configuration to local file.
+    :param str config_file: The configuration file name.
+    :param bool write: Write the configuration file on disk.
+    :param dict values: The arguments to overwrite.
+    :return:
+    """
+    if not os.path.exists(config_file):
+        shutil.copy(f"{config_file}-dist", config_file)
+
+    with open(config_file, "r") as f:
+        config_content: dict = json.load(f)
+
+    if values:
+        config_content.update(values)
+
+    if write:
+        with open(config_file, "w") as f:
+            json.dump(config_content, f, indent=4)
 
     return config_content
 
@@ -98,6 +123,10 @@ controlnet_guidance_end = controlnet_guidance_ends[0]
 
 render_preset_fields = config.get('preset_fields', ["hr_enabled", "hr_scale", "hr_upscaler", "denoising_strength"])
 cn_preset_fields = config.get('cn_preset_fields', ["controlnet_model", "controlnet_weight", "controlnet_guidance_end"])
+
+autosave_seed = config.get('autosave_seed', 'false') == 'true'
+autosave_prompt = config.get('autosave_prompt', 'false') == 'true'
+autosave_negative_prompt = config.get('autosave_negative_prompt', 'false') == 'true'
 
 main_json_data = {}
 quick_mode = False
@@ -491,26 +520,16 @@ def update_image(image_data):
     need_redraw = True
 
 
-def new_random_seed_for_payload():
+def new_random_seed():
     """
-        Set the seed to a new random number, save the relevant JSON configuration file (creating a local copy if needed).
+        Generate a new random seed.
 
-    :return: The JSON payload content.
+    :return: The new seed.
     """
 
-    global seed, json_file
+    global seed
     seed = random.randint(0, 2**32-1)
-    with open(json_file, "r") as f:
-        payload = json.load(f)
-    # write the seed to the selected payload
-    payload['seed'] = seed
-
-    if json_file.endswith("-dist"):
-        json_file = json_file[:-5]
-
-    with open(json_file, "w") as f:
-        json.dump(payload, f, indent=4)
-    return payload
+    return seed
 
 
 def img2img_submit(force=False):
@@ -1226,12 +1245,14 @@ while running:
                 rendering = True
                 instant_render = True
                 seed = seed + 1
+                update_config(json_file, write=autosave_seed, values={'seed': seed})
                 osd(text=f"Seed: {seed}")
 
             elif event.key == pygame.K_DOWN:
                 rendering = True
                 instant_render = True
                 seed = seed - 1
+                update_config(json_file, write=autosave_seed, values={'seed': seed})
                 osd(text=f"Seed: {seed}")
 
             elif event.key == pygame.K_n:
@@ -1240,12 +1261,14 @@ while running:
                     if dialog.result and dialog.result.isnumeric():
                         osd(text=f"Seed: {dialog.result}")
                         seed = int(dialog.result)
+                        update_config(json_file, write=autosave_seed, values={'seed': seed})
                         rendering = True
                         instant_render = True
                 else:
                     rendering = True
                     instant_render = True
-                    new_random_seed_for_payload()
+                    seed = new_random_seed()
+                    update_config(json_file, write=autosave_seed, values={'seed': seed})
                     osd(text=f"Seed: {seed}")
 
             elif event.key == pygame.K_c:
@@ -1362,6 +1385,7 @@ while running:
                     if dialog.result:
                         osd(text=f"New negative prompt: {dialog.result}")
                         negative_prompt = dialog.result
+                        update_config(json_file, write=autosave_negative_prompt, values={'negative_prompt': negative_prompt})
                         rendering = True
                         instant_render = True
                 else:
@@ -1369,6 +1393,7 @@ while running:
                     if dialog.result:
                         osd(text=f"New prompt: {dialog.result}")
                         prompt = dialog.result
+                        update_config(json_file, write=autosave_prompt, values={'prompt': prompt})
                         rendering = True
                         instant_render = True
 
