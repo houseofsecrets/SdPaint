@@ -18,7 +18,7 @@ import math
 from PIL import Image, ImageOps
 from psd_tools import PSDImage
 import tkinter as tk
-from tkinter import filedialog
+from tkinter import filedialog, simpledialog
 import argparse
 
 # Initialize Pygame
@@ -239,6 +239,9 @@ if settings.get('override_settings', None) is not None and settings['override_se
 
 if settings.get('enable_hr', 'false') == 'true':
     hr_scale = hr_scales[1]
+
+prompt = settings.get('prompt', '')
+negative_prompt = settings.get('negative_prompt', '')
 
 width = settings.get('width', 512)
 height = settings.get('height', 512)
@@ -546,6 +549,8 @@ def img2img_submit(force=False):
         json_data['init_images'] = [data]
 
         json_data['seed'] = seed
+        json_data['prompt'] = prompt
+        json_data['negative_prompt'] = negative_prompt
         json_data['denoising_strength'] = denoising_strength
         json_data['sampler_name'] = sampler
 
@@ -791,6 +796,8 @@ def payload_submit():
         json_data['enable_hr'] = 'false'
 
     json_data['seed'] = seed
+    json_data['prompt'] = prompt
+    json_data['negative_prompt'] = negative_prompt
     json_data['hr_scale'] = hr_scale
     json_data['hr_upscaler'] = hr_upscaler
     json_data['denoising_strength'] = denoising_strength
@@ -1003,8 +1010,8 @@ def display_configuration(wrap=True):
 
     fields = [
         '--Prompt',
-        'settings.prompt',
-        'settings.negative_prompt',
+        'prompt',
+        'negative_prompt',
         'seed',
         '--Render',
         'settings.steps',
@@ -1087,6 +1094,35 @@ def display_configuration(wrap=True):
         text += '\n'
 
     osd(always_on=text.strip('\n'))
+
+
+class PromptDialog(simpledialog.Dialog):
+    """
+        Prompt text input dialog.
+    """
+
+    def __init__(self, prompt, title="Prompt"):
+        self.prompt = prompt
+        super().__init__(None, title=title)
+
+    def body(self, master):
+        self.geometry('800x100')
+
+        self.e1 = tk.Text(master)
+        self.e1.insert("1.0", self.prompt)
+        self.e1.pack(padx=0, pady=0, fill=tk.BOTH)
+
+        self.attributes("-topmost", True)
+        master.pack(fill=tk.BOTH, expand=True)
+
+        return self.e1
+
+    def apply(self):
+        if "_"+self.e1.get("1.0", tk.INSERT)[-1:]+"_" == "_\n_":
+            p = self.e1.get("1.0", tk.INSERT)[:-1] + self.e1.get(tk.INSERT, tk.END)  # remove new line inserted when validating the dialog with ENTER
+        else:
+            p = self.e1.get("1.0", tk.END)
+        self.result = p.strip("\n")
 
 
 # Initial img2img call
@@ -1301,15 +1337,30 @@ while running:
                         load_preset('controlnet' if alt_down() else 'render', keymap.get(event.key))
 
             elif event.key == pygame.K_p:
-                pause_render = not pause_render
+                if shift_down():
+                    pause_render = not pause_render
 
-                if pause_render:
-                    osd(text=f"On-demand rendering (ENTER to render)")
+                    if pause_render:
+                        osd(text=f"On-demand rendering (ENTER to render)")
 
+                    else:
+                        rendering = True
+                        instant_render = True
+                        osd(text=f"Dynamic rendering")
+                elif alt_down():
+                    dialog = PromptDialog(negative_prompt, title="Negative prompt")
+                    if dialog.result:
+                        osd(text=f"New negative prompt: {dialog.result}")
+                        negative_prompt = dialog.result
+                        rendering = True
+                        instant_render = True
                 else:
-                    rendering = True
-                    instant_render = True
-                    osd(text=f"Dynamic rendering")
+                    dialog = PromptDialog(prompt, title="Prompt")
+                    if dialog.result:
+                        osd(text=f"New prompt: {dialog.result}")
+                        prompt = dialog.result
+                        rendering = True
+                        instant_render = True
 
             elif event.key == pygame.K_BACKSPACE:
                 pygame.draw.rect(canvas, (255, 255, 255), (width, 0, width, height))
@@ -1326,12 +1377,13 @@ while running:
                 eraser_down = True
 
             elif event.key == pygame.K_t:
-                if render_wait == 2.0:
-                    render_wait = 0.0
-                    osd(text="Render wait: off")
-                else:
-                    render_wait += 0.5
-                    osd(text=f"Render wait: {render_wait}s")
+                if shift_down():
+                    if render_wait == 2.0:
+                        render_wait = 0.0
+                        osd(text="Render wait: off")
+                    else:
+                        render_wait += 0.5
+                        osd(text=f"Render wait: {render_wait}s")
 
             elif event.key == pygame.K_u:
                 if shift_down():
