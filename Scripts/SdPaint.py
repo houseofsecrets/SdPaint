@@ -135,6 +135,7 @@ rendering = False
 rendering_key = False
 instant_render = False
 pause_render = False
+use_invert_module = True
 osd_always_on_text: str|None = None
 progress = 0.0
 controlnet_models: list[str] = config.get("controlnet_models", [])
@@ -271,6 +272,11 @@ if settings.get('enable_hr', 'false') == 'true':
 
 prompt = settings.get('prompt', '')
 negative_prompt = settings.get('negative_prompt', '')
+
+if settings.get("controlnet_units", None) and settings.get("controlnet_units")[0].get('pixel_perfect', None):
+    pixel_perfect = settings.get("controlnet_units")[0]["pixel_perfect"] == "true"
+else:
+    pixel_perfect = False
 
 width = settings.get('width', 512)
 height = settings.get('height', 512)
@@ -699,7 +705,7 @@ def osd(**kwargs):
     need_redraw = kwargs.get('need_redraw', need_redraw)  # type: bool
     osd_always_on_text = kwargs.get('always_on', osd_always_on_text)
 
-    if rendering or (server_busy and progress < 0.02):
+    if rendering or (server_busy and progress is not None and progress < 0.02):
         rendering_dot_surface = pygame.Surface(osd_size, pygame.SRCALPHA)
 
         pygame.draw.circle(rendering_dot_surface, (0, 0, 0), (osd_dot_size + 2, osd_dot_size + 2), osd_dot_size - 2)
@@ -780,14 +786,15 @@ def payload_submit():
     global main_json_data
     img = canvas.subsurface(pygame.Rect(width, 0, width, height)).copy()
 
-    # Convert the Pygame surface to a PIL image
-    pil_img = Image.frombytes('RGB', img.get_size(), pygame.image.tostring(img, 'RGB'))
+    if not use_invert_module:
+        # Convert the Pygame surface to a PIL image
+        pil_img = Image.frombytes('RGB', img.get_size(), pygame.image.tostring(img, 'RGB'))
 
-    # Invert the colors of the PIL image
-    pil_img = ImageOps.invert(pil_img)
+        # Invert the colors of the PIL image
+        pil_img = ImageOps.invert(pil_img)
 
-    # Convert the PIL image back to a Pygame surface
-    img = pygame.image.fromstring(pil_img.tobytes(), pil_img.size, pil_img.mode).convert_alpha()
+        # Convert the PIL image back to a Pygame surface
+        img = pygame.image.fromstring(pil_img.tobytes(), pil_img.size, pil_img.mode).convert_alpha()
 
     # Save the inverted image as base64-encoded data
     data = io.BytesIO()
@@ -805,7 +812,11 @@ def payload_submit():
     if json_data['controlnet_units'][0].get('guidance_start', None) is None:
         json_data['controlnet_units'][0]['guidance_start'] = 0.0
     json_data['controlnet_units'][0]['guidance_end'] = controlnet_guidance_end
-    json_data['controlnet_units'][0]['pixel_perfect'] = True
+    json_data['controlnet_units'][0]['pixel_perfect'] = pixel_perfect
+    if use_invert_module:
+        json_data['controlnet_units'][0]['module'] = 'invert'
+    if not pixel_perfect:
+        json_data['controlnet_units'][0]['processor_res'] = min(width, height)
 
     json_data['hr_second_pass_steps'] = max(8, math.floor(json_data['steps'] * denoising_strength))  # at least 8 steps
 
@@ -1042,7 +1053,8 @@ def display_configuration(wrap=True):
         '--ControlNet',
         'controlnet_model',
         'controlnet_weight',
-        'controlnet_guidance_end'
+        'controlnet_guidance_end',
+        'pixel_perfect'
     ]
 
     if wrap and width < 800:
@@ -1071,21 +1083,21 @@ def display_configuration(wrap=True):
             if var is None:
                 continue
 
-            if isinstance(var, dict) and var.get(field[1], None):
+            if isinstance(var, dict) and var.get(field[1], None) is not None:
                 label = field[1]
                 value = var.get(field[1])
             elif (isinstance(var, list) or isinstance(var, tuple)) and field[1].isnumeric() and int(field[1]) < len(var):
                 label = field[0]
                 value = var[int(field[1])]
-            elif getattr(var, field[1], None):
+            elif getattr(var, field[1], None) is not None:
                 label = field[1]
                 value = getattr(var, field[1])
         else:
-            if globals().get(field, None):
+            if globals().get(field, None) is not None:
                 label = field
                 value = globals().get(field)
 
-        if label and value:
+        if label and value is not None:
             value = str(value)
             label = label.replace('_', ' ')
             if label.endswith('prompt'):
@@ -1433,7 +1445,11 @@ while running:
                     osd(text=f"ControlNet weight: {controlnet_weight}")
 
             elif event.key == pygame.K_g:
-                if shift_down():
+                if shift_down() and ctrl_down():
+                    rendering_key = True
+                    pixel_perfect = not pixel_perfect
+                    osd(text=f"ControlNet pixel perfect mode: {'on' if pixel_perfect else 'off'}")
+                elif shift_down():
                     rendering_key = True
                     controlnet_guidance_end = controlnet_guidance_ends[(controlnet_guidance_ends.index(controlnet_guidance_end) + 1) % len(controlnet_guidance_ends)]
                     osd(text=f"ControlNet guidance end: {controlnet_guidance_end}")
