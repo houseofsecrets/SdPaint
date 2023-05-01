@@ -1096,20 +1096,22 @@ def display_configuration(wrap=True):
     osd(always_on=text.strip('\n'))
 
 
-class PromptDialog(simpledialog.Dialog):
+class TextDialog(simpledialog.Dialog):
     """
-        Prompt text input dialog.
+        Text input dialog.
     """
 
-    def __init__(self, prompt, title="Prompt"):
-        self.prompt = prompt
+    def __init__(self, text, title, dialog_width=800, dialog_height=100):
+        self.text = text
+        self.dialog_width = dialog_width
+        self.dialog_height = dialog_height
         super().__init__(None, title=title)
 
     def body(self, master):
-        self.geometry('800x100')
+        self.geometry(f'{self.dialog_width}x{self.dialog_height}')
 
         self.e1 = tk.Text(master)
-        self.e1.insert("1.0", self.prompt)
+        self.e1.insert("1.0", self.text)
         self.e1.pack(padx=0, pady=0, fill=tk.BOTH)
 
         self.attributes("-topmost", True)
@@ -1233,10 +1235,18 @@ while running:
                 osd(text=f"Seed: {seed}")
 
             elif event.key == pygame.K_n:
-                rendering = True
-                instant_render = True
-                new_random_seed_for_payload()
-                osd(text=f"Seed: {seed}")
+                if ctrl_down():
+                    dialog = TextDialog(seed, title="Seed", dialog_width=200, dialog_height=30)
+                    if dialog.result and dialog.result.isnumeric():
+                        osd(text=f"Seed: {dialog.result}")
+                        seed = int(dialog.result)
+                        rendering = True
+                        instant_render = True
+                else:
+                    rendering = True
+                    instant_render = True
+                    new_random_seed_for_payload()
+                    osd(text=f"Seed: {seed}")
 
             elif event.key == pygame.K_c:
                 if shift_down():
@@ -1337,7 +1347,7 @@ while running:
                         load_preset('controlnet' if alt_down() else 'render', keymap.get(event.key))
 
             elif event.key == pygame.K_p:
-                if shift_down():
+                if ctrl_down():
                     pause_render = not pause_render
 
                     if pause_render:
@@ -1348,14 +1358,14 @@ while running:
                         instant_render = True
                         osd(text=f"Dynamic rendering")
                 elif alt_down():
-                    dialog = PromptDialog(negative_prompt, title="Negative prompt")
+                    dialog = TextDialog(negative_prompt, title="Negative prompt")
                     if dialog.result:
                         osd(text=f"New negative prompt: {dialog.result}")
                         negative_prompt = dialog.result
                         rendering = True
                         instant_render = True
                 else:
-                    dialog = PromptDialog(prompt, title="Prompt")
+                    dialog = TextDialog(prompt, title="Prompt")
                     if dialog.result:
                         osd(text=f"New prompt: {dialog.result}")
                         prompt = dialog.result

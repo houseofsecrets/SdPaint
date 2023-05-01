@@ -13,12 +13,15 @@ the canvas when the image is generated.
 | Scroll up / down              | Increase / decrease brush size                             |
 | `backspace`                   | Erase the entire sketch                                    |
 | `shift` + Left button         | Draw a line between two clicks                             |
-| `c`                           | Display current configuration while holding                |
-| `RETURN` or `ENTER`           | Force image rendering                                      |
-| `t`                           | Cycle render wait time (+0.5s, or off)                     |
-| `p`                           | Pause dynamic rendering                                    |
-| `q`                           | Toggle quick rendering : low steps & HR off                |
+| `RETURN` or `ENTER`           | Request image rendering                                    |
+| `c`                           | Display current configuration while pressed                |
+| `p`                           | Edit prompt                                                |
+| `alt` + `p`                   | Edit negative prompt                                       |
+| `shift` + `t`                 | Cycle render wait time (+0.5s, or off)                     |
+| `ctrl` + `p`                  | Pause dynamic rendering                                    |
+| `q`                           | Toggle quick rendering : low steps & HR fix off            |
 | `n`                           | Random seed value                                          |
+| `ctrl` + `n`                  | Edit seed value                                            |
 | `UP` / `DOWN`                 | Increase / decrease seed by 1                              |
 | `ctrl`+ `s`                   | Save the current generated image                           |
 | `ctrl`+ `o`                   | Open an image file as sketch                               |
