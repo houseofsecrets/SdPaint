@@ -18,7 +18,7 @@ import math
 from PIL import Image, ImageOps
 from psd_tools import PSDImage
 import tkinter as tk
-from tkinter import filedialog
+from tkinter import filedialog, simpledialog
 import argparse
 
 # Initialize Pygame
@@ -28,7 +28,8 @@ clock = pygame.time.Clock()
 
 def load_config(config_file):
     """
-            Update a local configuration file with missing settings from distribution file, if needed.
+        Load a configuration file, update the local configuration file with missing settings
+        from distribution file if needed.
     :param str config_file: The configuration file name.
     :return: The configuration file content.
     """
@@ -52,6 +53,30 @@ def load_config(config_file):
 
             with open(config_file, "w") as f:
                 json.dump(config_content, f, indent=4)
+
+    return config_content
+
+
+def update_config(config_file, write=False, values=None):
+    """
+        Update configuration, overwriting given fields. Optionally save the configuration to local file.
+    :param str config_file: The configuration file name.
+    :param bool write: Write the configuration file on disk.
+    :param dict values: The arguments to overwrite.
+    :return:
+    """
+    if not os.path.exists(config_file):
+        shutil.copy(f"{config_file}-dist", config_file)
+
+    with open(config_file, "r") as f:
+        config_content: dict = json.load(f)
+
+    if values:
+        config_content.update(values)
+
+    if write:
+        with open(config_file, "w") as f:
+            json.dump(config_content, f, indent=4)
 
     return config_content
 
@@ -99,6 +124,10 @@ controlnet_guidance_end = controlnet_guidance_ends[0]
 render_preset_fields = config.get('preset_fields', ["hr_enabled", "hr_scale", "hr_upscaler", "denoising_strength"])
 cn_preset_fields = config.get('cn_preset_fields', ["controlnet_model", "controlnet_weight", "controlnet_guidance_end"])
 
+autosave_seed = config.get('autosave_seed', 'false') == 'true'
+autosave_prompt = config.get('autosave_prompt', 'false') == 'true'
+autosave_negative_prompt = config.get('autosave_negative_prompt', 'false') == 'true'
+
 main_json_data = {}
 quick_mode = False
 server_busy = False
@@ -106,6 +135,7 @@ rendering = False
 rendering_key = False
 instant_render = False
 pause_render = False
+use_invert_module = True
 osd_always_on_text: str|None = None
 progress = 0.0
 controlnet_models: list[str] = config.get("controlnet_models", [])
@@ -239,6 +269,14 @@ if settings.get('override_settings', None) is not None and settings['override_se
 
 if settings.get('enable_hr', 'false') == 'true':
     hr_scale = hr_scales[1]
+
+prompt = settings.get('prompt', '')
+negative_prompt = settings.get('negative_prompt', '')
+
+if settings.get("controlnet_units", None) and settings.get("controlnet_units")[0].get('pixel_perfect', None):
+    pixel_perfect = settings.get("controlnet_units")[0]["pixel_perfect"] == "true"
+else:
+    pixel_perfect = False
 
 width = settings.get('width', 512)
 height = settings.get('height', 512)
@@ -488,26 +526,16 @@ def update_image(image_data):
     need_redraw = True
 
 
-def new_random_seed_for_payload():
+def new_random_seed():
     """
-        Set the seed to a new random number, save the relevant JSON configuration file (creating a local copy if needed).
+        Generate a new random seed.
 
-    :return: The JSON payload content.
+    :return: The new seed.
     """
 
-    global seed, json_file
+    global seed
     seed = random.randint(0, 2**32-1)
-    with open(json_file, "r") as f:
-        payload = json.load(f)
-    # write the seed to the selected payload
-    payload['seed'] = seed
-
-    if json_file.endswith("-dist"):
-        json_file = json_file[:-5]
-
-    with open(json_file, "w") as f:
-        json.dump(payload, f, indent=4)
-    return payload
+    return seed
 
 
 def img2img_submit(force=False):
@@ -546,6 +574,8 @@ def img2img_submit(force=False):
         json_data['init_images'] = [data]
 
         json_data['seed'] = seed
+        json_data['prompt'] = prompt
+        json_data['negative_prompt'] = negative_prompt
         json_data['denoising_strength'] = denoising_strength
         json_data['sampler_name'] = sampler
 
@@ -675,7 +705,7 @@ def osd(**kwargs):
     need_redraw = kwargs.get('need_redraw', need_redraw)  # type: bool
     osd_always_on_text = kwargs.get('always_on', osd_always_on_text)
 
-    if rendering or (server_busy and progress < 0.02):
+    if rendering or (server_busy and progress is not None and progress < 0.02):
         rendering_dot_surface = pygame.Surface(osd_size, pygame.SRCALPHA)
 
         pygame.draw.circle(rendering_dot_surface, (0, 0, 0), (osd_dot_size + 2, osd_dot_size + 2), osd_dot_size - 2)
@@ -756,14 +786,15 @@ def payload_submit():
     global main_json_data
     img = canvas.subsurface(pygame.Rect(width, 0, width, height)).copy()
 
-    # Convert the Pygame surface to a PIL image
-    pil_img = Image.frombytes('RGB', img.get_size(), pygame.image.tostring(img, 'RGB'))
+    if not use_invert_module:
+        # Convert the Pygame surface to a PIL image
+        pil_img = Image.frombytes('RGB', img.get_size(), pygame.image.tostring(img, 'RGB'))
 
-    # Invert the colors of the PIL image
-    pil_img = ImageOps.invert(pil_img)
+        # Invert the colors of the PIL image
+        pil_img = ImageOps.invert(pil_img)
 
-    # Convert the PIL image back to a Pygame surface
-    img = pygame.image.fromstring(pil_img.tobytes(), pil_img.size, pil_img.mode).convert_alpha()
+        # Convert the PIL image back to a Pygame surface
+        img = pygame.image.fromstring(pil_img.tobytes(), pil_img.size, pil_img.mode).convert_alpha()
 
     # Save the inverted image as base64-encoded data
     data = io.BytesIO()
@@ -781,6 +812,12 @@ def payload_submit():
     if json_data['controlnet_units'][0].get('guidance_start', None) is None:
         json_data['controlnet_units'][0]['guidance_start'] = 0.0
     json_data['controlnet_units'][0]['guidance_end'] = controlnet_guidance_end
+    json_data['controlnet_units'][0]['pixel_perfect'] = pixel_perfect
+    if use_invert_module:
+        json_data['controlnet_units'][0]['module'] = 'invert'
+    if not pixel_perfect:
+        json_data['controlnet_units'][0]['processor_res'] = min(width, height)
+
     json_data['hr_second_pass_steps'] = max(8, math.floor(json_data['steps'] * denoising_strength))  # at least 8 steps
 
     if hr_scale > 1.0:
@@ -789,6 +826,8 @@ def payload_submit():
         json_data['enable_hr'] = 'false'
 
     json_data['seed'] = seed
+    json_data['prompt'] = prompt
+    json_data['negative_prompt'] = negative_prompt
     json_data['hr_scale'] = hr_scale
     json_data['hr_upscaler'] = hr_upscaler
     json_data['denoising_strength'] = denoising_strength
@@ -1001,8 +1040,8 @@ def display_configuration(wrap=True):
 
     fields = [
         '--Prompt',
-        'settings.prompt',
-        'settings.negative_prompt',
+        'prompt',
+        'negative_prompt',
         'seed',
         '--Render',
         'settings.steps',
@@ -1014,7 +1053,8 @@ def display_configuration(wrap=True):
         '--ControlNet',
         'controlnet_model',
         'controlnet_weight',
-        'controlnet_guidance_end'
+        'controlnet_guidance_end',
+        'pixel_perfect'
     ]
 
     if wrap and width < 800:
@@ -1043,21 +1083,21 @@ def display_configuration(wrap=True):
             if var is None:
                 continue
 
-            if isinstance(var, dict) and var.get(field[1], None):
+            if isinstance(var, dict) and var.get(field[1], None) is not None:
                 label = field[1]
                 value = var.get(field[1])
             elif (isinstance(var, list) or isinstance(var, tuple)) and field[1].isnumeric() and int(field[1]) < len(var):
                 label = field[0]
                 value = var[int(field[1])]
-            elif getattr(var, field[1], None):
+            elif getattr(var, field[1], None) is not None:
                 label = field[1]
                 value = getattr(var, field[1])
         else:
-            if globals().get(field, None):
+            if globals().get(field, None) is not None:
                 label = field
                 value = globals().get(field)
 
-        if label and value:
+        if label and value is not None:
             value = str(value)
             label = label.replace('_', ' ')
             if label.endswith('prompt'):
@@ -1085,6 +1125,37 @@ def display_configuration(wrap=True):
         text += '\n'
 
     osd(always_on=text.strip('\n'))
+
+
+class TextDialog(simpledialog.Dialog):
+    """
+        Text input dialog.
+    """
+
+    def __init__(self, text, title, dialog_width=800, dialog_height=100):
+        self.text = text
+        self.dialog_width = dialog_width
+        self.dialog_height = dialog_height
+        super().__init__(None, title=title)
+
+    def body(self, master):
+        self.geometry(f'{self.dialog_width}x{self.dialog_height}')
+
+        self.e1 = tk.Text(master)
+        self.e1.insert("1.0", self.text)
+        self.e1.pack(padx=0, pady=0, fill=tk.BOTH)
+
+        self.attributes("-topmost", True)
+        master.pack(fill=tk.BOTH, expand=True)
+
+        return self.e1
+
+    def apply(self):
+        if "_"+self.e1.get("1.0", tk.INSERT)[-1:]+"_" == "_\n_":
+            p = self.e1.get("1.0", tk.INSERT)[:-1] + self.e1.get(tk.INSERT, tk.END)  # remove new line inserted when validating the dialog with ENTER
+        else:
+            p = self.e1.get("1.0", tk.END)
+        self.result = p.strip("\n")
 
 
 # Initial img2img call
@@ -1186,19 +1257,31 @@ while running:
                 rendering = True
                 instant_render = True
                 seed = seed + 1
+                update_config(json_file, write=autosave_seed, values={'seed': seed})
                 osd(text=f"Seed: {seed}")
 
             elif event.key == pygame.K_DOWN:
                 rendering = True
                 instant_render = True
                 seed = seed - 1
+                update_config(json_file, write=autosave_seed, values={'seed': seed})
                 osd(text=f"Seed: {seed}")
 
             elif event.key == pygame.K_n:
-                rendering = True
-                instant_render = True
-                new_random_seed_for_payload()
-                osd(text=f"Seed: {seed}")
+                if ctrl_down():
+                    dialog = TextDialog(seed, title="Seed", dialog_width=200, dialog_height=30)
+                    if dialog.result and dialog.result.isnumeric():
+                        osd(text=f"Seed: {dialog.result}")
+                        seed = int(dialog.result)
+                        update_config(json_file, write=autosave_seed, values={'seed': seed})
+                        rendering = True
+                        instant_render = True
+                else:
+                    rendering = True
+                    instant_render = True
+                    seed = new_random_seed()
+                    update_config(json_file, write=autosave_seed, values={'seed': seed})
+                    osd(text=f"Seed: {seed}")
 
             elif event.key == pygame.K_c:
                 if shift_down():
@@ -1299,15 +1382,32 @@ while running:
                         load_preset('controlnet' if alt_down() else 'render', keymap.get(event.key))
 
             elif event.key == pygame.K_p:
-                pause_render = not pause_render
+                if ctrl_down():
+                    pause_render = not pause_render
 
-                if pause_render:
-                    osd(text=f"On-demand rendering (ENTER to render)")
+                    if pause_render:
+                        osd(text=f"On-demand rendering (ENTER to render)")
 
+                    else:
+                        rendering = True
+                        instant_render = True
+                        osd(text=f"Dynamic rendering")
+                elif alt_down():
+                    dialog = TextDialog(negative_prompt, title="Negative prompt")
+                    if dialog.result:
+                        osd(text=f"New negative prompt: {dialog.result}")
+                        negative_prompt = dialog.result
+                        update_config(json_file, write=autosave_negative_prompt, values={'negative_prompt': negative_prompt})
+                        rendering = True
+                        instant_render = True
                 else:
-                    rendering = True
-                    instant_render = True
-                    osd(text=f"Dynamic rendering")
+                    dialog = TextDialog(prompt, title="Prompt")
+                    if dialog.result:
+                        osd(text=f"New prompt: {dialog.result}")
+                        prompt = dialog.result
+                        update_config(json_file, write=autosave_prompt, values={'prompt': prompt})
+                        rendering = True
+                        instant_render = True
 
             elif event.key == pygame.K_BACKSPACE:
                 pygame.draw.rect(canvas, (255, 255, 255), (width, 0, width, height))
@@ -1324,12 +1424,13 @@ while running:
                 eraser_down = True
 
             elif event.key == pygame.K_t:
-                if render_wait == 2.0:
-                    render_wait = 0.0
-                    osd(text="Render wait: off")
-                else:
-                    render_wait += 0.5
-                    osd(text=f"Render wait: {render_wait}s")
+                if shift_down():
+                    if render_wait == 2.0:
+                        render_wait = 0.0
+                        osd(text="Render wait: off")
+                    else:
+                        render_wait += 0.5
+                        osd(text=f"Render wait: {render_wait}s")
 
             elif event.key == pygame.K_u:
                 if shift_down():
@@ -1344,7 +1445,11 @@ while running:
                     osd(text=f"ControlNet weight: {controlnet_weight}")
 
             elif event.key == pygame.K_g:
-                if shift_down():
+                if shift_down() and ctrl_down():
+                    rendering_key = True
+                    pixel_perfect = not pixel_perfect
+                    osd(text=f"ControlNet pixel perfect mode: {'on' if pixel_perfect else 'off'}")
+                elif shift_down():
                     rendering_key = True
                     controlnet_guidance_end = controlnet_guidance_ends[(controlnet_guidance_ends.index(controlnet_guidance_end) + 1) % len(controlnet_guidance_ends)]
                     osd(text=f"ControlNet guidance end: {controlnet_guidance_end}")

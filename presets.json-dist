@@ -1,4 +1,86 @@
 {
-    "render": {},
-    "controlnet": {}
+    "render": {
+        "0": {
+            "clip_skip": 1,
+            "hr_scale": 1.25,
+            "hr_upscaler": "Latent (bicubic)",
+            "denoising_strength": 0.6
+        },
+        "1": {
+            "clip_skip": 1,
+            "hr_scale": 1.0,
+            "hr_upscaler": "Latent (bicubic)",
+            "denoising_strength": 0.6
+        },
+        "2": {
+            "clip_skip": 1,
+            "hr_scale": 1.25,
+            "hr_upscaler": "Latent (bicubic)",
+            "denoising_strength": 0.6
+        },
+        "3": {
+            "clip_skip": 1,
+            "hr_scale": 1.5,
+            "hr_upscaler": "Latent (bicubic)",
+            "denoising_strength": 0.6
+        },
+        "4": {
+            "clip_skip": 1,
+            "hr_scale": 2,
+            "hr_upscaler": "Latent (bicubic)",
+            "denoising_strength": 0.6
+        },
+        "5": {
+            "clip_skip": 1,
+            "hr_scale": 2,
+            "hr_upscaler": "R-ESRGAN 4x+",
+            "denoising_strength": 0.6
+        },
+        "6": {
+            "clip_skip": 1,
+            "hr_scale": 2.5,
+            "hr_upscaler": "R-ESRGAN 4x+",
+            "denoising_strength": 0.5
+        },
+        "7": {
+            "clip_skip": 1,
+            "hr_scale": 2.5,
+            "hr_upscaler": "R-ESRGAN 4x+",
+            "denoising_strength": 0.4
+        }
+    },
+    "controlnet": {
+        "0": {
+            "controlnet_weight": 0.6,
+            "controlnet_guidance_end": 1.0
+        },
+        "1": {
+            "controlnet_weight": 0.6,
+            "controlnet_guidance_end": 0.2
+        },
+        "2": {
+            "controlnet_weight": 0.6,
+            "controlnet_guidance_end": 1.0
+        },
+        "3": {
+            "controlnet_weight": 1.0,
+            "controlnet_guidance_end": 1.0
+        },
+        "4": {
+            "controlnet_weight": 1.0,
+            "controlnet_guidance_end": 0.2
+        },
+        "5": {
+            "controlnet_weight": 1.6,
+            "controlnet_guidance_end": 0.2
+        },
+        "6": {
+            "controlnet_weight": 1.6,
+            "controlnet_guidance_end": 0.3
+        },
+        "7": {
+            "controlnet_weight": 2.0,
+            "controlnet_guidance_end": 0.2
+        }
+    }
 }
