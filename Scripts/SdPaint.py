@@ -2,6 +2,7 @@ import copy
 import functools
 import os
 import random
+import re
 import shutil
 import sys
 
@@ -124,9 +125,19 @@ controlnet_guidance_end = controlnet_guidance_ends[0]
 render_preset_fields = config.get('preset_fields', ["hr_enabled", "hr_scale", "hr_upscaler", "denoising_strength"])
 cn_preset_fields = config.get('cn_preset_fields', ["controlnet_model", "controlnet_weight", "controlnet_guidance_end"])
 
+batch_sizes = config.get("batch_sizes", [1, 4, 9, 16])
+if 1 not in batch_sizes:
+    batch_sizes.insert(0, 1)
+batch_size = batch_sizes[0]
+batch_size_prev = batch_sizes[1]
+batch_hr_scale_prev = hr_scale
+batch_images = []
+
 autosave_seed = config.get('autosave_seed', 'false') == 'true'
 autosave_prompt = config.get('autosave_prompt', 'false') == 'true'
 autosave_negative_prompt = config.get('autosave_negative_prompt', 'false') == 'true'
+autosave_images = config.get('autosave_images', 'false') == 'true'
+autosave_images_max = config.get('autosave_images_max', 5)
 
 main_json_data = {}
 quick_mode = False
@@ -134,6 +145,7 @@ server_busy = False
 rendering = False
 rendering_key = False
 instant_render = False
+image_click = False
 pause_render = False
 use_invert_module = True
 osd_always_on_text: str|None = None
@@ -269,6 +281,7 @@ if settings.get('override_settings', None) is not None and settings['override_se
 
 if settings.get('enable_hr', 'false') == 'true':
     hr_scale = hr_scales[1]
+    batch_hr_scale_prev = hr_scale
 
 prompt = settings.get('prompt', '')
 negative_prompt = settings.get('negative_prompt', '')
@@ -465,8 +478,6 @@ def finger_pos(finger_x, finger_y):
 def save_file_dialog():
     """
         Display save file dialog, then write the file.
-
-    :return: The saved file path.
     """
     global last_render_bytes
 
@@ -475,18 +486,128 @@ def save_file_dialog():
     file_path = filedialog.asksaveasfilename(defaultextension=".png")
 
     if file_path:
-        file_name, file_ext = os.path.splitext(file_path)
+        save_image(file_path, last_render_bytes)
+        time.sleep(1)  # add a 1-second delay
 
-        # save last rendered image
-        with open(file_path, "wb") as image_file:
-            image_file.write(last_render_bytes.getbuffer().tobytes())
 
-        # save sketch
+def autosave_cleanup(images_type):
+    """
+        Cleanup the autosave files.
+    :param str images_type: Images type to cleanup. ``[single, batch]``
+    :return:
+    """
+
+    file_path = os.path.join("outputs", "autosave")
+    if not os.path.exists(file_path):
+        return
+
+    if images_type == 'batch':
+        image_pattern = re.compile(r"(\d+)-(batch-\d+).png")
+    else:
+        image_pattern = re.compile(r"(\d+)-(image).png")
+
+    files_list = list(os.listdir(file_path))
+    for file in sorted(files_list, reverse=True):
+        m = image_pattern.match(file)
+        if m:
+            if int(m.group(1)) >= autosave_images_max:
+                delete_image(os.path.join(file_path, file))
+            else:
+                rename_image(os.path.join(file_path, file), os.path.join(file_path, f"{int(m.group(1))+1:02d}-{m.group(2)}.png"))
+
+
+def autosave_image(image_bytes):
+    """
+        Auto save image(s) in the output dir.
+    :param io.BytesIO|list[io.BytesIO] image_bytes: The image(s) data.
+    """
+
+    file_path = "outputs"
+    if autosave_images_max > 0 and not os.path.exists(os.path.join(file_path, "autosave")):
+        os.makedirs(os.path.join(file_path, "autosave"))
+
+    if isinstance(image_bytes, list):
+        autosave_cleanup("batch")
+        batch_image_pattern = re.compile(r"batch-\d+(-sketch)?.png")
+
+        for f in os.listdir(file_path):
+            if not batch_image_pattern.match(f) or os.path.isdir(os.path.join(file_path, f)):
+                continue
+
+            if autosave_images_max > 0:
+                rename_image(os.path.join(file_path, f), os.path.join(file_path, "autosave", f"01-{f}"))
+
+        for i in range(len(image_bytes)):
+            file_name = f"batch-{i+1:02d}.png"
+
+            save_image(os.path.join(file_path, file_name), image_bytes[i], save_sketch=False)
+    else:
+        autosave_cleanup("single")
+
+        file_name = f"image.png"
+        if os.path.exists(os.path.join(file_path, file_name)) and autosave_images_max > 0:
+            rename_image(os.path.join(file_path, file_name), os.path.join(file_path, "autosave", f"01-{file_name}"))
+
+        save_image(os.path.join(file_path, file_name), image_bytes, save_sketch=True)
+
+
+def save_image(file_path, image_bytes, save_sketch=True):
+    """
+        Save an image file to disk.
+    :param str file_path: The file path.
+    :param io.BytesIO image_bytes: The image data.
+    :param bool save_sketch: Save the sketch alongside the image.
+    """
+    file_name, file_ext = os.path.splitext(file_path)
+
+    file_dir = os.path.dirname(file_path)
+    if not os.path.exists(file_dir):
+        os.makedirs(file_dir)
+
+    # save last rendered image
+    with open(file_path, "wb") as image_file:
+        image_file.write(image_bytes.getbuffer().tobytes())
+
+    # save sketch
+    if save_sketch:
         sketch_img = canvas.subsurface(pygame.Rect(width, 0, width, height)).copy()
         pygame.image.save(sketch_img, f"{file_name}-sketch{file_ext}")
 
-        time.sleep(1)  # add a 1-second delay
-    return file_path
+
+def delete_image(file_path):
+    """
+        Delete an image file, and associated sketch file if existing.
+    :param str file_path: The file path.
+    """
+
+    file_name, file_ext = os.path.splitext(file_path)
+
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    if os.path.exists(f"{file_name}-sketch{file_ext}"):
+        os.remove(f"{file_name}-sketch{file_ext}")
+
+
+def rename_image(src_path, dest_path):
+    """
+        Rename an image file, and associated sketch file if existing.
+    :param str src_path: The source file path.
+    :param str dest_path: The destination file path.
+    """
+
+    src_name, src_ext = os.path.splitext(src_path)
+    dest_name, dest_ext = os.path.splitext(dest_path)
+
+    if not os.path.exists(src_path):
+        return
+
+    delete_image(dest_path)
+
+    os.rename(src_path, dest_path)
+
+    if os.path.exists(f"{src_name}-sketch{src_ext}"):
+        os.rename(f"{src_name}-sketch{src_ext}", f"{dest_name}-sketch{dest_ext}")
 
 
 def load_file_dialog():
@@ -509,14 +630,20 @@ def update_image(image_data):
     """
         Redraw the image canvas.
 
-    :param str image_data: Base64 encoded image data, from API response.
+    :param str|bytes image_data: Base64 encoded image data, from API response.
     """
     global last_render_bytes
 
     # Decode base64 image data
-    img_bytes = io.BytesIO(base64.b64decode(image_data))
+    if isinstance(image_data, str):
+        image_data = base64.b64decode(image_data)
+
+    img_bytes = io.BytesIO(image_data)
     img_surface = pygame.image.load(img_bytes)
-    last_render_bytes = io.BytesIO(base64.b64decode(image_data))
+
+    if autosave_images:
+        autosave_image(io.BytesIO(image_data))
+    last_render_bytes = io.BytesIO(image_data)  # store rendered image in memory
 
     if soft_upscale != 1.0:
         img_surface = pygame.transform.smoothscale(img_surface, (img_surface.get_width() * soft_upscale, img_surface.get_height() * soft_upscale))
@@ -524,6 +651,94 @@ def update_image(image_data):
     canvas.blit(img_surface, (0, 0))
     global need_redraw
     need_redraw = True
+
+
+def update_batch_images(image_datas):
+    """
+        Redraw the image canvas with multiple images.
+
+    :param list[str]|list[bytes] image_datas: Images data, if ``str`` type : base64 encoded from API response.
+    """
+    global last_render_bytes, batch_images
+
+    # Close old batch images
+    if len(batch_images):
+        for batch_image in batch_images:
+            image_bytes = batch_image.get('image', None)
+            if isinstance(image_bytes, io.BytesIO):
+                image_bytes.close()
+
+        batch_images = []
+
+    to_autosave = []
+    nb = math.ceil(math.sqrt(len(image_datas)))
+    i, j, batch_index = 0, 0, 1
+    for image_data in image_datas:
+        pos = (i * width // nb, j * height // nb)
+
+        # Decode base64 image data
+        if isinstance(image_data, str):
+            image_data = base64.b64decode(image_data)
+
+        img_bytes = io.BytesIO(image_data)
+        img_surface = pygame.image.load(img_bytes)
+
+        if (i, j) == (0, 0):
+            last_render_bytes = io.BytesIO(image_data)  # store first rendered image in memory
+
+        if soft_upscale != 1.0:
+            img_surface = pygame.transform.smoothscale(img_surface, (img_surface.get_width() * soft_upscale // nb, img_surface.get_height() * soft_upscale // nb))
+
+        if autosave_images:
+            to_autosave.append(io.BytesIO(image_data))
+
+        batch_images.append({
+            "seed": seed + batch_index - 1,
+            "image": io.BytesIO(image_data),
+            "coord": (pos[0], pos[1], img_surface.get_width(), img_surface.get_height())
+        })
+
+        canvas.blit(img_surface, pos)
+
+        # increase indices
+        i = (i + 1) % nb
+        if i == 0:
+            j = (j + 1) % nb
+        batch_index += 1
+
+    if to_autosave:
+        autosave_image(to_autosave)
+
+    global need_redraw
+    need_redraw = True
+
+
+def select_batch_image(pos):
+    """
+        Select a batch image by clicking on it.
+    :param list[int]|tuple[int] pos: The event position.
+    """
+    global need_redraw, batch_size, batch_size_prev, seed
+
+    if not len(batch_images):
+        return
+
+    for batch_image in batch_images:
+        if batch_image['coord'][0] <= pos[0] < batch_image['coord'][0] + batch_image['coord'][2] \
+                and batch_image['coord'][1] <= pos[1] < batch_image['coord'][1] + batch_image['coord'][3]:
+
+            need_redraw = True
+            osd(text_time=f"Select batch image seed {batch_image['seed']}")
+            print(f"Select batch image seed {batch_image['seed']}")
+
+            if batch_image.get('image', None):
+                update_image(batch_image['image'].getbuffer().tobytes())
+
+            seed = batch_image['seed']
+
+            toggle_batch_mode()
+
+            break
 
 
 def new_random_seed():
@@ -825,6 +1040,7 @@ def payload_submit():
     else:
         json_data['enable_hr'] = 'false'
 
+    json_data['batch_size'] = batch_size
     json_data['seed'] = seed
     json_data['prompt'] = prompt
     json_data['negative_prompt'] = negative_prompt
@@ -883,8 +1099,17 @@ def send_request():
     response = requests.post(url=f'{url}/sdapi/v1/{"img2img" if img2img else "txt2img"}', json=controlnet_to_sdapi(main_json_data))
     if response.status_code == 200:
         r = response.json()
-        return_img = r['images'][0]
-        update_image(return_img)
+
+        ignore_images = 1  # last image returned is the sketch, ignore when updating
+        if hr_scale != 1.0:
+            ignore_images += 1  # two sketch images are returned with HR fix
+
+        if len(r['images']) == 1 + ignore_images:
+            return_img = r['images'][0]
+            update_image(return_img)
+        else:
+            update_batch_images(r['images'][:-ignore_images])
+
         r_info = json.loads(r['info'])
         return_prompt = r_info['prompt']
         return_seed = r_info['seed']
@@ -1127,6 +1352,35 @@ def display_configuration(wrap=True):
     osd(always_on=text.strip('\n'))
 
 
+def toggle_batch_mode(cycle=False):
+    """
+        Toggle batch mode on/off. Alter the setting of HR fix if needed.
+    :param bool cycle: Cycle the batch size value.
+    """
+    global batch_size, batch_size_prev, batch_hr_scale_prev, hr_scale, hr_scale_prev, rendering, rendering_key
+
+    if cycle:
+        rendering_key = True
+        batch_size = batch_sizes[(batch_sizes.index(batch_size) + 1) % len(batch_sizes)]
+    else:
+        rendering = True
+        if batch_size != 1:
+            batch_size_prev = batch_size
+            batch_size = 1
+        else:
+            batch_size = batch_size_prev
+
+    if batch_size == 1:
+        hr_scale = batch_hr_scale_prev
+        update_size()
+        osd(text=f"Batch rendering: off")
+    else:
+        batch_hr_scale_prev = hr_scale
+        hr_scale = 1.0
+        update_size()
+        osd(text=f"Batch rendering size: {batch_size}")
+
+
 class TextDialog(simpledialog.Dialog):
     """
         Text input dialog.
@@ -1166,6 +1420,7 @@ if img2img:
 # Set up the main loop
 running = True
 need_redraw = True
+
 while running:
     rendering = False
 
@@ -1176,69 +1431,78 @@ while running:
 
         elif event.type == pygame.MOUSEBUTTONDOWN or event.type == pygame.FINGERDOWN:
             # Handle brush stroke start and modifiers
-            need_redraw = True
-            last_draw_time = time.time()
-
             if event.type == pygame.FINGERDOWN:
                 event.button = 1
                 event.pos = finger_pos(event.x, event.y)
 
-            brush_key = event.button
-            if eraser_down:
-                brush_key = 'e'
+            if event.pos[0] < width:
+                image_click = True  # clicked on the image part
+                if batch_size != 1 and len(batch_images):
+                    select_batch_image(event.pos)
+            else:
+                need_redraw = True
+                last_draw_time = time.time()
 
-            if brush_key in brush_colors:
-                brush_pos[brush_key] = event.pos
-            elif event.button == 4:  # scroll up
-                brush_size[1] = max(1, brush_size[1] + 1)
-                brush_size[2] = max(1, brush_size[2] + 1)
-                osd(text=f"Brush size {brush_size[1]}")
+                brush_key = event.button
+                if eraser_down:
+                    brush_key = 'e'
 
-            elif event.button == 5:  # scroll down
-                brush_size[1] = max(1, brush_size[1] - 1)
-                brush_size[2] = max(1, brush_size[2] - 1)
-                osd(text=f"Brush size {brush_size[1]}")
+                if brush_key in brush_colors:
+                    brush_pos[brush_key] = event.pos
+                elif event.button == 4:  # scroll up
+                    brush_size[1] = max(1, brush_size[1] + 1)
+                    brush_size[2] = max(1, brush_size[2] + 1)
+                    osd(text=f"Brush size {brush_size[1]}")
 
-            if shift_down() and brush_pos[brush_key] is not None:
-                if shift_pos is None:
-                    shift_pos = brush_pos[brush_key]
-                else:
-                    pygame.draw.polygon(canvas, brush_colors[brush_key], [shift_pos, brush_pos[brush_key]], brush_size[brush_key] * 2)
-                    shift_pos = brush_pos[brush_key]
+                elif event.button == 5:  # scroll down
+                    brush_size[1] = max(1, brush_size[1] - 1)
+                    brush_size[2] = max(1, brush_size[2] - 1)
+                    osd(text=f"Brush size {brush_size[1]}")
+
+                if shift_down() and brush_pos[brush_key] is not None:
+                    if shift_pos is None:
+                        shift_pos = brush_pos[brush_key]
+                    else:
+                        pygame.draw.polygon(canvas, brush_colors[brush_key], [shift_pos, brush_pos[brush_key]], brush_size[brush_key] * 2)
+                        shift_pos = brush_pos[brush_key]
 
         elif event.type == pygame.MOUSEBUTTONUP or event.type == pygame.FINGERUP:
             # Handle brush stoke end
-            need_redraw = True
-            rendering = True
             last_draw_time = time.time()
 
             if event.type == pygame.FINGERUP:
                 event.button = 1
                 event.pos = finger_pos(event.x, event.y)
 
-            if event.button in brush_colors or eraser_down:
-                brush_key = event.button
-                if eraser_down:
-                    brush_key = 'e'
+            if not image_click:
+                need_redraw = True
+                rendering = True
 
-                if brush_size[brush_key] >= 4 and getattr(event, 'pos', None) is not None:
-                    pygame.draw.circle(canvas, brush_colors[brush_key], event.pos, brush_size[brush_key])
+                if event.button in brush_colors or eraser_down:
+                    brush_key = event.button
+                    if eraser_down:
+                        brush_key = 'e'
 
-                brush_pos[brush_key] = None
-                prev_pos = None
-                brush_color = brush_colors[brush_key]
+                    if brush_size[brush_key] >= 4 and getattr(event, 'pos', None) is not None:
+                        pygame.draw.circle(canvas, brush_colors[brush_key], event.pos, brush_size[brush_key])
+
+                    brush_pos[brush_key] = None
+                    prev_pos = None
+                    brush_color = brush_colors[brush_key]
+
+            image_click = False  # reset image click detection
 
         elif event.type == pygame.MOUSEMOTION or event.type == pygame.FINGERMOTION:
             # Handle drawing brush strokes
-            need_redraw = True
-
             if event.type == pygame.FINGERMOTION:
                 event.pos = finger_pos(event.x, event.y)
 
-            for button, pos in brush_pos.items():
-                if pos is not None and button in brush_colors:
-                    last_draw_time = time.time()
-                    brush_stroke(pos)  # do the brush stroke
+            if not image_click:
+                need_redraw = True
+                for button, pos in brush_pos.items():
+                    if pos is not None and button in brush_colors:
+                        last_draw_time = time.time()
+                        brush_stroke(pos)  # do the brush stroke
 
         elif event.type == pygame.KEYDOWN:
             # DBG key & modifiers
@@ -1303,29 +1567,20 @@ while running:
                 if shift_down():
                     rendering_key = True
                     hr_scale = hr_scales[(hr_scales.index(hr_scale)+1) % len(hr_scales)]
-
-                    if hr_scale == 1.0:
-                        osd(text="HR scale: off")
-                    else:
-                        osd(text=f"HR scale: {hr_scale}")
-
-                    update_size(hr_scale=hr_scale)
-
                 else:
                     rendering = True
-
                     if hr_scale != 1.0:
                         hr_scale_prev = hr_scale
                         hr_scale = 1.0
                     else:
                         hr_scale = hr_scale_prev
 
-                    if hr_scale == 1.0:
-                        osd(text="HR scale: off")
-                    else:
-                        osd(text=f"HR scale: {hr_scale}")
+                if hr_scale == 1.0:
+                    osd(text="HR scale: off")
+                else:
+                    osd(text=f"HR scale: {hr_scale}")
 
-                    update_size(hr_scale=hr_scale)
+                update_size(hr_scale=hr_scale)
 
             elif event.key in (pygame.K_KP_ENTER, pygame.K_RETURN):
                 rendering = True
@@ -1345,6 +1600,10 @@ while running:
                     hr_scale = hr_scale_prev
 
                 update_size(hr_scale=hr_scale)
+
+            elif event.key == pygame.K_a:
+                autosave_images = not autosave_images
+                osd(text=f"Autosave images: {'on' if autosave_images else 'off'}")
 
             elif event.key == pygame.K_o:
                 if ctrl_down():
@@ -1437,6 +1696,9 @@ while running:
                     rendering_key = True
                     hr_upscaler = hr_upscalers[(hr_upscalers.index(hr_upscaler) + 1) % len(hr_upscalers)]
                     osd(text=f"HR upscaler: {hr_upscaler}")
+
+            elif event.key == pygame.K_b:
+                toggle_batch_mode(cycle=shift_down())
 
             elif event.key == pygame.K_w:
                 if shift_down():

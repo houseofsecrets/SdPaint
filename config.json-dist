@@ -5,6 +5,8 @@
     "autosave_seed": "true",
     "autosave_prompt": "true",
     "autosave_negative_prompt": "true",
+    "autosave_images": "true",
+    "autosave_images_max": 5,
     "preset_fields": [
         "hr_scale",
         "hr_upscaler",
@@ -52,5 +54,11 @@
         "Euler",
         "Euler a",
         "DPM++ SDE Karras"
+    ],
+    "batch_sizes": [
+        1,
+        4,
+        9,
+        16
     ]
 }
