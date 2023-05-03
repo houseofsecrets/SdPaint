@@ -31,6 +31,7 @@ the canvas when the image is generated.
 | `shift` + `u`                 | Cycle HR upscalers                                         |
 | `shift` + `d`                 | Cycle denoising strengths                                  |
 | `shift` + `s`                 | Cycle samplers                                             |
+| `shift` + `b`                 | Cycle batch sizes                                          |
 | `shift` + `c`                 | Cycle CLIP skip settings                                   |
 | `shift` + `m`                 | Cycle ControlNel models                                    |
 | `shift` + `w`                 | Cycle ControlNel weights                                   |
@@ -42,6 +43,8 @@ the canvas when the image is generated.
 | `alt` + `keypad 1-9`          | Load custom ControlNet preset                              |
 | `ctrl` + `alt` + `keypad 1-9` | Save custom ControlNet preset                              |
 | `x` or `ESC`                  | Quit                                                       |
+
+_Note_ : "Cycle" shortcuts type will wait for the `shift` key to be released before launching the rendering.
 
 ## Installation
 
