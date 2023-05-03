@@ -1527,14 +1527,14 @@ while running:
             if event.key == pygame.K_UP:
                 rendering = True
                 instant_render = True
-                seed = seed + 1
+                seed = seed + batch_size
                 update_config(json_file, write=autosave_seed, values={'seed': seed})
                 osd(text=f"Seed: {seed}")
 
             elif event.key == pygame.K_DOWN:
                 rendering = True
                 instant_render = True
-                seed = seed - 1
+                seed = seed - batch_size
                 update_config(json_file, write=autosave_seed, values={'seed': seed})
                 osd(text=f"Seed: {seed}")
 
