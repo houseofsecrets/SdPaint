@@ -2,6 +2,7 @@ import copy
 import functools
 import os
 import random
+import re
 import shutil
 import sys
 
@@ -489,29 +490,58 @@ def save_file_dialog():
         time.sleep(1)  # add a 1-second delay
 
 
-def autosave_image(image_bytes, batch_index=0):
+def autosave_cleanup(images_type, render_number=1):
     """
-        Auto save image in the outputs dir.
-    :param io.BytesIO image_bytes: The image data.
-    :param int batch_index: Image index in batch, ``0`` if single image.
-    :return: The saved file path.
+        Cleanup the autosave files.
+    :param str images_type: Images type to cleanup. ``[single, batch]``
+    :param int render_number: The rendered images number.
+    :return:
+    """
+
+    file_path = os.path.join("outputs", "autosave")
+    if not os.path.exists(file_path):
+        return
+
+    if images_type == 'batch':
+        pass
+    else:
+        image_pattern = re.compile(r"(image)-(\d+).png")
+
+        files_list = list(os.listdir(file_path))
+        for file in sorted(files_list, reverse=True):
+            m = image_pattern.match(file)
+            if m:
+                if int(m.group(2)) >= autosave_images_max:
+                    delete_image(os.path.join(file_path, file))
+                else:
+                    rename_image(os.path.join(file_path, file), os.path.join(file_path, f"{m.group(1)}-{int(m.group(2))+1:02d}.png"))
+
+
+def autosave_image(image_bytes):
+    """
+        Auto save image(s) in the output dir.
+    :param io.BytesIO|list[io.BytesIO] image_bytes: The image(s) data.
     """
 
     file_path = "outputs"
+    if autosave_images_max > 0 and not os.path.exists(os.path.join(file_path, "autosave")):
+        os.makedirs(os.path.join(file_path, "autosave"))
 
-    if batch_index > 0:
-        # file_name = f"batch-{batch_index:02d}-{seed + batch_index - 1}.png"
-        file_name = f"batch-{batch_index:02d}.png"
-        save_sketch = False
+    if isinstance(image_bytes, list):
+        autosave_cleanup("batch", len(image_bytes))
+
+        for i in range(len(image_bytes)):
+            file_name = f"batch-{i+1:02d}.png"
+            save_image(os.path.join(file_path, file_name), image_bytes[i], save_sketch=False)
     else:
-        # file_name = f"image-{seed}.png"
+        autosave_cleanup("single")
+
         file_name = f"image.png"
-        save_sketch = True
+        if os.path.exists(os.path.join(file_path, file_name)) and autosave_images_max > 0:
+            file_split = os.path.splitext(file_name)
+            rename_image(os.path.join(file_path, file_name), os.path.join(file_path, "autosave", f"{file_split[0]}-01{file_split[1]}"))
 
-    file_path = os.path.join(file_path, file_name)
-    save_image(file_path, image_bytes, save_sketch)
-
-    return file_path
+        save_image(os.path.join(file_path, file_name), image_bytes, save_sketch=True)
 
 
 def save_image(file_path, image_bytes, save_sketch=True):
@@ -535,6 +565,42 @@ def save_image(file_path, image_bytes, save_sketch=True):
     if save_sketch:
         sketch_img = canvas.subsurface(pygame.Rect(width, 0, width, height)).copy()
         pygame.image.save(sketch_img, f"{file_name}-sketch{file_ext}")
+
+
+def delete_image(file_path):
+    """
+        Delete an image file, and associated sketch file if existing.
+    :param str file_path: The file path.
+    """
+
+    file_name, file_ext = os.path.splitext(file_path)
+
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    if os.path.exists(f"{file_name}-sketch{file_ext}"):
+        os.remove(f"{file_name}-sketch{file_ext}")
+
+
+def rename_image(src_path, dest_path):
+    """
+        Rename an image file, and associated sketch file if existing.
+    :param str src_path: The source file path.
+    :param str dest_path: The destination file path.
+    """
+
+    src_name, src_ext = os.path.splitext(src_path)
+    dest_name, dest_ext = os.path.splitext(dest_path)
+
+    if not os.path.exists(src_path):
+        return
+
+    delete_image(dest_path)
+
+    os.rename(src_path, dest_path)
+
+    if os.path.exists(f"{src_name}-sketch{src_ext}"):
+        os.rename(f"{src_name}-sketch{src_ext}", f"{dest_name}-sketch{dest_ext}")
 
 
 def load_file_dialog():
@@ -597,6 +663,7 @@ def update_batch_images(image_datas):
 
         batch_images = []
 
+    to_autosave = []
     nb = math.ceil(math.sqrt(len(image_datas)))
     i, j, batch_index = 0, 0, 1
     for image_data in image_datas:
@@ -616,7 +683,7 @@ def update_batch_images(image_datas):
             img_surface = pygame.transform.smoothscale(img_surface, (img_surface.get_width() * soft_upscale // nb, img_surface.get_height() * soft_upscale // nb))
 
         if autosave_images:
-            autosave_image(io.BytesIO(image_data), batch_index)
+            to_autosave.append(io.BytesIO(image_data))
 
         batch_images.append({
             "seed": seed + batch_index - 1,
@@ -631,6 +698,9 @@ def update_batch_images(image_datas):
         if i == 0:
             j = (j + 1) % nb
         batch_index += 1
+
+    if to_autosave:
+        autosave_image(to_autosave)
 
     global need_redraw
     need_redraw = True
