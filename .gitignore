@@ -3,3 +3,4 @@ venv
 *.iml
 *.local
 .idea
+outputs/*
