@@ -5,6 +5,8 @@
     "autosave_seed": "true",
     "autosave_prompt": "true",
     "autosave_negative_prompt": "true",
+    "autosave_images": "true",
+    "autosave_images_max": 5,
     "preset_fields": [
         "hr_scale",
         "hr_upscaler",
