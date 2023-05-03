@@ -584,7 +584,7 @@ def update_batch_images(image_datas):
     """
         Redraw the image canvas with multiple images.
 
-    :param list[str] image_datas: Base64 encoded images data, from API response.
+    :param list[str]|list[bytes] image_datas: Images data, if ``str`` type : base64 encoded from API response.
     """
     global last_render_bytes, batch_images
 
@@ -603,21 +603,24 @@ def update_batch_images(image_datas):
         pos = (i * width // nb, j * height // nb)
 
         # Decode base64 image data
-        img_bytes = io.BytesIO(base64.b64decode(image_data))
+        if isinstance(image_data, str):
+            image_data = base64.b64decode(image_data)
+
+        img_bytes = io.BytesIO(image_data)
         img_surface = pygame.image.load(img_bytes)
 
         if (i, j) == (0, 0):
-            last_render_bytes = io.BytesIO(base64.b64decode(image_data))  # store first rendered image in memory
+            last_render_bytes = io.BytesIO(image_data)  # store first rendered image in memory
 
         if soft_upscale != 1.0:
             img_surface = pygame.transform.smoothscale(img_surface, (img_surface.get_width() * soft_upscale // nb, img_surface.get_height() * soft_upscale // nb))
 
         if autosave_images:
-            autosave_image(io.BytesIO(base64.b64decode(image_data)), batch_index)
+            autosave_image(io.BytesIO(image_data), batch_index)
 
         batch_images.append({
             "seed": seed + batch_index - 1,
-            "image": io.BytesIO(base64.b64decode(image_data)),
+            "image": io.BytesIO(image_data),
             "coord": (pos[0], pos[1], img_surface.get_width(), img_surface.get_height())
         })
 
