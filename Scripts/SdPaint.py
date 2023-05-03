@@ -1,5 +1,6 @@
 import copy
 import functools
+import gc
 import os
 import random
 import re
@@ -729,7 +730,6 @@ def select_batch_image(pos):
 
             need_redraw = True
             osd(text_time=f"Select batch image seed {batch_image['seed']}")
-            print(f"Select batch image seed {batch_image['seed']}")
 
             if batch_image.get('image', None):
                 update_image(batch_image['image'].getbuffer().tobytes())
@@ -1392,6 +1392,13 @@ class TextDialog(simpledialog.Dialog):
         self.dialog_height = dialog_height
         super().__init__(None, title=title)
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.quit()
+        gc.collect()
+
     def body(self, master):
         self.geometry(f'{self.dialog_width}x{self.dialog_height}')
 
@@ -1533,13 +1540,13 @@ while running:
 
             elif event.key == pygame.K_n:
                 if ctrl_down():
-                    dialog = TextDialog(seed, title="Seed", dialog_width=200, dialog_height=30)
-                    if dialog.result and dialog.result.isnumeric():
-                        osd(text=f"Seed: {dialog.result}")
-                        seed = int(dialog.result)
-                        update_config(json_file, write=autosave_seed, values={'seed': seed})
-                        rendering = True
-                        instant_render = True
+                    with TextDialog(seed, title="Seed", dialog_width=200, dialog_height=30) as dialog:
+                        if dialog.result and dialog.result.isnumeric():
+                            osd(text=f"Seed: {dialog.result}")
+                            seed = int(dialog.result)
+                            update_config(json_file, write=autosave_seed, values={'seed': seed})
+                            rendering = True
+                            instant_render = True
                 else:
                     rendering = True
                     instant_render = True
@@ -1652,21 +1659,21 @@ while running:
                         instant_render = True
                         osd(text=f"Dynamic rendering")
                 elif alt_down():
-                    dialog = TextDialog(negative_prompt, title="Negative prompt")
-                    if dialog.result:
-                        osd(text=f"New negative prompt: {dialog.result}")
-                        negative_prompt = dialog.result
-                        update_config(json_file, write=autosave_negative_prompt, values={'negative_prompt': negative_prompt})
-                        rendering = True
-                        instant_render = True
+                    with TextDialog(negative_prompt, title="Negative prompt") as dialog:
+                        if dialog.result:
+                            osd(text=f"New negative prompt: {dialog.result}")
+                            negative_prompt = dialog.result
+                            update_config(json_file, write=autosave_negative_prompt, values={'negative_prompt': negative_prompt})
+                            rendering = True
+                            instant_render = True
                 else:
-                    dialog = TextDialog(prompt, title="Prompt")
-                    if dialog.result:
-                        osd(text=f"New prompt: {dialog.result}")
-                        prompt = dialog.result
-                        update_config(json_file, write=autosave_prompt, values={'prompt': prompt})
-                        rendering = True
-                        instant_render = True
+                    with TextDialog(prompt, title="Prompt") as dialog:
+                        if dialog.result:
+                            osd(text=f"New prompt: {dialog.result}")
+                            prompt = dialog.result
+                            update_config(json_file, write=autosave_prompt, values={'prompt': prompt})
+                            rendering = True
+                            instant_render = True
 
             elif event.key == pygame.K_BACKSPACE:
                 pygame.draw.rect(canvas, (255, 255, 255), (width, 0, width, height))
