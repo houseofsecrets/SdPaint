@@ -52,5 +52,11 @@
         "Euler",
         "Euler a",
         "DPM++ SDE Karras"
+    ],
+    "batch_sizes": [
+        1,
+        4,
+        9,
+        16
     ]
 }
