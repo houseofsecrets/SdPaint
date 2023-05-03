@@ -490,11 +490,10 @@ def save_file_dialog():
         time.sleep(1)  # add a 1-second delay
 
 
-def autosave_cleanup(images_type, render_number=1):
+def autosave_cleanup(images_type):
     """
         Cleanup the autosave files.
     :param str images_type: Images type to cleanup. ``[single, batch]``
-    :param int render_number: The rendered images number.
     :return:
     """
 
@@ -503,18 +502,18 @@ def autosave_cleanup(images_type, render_number=1):
         return
 
     if images_type == 'batch':
-        pass
+        image_pattern = re.compile(r"(\d+)-(batch-\d+).png")
     else:
-        image_pattern = re.compile(r"(image)-(\d+).png")
+        image_pattern = re.compile(r"(\d+)-(image).png")
 
-        files_list = list(os.listdir(file_path))
-        for file in sorted(files_list, reverse=True):
-            m = image_pattern.match(file)
-            if m:
-                if int(m.group(2)) >= autosave_images_max:
-                    delete_image(os.path.join(file_path, file))
-                else:
-                    rename_image(os.path.join(file_path, file), os.path.join(file_path, f"{m.group(1)}-{int(m.group(2))+1:02d}.png"))
+    files_list = list(os.listdir(file_path))
+    for file in sorted(files_list, reverse=True):
+        m = image_pattern.match(file)
+        if m:
+            if int(m.group(1)) >= autosave_images_max:
+                delete_image(os.path.join(file_path, file))
+            else:
+                rename_image(os.path.join(file_path, file), os.path.join(file_path, f"{int(m.group(1))+1:02d}-{m.group(2)}.png"))
 
 
 def autosave_image(image_bytes):
@@ -528,18 +527,26 @@ def autosave_image(image_bytes):
         os.makedirs(os.path.join(file_path, "autosave"))
 
     if isinstance(image_bytes, list):
-        autosave_cleanup("batch", len(image_bytes))
+        autosave_cleanup("batch")
+        batch_image_pattern = re.compile(r"batch-\d+(-sketch)?.png")
+
+        for f in os.listdir(file_path):
+            if not batch_image_pattern.match(f) or os.path.isdir(os.path.join(file_path, f)):
+                continue
+
+            if autosave_images_max > 0:
+                rename_image(os.path.join(file_path, f), os.path.join(file_path, "autosave", f"01-{f}"))
 
         for i in range(len(image_bytes)):
             file_name = f"batch-{i+1:02d}.png"
+
             save_image(os.path.join(file_path, file_name), image_bytes[i], save_sketch=False)
     else:
         autosave_cleanup("single")
 
         file_name = f"image.png"
         if os.path.exists(os.path.join(file_path, file_name)) and autosave_images_max > 0:
-            file_split = os.path.splitext(file_name)
-            rename_image(os.path.join(file_path, file_name), os.path.join(file_path, "autosave", f"{file_split[0]}-01{file_split[1]}"))
+            rename_image(os.path.join(file_path, file_name), os.path.join(file_path, "autosave", f"01-{file_name}"))
 
         save_image(os.path.join(file_path, file_name), image_bytes, save_sketch=True)
 
