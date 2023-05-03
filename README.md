@@ -17,6 +17,7 @@ the canvas when the image is generated.
 | `c`                           | Display current configuration while pressed                |
 | `p`                           | Edit prompt                                                |
 | `alt` + `p`                   | Edit negative prompt                                       |
+| `a`                           | Toggle autosave                                            |
 | `shift` + `t`                 | Cycle render wait time (+0.5s, or off)                     |
 | `ctrl` + `p`                  | Pause dynamic rendering                                    |
 | `q`                           | Toggle quick rendering : low steps & HR fix off            |
@@ -90,6 +91,13 @@ models folder of the controlnet extension.
 ```
     ".\stable-diffusion-webui\extensions\sd-webui-controlnet\models"
 ```
+
+### Autosave
+
+The images can be auto-saved after each rendering into `outputs` and `outputs/autosave` directories. The maximum
+number of images saved is set by `autosave_images_max` in `config.json`.
+
+This feature can be disabled on start by setting `autosave_images` to `"false"`.
 
 ### Multiple ControlNet models
 
