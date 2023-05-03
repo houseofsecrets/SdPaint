@@ -543,7 +543,6 @@ def update_images(image_datas):
     global last_render_bytes
 
     nb = math.ceil(math.sqrt(len(image_datas)))
-    print(nb)
     i, j = 0, 0
     for image_data in image_datas:
         pos = (i * width // nb, j * height // nb)
