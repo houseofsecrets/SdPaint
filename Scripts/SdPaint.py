@@ -124,6 +124,9 @@ controlnet_guidance_end = controlnet_guidance_ends[0]
 render_preset_fields = config.get('preset_fields', ["hr_enabled", "hr_scale", "hr_upscaler", "denoising_strength"])
 cn_preset_fields = config.get('cn_preset_fields', ["controlnet_model", "controlnet_weight", "controlnet_guidance_end"])
 
+batch_sizes = config.get("batch_sizes", [1, 4, 9, 16])
+batch_size = batch_sizes[0]
+
 autosave_seed = config.get('autosave_seed', 'false') == 'true'
 autosave_prompt = config.get('autosave_prompt', 'false') == 'true'
 autosave_negative_prompt = config.get('autosave_negative_prompt', 'false') == 'true'
@@ -526,6 +529,37 @@ def update_image(image_data):
     need_redraw = True
 
 
+def update_images(image_datas):
+    """
+        Redraw the image canvas with multiple images.
+
+    :param list[str] image_datas: Base64 encoded images data, from API response.
+    """
+    global last_render_bytes
+
+    nb = math.ceil(math.sqrt(len(image_datas)))
+    print(nb)
+    i, j = 0, 0
+    for image_data in image_datas:
+        pos = (i * width // nb, j * height // nb)
+
+        # Decode base64 image data
+        img_bytes = io.BytesIO(base64.b64decode(image_data))
+        img_surface = pygame.image.load(img_bytes)
+        last_render_bytes = io.BytesIO(base64.b64decode(image_data))
+
+        if soft_upscale != 1.0:
+            img_surface = pygame.transform.smoothscale(img_surface, (img_surface.get_width() * soft_upscale // nb, img_surface.get_height() * soft_upscale // nb))
+
+        canvas.blit(img_surface, pos)
+        i = (i + 1) % nb
+        if i == 0:
+            j = (j + 1) % nb
+
+    global need_redraw
+    need_redraw = True
+
+
 def new_random_seed():
     """
         Generate a new random seed.
@@ -825,6 +859,7 @@ def payload_submit():
     else:
         json_data['enable_hr'] = 'false'
 
+    json_data['batch_size'] = batch_size
     json_data['seed'] = seed
     json_data['prompt'] = prompt
     json_data['negative_prompt'] = negative_prompt
@@ -883,8 +918,14 @@ def send_request():
     response = requests.post(url=f'{url}/sdapi/v1/{"img2img" if img2img else "txt2img"}', json=controlnet_to_sdapi(main_json_data))
     if response.status_code == 200:
         r = response.json()
-        return_img = r['images'][0]
-        update_image(return_img)
+
+        # last image returned is the sketch, ignore when updating
+        if len(r['images']) == 2:
+            return_img = r['images'][0]
+            update_image(return_img)
+        else:
+            update_images(r['images'][:-1])
+
         r_info = json.loads(r['info'])
         return_prompt = r_info['prompt']
         return_seed = r_info['seed']
@@ -1437,6 +1478,15 @@ while running:
                     rendering_key = True
                     hr_upscaler = hr_upscalers[(hr_upscalers.index(hr_upscaler) + 1) % len(hr_upscalers)]
                     osd(text=f"HR upscaler: {hr_upscaler}")
+
+            elif event.key == pygame.K_b:
+                if shift_down():
+                    rendering_key = True
+                    batch_size = batch_sizes[(batch_sizes.index(batch_size) + 1) % len(batch_sizes)]
+                    if batch_size == 1:
+                        osd(text=f"Batch rendering: off")
+                    else:
+                        osd(text=f"Batch rendering size: {batch_size}")
 
             elif event.key == pygame.K_w:
                 if shift_down():
