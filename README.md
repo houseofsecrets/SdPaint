@@ -31,6 +31,7 @@ the canvas when the image is generated.
 | `shift` + `u`                 | Cycle HR upscalers                                         |
 | `shift` + `d`                 | Cycle denoising strengths                                  |
 | `shift` + `s`                 | Cycle samplers                                             |
+| `b`                           | Toggle batch rendering                                     |
 | `shift` + `b`                 | Cycle batch sizes                                          |
 | `shift` + `c`                 | Cycle CLIP skip settings                                   |
 | `shift` + `m`                 | Cycle ControlNel models                                    |
