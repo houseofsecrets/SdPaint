@@ -125,7 +125,11 @@ render_preset_fields = config.get('preset_fields', ["hr_enabled", "hr_scale", "h
 cn_preset_fields = config.get('cn_preset_fields', ["controlnet_model", "controlnet_weight", "controlnet_guidance_end"])
 
 batch_sizes = config.get("batch_sizes", [1, 4, 9, 16])
+if 1 not in batch_sizes:
+    batch_sizes.insert(0, 1)
 batch_size = batch_sizes[0]
+batch_size_prev = batch_sizes[1]
+batch_hr_scale_prev = hr_scale
 
 autosave_seed = config.get('autosave_seed', 'false') == 'true'
 autosave_prompt = config.get('autosave_prompt', 'false') == 'true'
@@ -272,6 +276,7 @@ if settings.get('override_settings', None) is not None and settings['override_se
 
 if settings.get('enable_hr', 'false') == 'true':
     hr_scale = hr_scales[1]
+    batch_hr_scale_prev = hr_scale
 
 prompt = settings.get('prompt', '')
 negative_prompt = settings.get('negative_prompt', '')
@@ -919,12 +924,15 @@ def send_request():
     if response.status_code == 200:
         r = response.json()
 
-        # last image returned is the sketch, ignore when updating
-        if len(r['images']) == 2:
+        ignore_images = 1  # last image returned is the sketch, ignore when updating
+        if hr_scale != 1.0:
+            ignore_images += 1  # two sketch images are returned with HR fix
+
+        if len(r['images']) == 1 + ignore_images:
             return_img = r['images'][0]
             update_image(return_img)
         else:
-            update_images(r['images'][:-1])
+            update_images(r['images'][:-ignore_images])
 
         r_info = json.loads(r['info'])
         return_prompt = r_info['prompt']
@@ -1344,29 +1352,20 @@ while running:
                 if shift_down():
                     rendering_key = True
                     hr_scale = hr_scales[(hr_scales.index(hr_scale)+1) % len(hr_scales)]
-
-                    if hr_scale == 1.0:
-                        osd(text="HR scale: off")
-                    else:
-                        osd(text=f"HR scale: {hr_scale}")
-
-                    update_size(hr_scale=hr_scale)
-
                 else:
                     rendering = True
-
                     if hr_scale != 1.0:
                         hr_scale_prev = hr_scale
                         hr_scale = 1.0
                     else:
                         hr_scale = hr_scale_prev
 
-                    if hr_scale == 1.0:
-                        osd(text="HR scale: off")
-                    else:
-                        osd(text=f"HR scale: {hr_scale}")
+                if hr_scale == 1.0:
+                    osd(text="HR scale: off")
+                else:
+                    osd(text=f"HR scale: {hr_scale}")
 
-                    update_size(hr_scale=hr_scale)
+                update_size(hr_scale=hr_scale)
 
             elif event.key in (pygame.K_KP_ENTER, pygame.K_RETURN):
                 rendering = True
@@ -1483,10 +1482,23 @@ while running:
                 if shift_down():
                     rendering_key = True
                     batch_size = batch_sizes[(batch_sizes.index(batch_size) + 1) % len(batch_sizes)]
-                    if batch_size == 1:
-                        osd(text=f"Batch rendering: off")
+                else:
+                    rendering = True
+                    if batch_size != 1:
+                        batch_size_prev = batch_size
+                        batch_size = 1
                     else:
-                        osd(text=f"Batch rendering size: {batch_size}")
+                        batch_size = batch_size_prev
+
+                if batch_size == 1:
+                    hr_scale = batch_hr_scale_prev
+                    update_size()
+                    osd(text=f"Batch rendering: off")
+                else:
+                    batch_hr_scale_prev = hr_scale
+                    hr_scale = 1.0
+                    update_size()
+                    osd(text=f"Batch rendering size: {batch_size}")
 
             elif event.key == pygame.K_w:
                 if shift_down():
