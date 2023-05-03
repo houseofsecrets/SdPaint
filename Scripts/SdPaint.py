@@ -1273,6 +1273,10 @@ def display_configuration(wrap=True):
 
 
 def toggle_batch_mode(cycle=False):
+    """
+        Toggle batch mode on/off. Alter the setting of HR fix if needed.
+    :param bool cycle: Cycle the batch size value.
+    """
     global batch_size, batch_size_prev, batch_hr_scale_prev, hr_scale, hr_scale_prev, rendering, rendering_key
 
     if cycle:
