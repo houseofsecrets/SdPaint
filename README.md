@@ -14,6 +14,7 @@ the canvas when the image is generated.
 | `backspace`                   | Erase the entire sketch                                    |
 | `shift` + Left button         | Draw a line between two clicks                             |
 | `RETURN` or `ENTER`           | Request image rendering                                    |
+| `ctrl` + `i`                  | Interrupt image rendering                                  |
 | `c`                           | Display current configuration while pressed                |
 | `p`                           | Edit prompt                                                |
 | `alt` + `p`                   | Edit negative prompt                                       |
