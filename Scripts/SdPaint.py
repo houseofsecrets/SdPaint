@@ -454,6 +454,20 @@ def load_preset(preset_type, index):
     update_size()
 
 
+def interrupt_rendering():
+    """
+        Interrupt current rendering.
+    """
+
+    global rendering, need_redraw
+
+    response = requests.post(url=f'{url}/sdapi/v1/interrupt')
+    if response.status_code == 200:
+        r = response.json()
+        print(json.dumps(r, indent=4))
+        osd(text="Interrupted rendering")
+
+
 # Init the default preset
 save_preset('render', 0)
 save_preset('controlnet', 0)
@@ -1572,6 +1586,10 @@ while running:
                     rendering_key = True
                     controlnet_model = controlnet_models[(controlnet_models.index(controlnet_model) + 1) % len(controlnet_models)]
                     osd(text=f"ControlNet model: {controlnet_model}")
+
+            elif event.key == pygame.K_i:
+                if ctrl_down():
+                    interrupt_rendering()
 
             elif event.key == pygame.K_h:
                 if shift_down():
