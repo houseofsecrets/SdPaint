@@ -463,8 +463,6 @@ def interrupt_rendering():
 
     response = requests.post(url=f'{url}/sdapi/v1/interrupt')
     if response.status_code == 200:
-        r = response.json()
-        print(json.dumps(r, indent=4))
         osd(text="Interrupted rendering")
 
 
