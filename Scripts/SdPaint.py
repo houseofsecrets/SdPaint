@@ -444,6 +444,9 @@ def load_preset(preset_type, index):
 
     # load preset
     for preset_field in (render_preset_fields if preset_type == 'render' else cn_preset_fields):
+        if preset.get(preset_field, None) is None:
+            continue
+
         globals()[preset_field] = preset[preset_field]
         text += f"\n  {preset_field[:1].upper()}{preset_field[1:].replace('_', ' ')} :: {preset[preset_field]}"
 
