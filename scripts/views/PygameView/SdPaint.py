@@ -17,7 +17,7 @@ import tkinter as tk
 from tkinter import filedialog, simpledialog
 import argparse
 from ...common.utils import payload_submit, update_config, save_preset, update_size, new_random_seed
-from ...common.cn_requets import fetch_controlnet_models, progress_request, fetch_detect_image, fetch_img2img, post_request
+from ...common.cn_requests import fetch_controlnet_models, progress_request, fetch_detect_image, fetch_img2img, post_request
 from ...common.output_files_utils import autosave_image, save_image
 from ...common.state import State
 
