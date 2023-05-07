@@ -153,11 +153,11 @@ class State:
         self.render["init_height"] = self.render["height"] * 1.0
         self.render["soft_upscale"] = 1.0
         if settings.get("controlnet_units", None) and settings.get("controlnet_units")[0].get('model', None):
-            self.control_net["controlnet_models"] = settings.get("controlnet_units")[0]["model"]
+            self.control_net["controlnet_model"] = settings.get("controlnet_units")[0]["model"]
         elif self.control_net["controlnet_models"]:
-            self.control_net["controlnet_models"] = self.control_net["controlnet_models"][0]
+            self.control_net["controlnet_model"] = self.control_net["controlnet_models"][0]
         else:
-            self.control_net["controlnet_models"] = None
+            self.control_net["controlnet_model"] = None
         update_size(self)
 
         if self.control_net["controlnet_models"] and settings.get("controlnet_units", None) and not settings.get("controlnet_units")[0].get('model', None):
