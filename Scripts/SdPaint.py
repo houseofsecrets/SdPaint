@@ -91,6 +91,7 @@ presets_file = "presets.json"
 presets = load_config(presets_file)
 
 settings = {}
+webui_config = {}
 
 # Setup
 url = config.get('url', 'http://127.0.0.1:7860')
@@ -98,6 +99,8 @@ url = config.get('url', 'http://127.0.0.1:7860')
 ACCEPTED_FILE_TYPES = ["png", "jpg", "jpeg", "bmp"]
 
 # Global variables
+checkpoint_pattern = re.compile(r'^(?P<dir>.*(?:\\|\/))?(?P<name>.*?)(?P<vae>\.vae)?(?P<ext>\.safetensors|\.pt|\.ckpt) ?(?P<hash>\[[^\]]*\])?.*')
+
 img2img = None
 img2img_waiting = False
 img2img_time_prev = None
@@ -1272,11 +1275,55 @@ def controlnet_detect():
         osd(text=f"Error code returned: HTTP {response.status_code}")
 
 
+def request_configuration():
+    """
+        Request current configuration from the webui API.
+    :return: The configuration JSON.
+    """
+
+    response = requests.get(url=f'{url}/sdapi/v1/options')
+    if response.status_code == 200:
+        r = response.json()
+        return r
+    else:
+        return {}
+
+
+def ckpt_name(name, display_dir=False, display_ext=False, display_hash=False):
+    """
+
+    :param name:
+    :param remove_dir:
+    :return:
+    """
+
+    replace = ''
+    if display_dir:
+        replace += r'\g<dir>'
+
+    replace += r'\g<name>'
+
+    if display_ext:
+        replace += r'\g<vae>\g<ext>'
+
+    if display_hash:
+        replace += r' \g<hash>'
+
+    return checkpoint_pattern.sub(replace, name)
+
+
 def display_configuration(wrap=True):
     """
         Display configuration on screen.
     :param bool wrap: Wrap long text.
     """
+
+    global webui_config
+
+    webui_config = request_configuration()
+
+    sd_model_checkpoint = ckpt_name(webui_config['sd_model_checkpoint'])
+    sd_vae = ckpt_name(webui_config['sd_vae'])
 
     fields = [
         '--Prompt',
@@ -1284,6 +1331,8 @@ def display_configuration(wrap=True):
         'negative_prompt',
         'seed',
         '--Render',
+        'sd_model_checkpoint',
+        'sd_vae',
         'settings.steps',
         'settings.cfg_scale',
         'hr_scale',
@@ -1319,7 +1368,7 @@ def display_configuration(wrap=True):
 
         if '.' in field:
             field = field.split('.')
-            var = globals().get(field[0], None)
+            var = globals().get(field[0], locals().get(field[0], None))
             if var is None:
                 continue
 
@@ -1333,9 +1382,10 @@ def display_configuration(wrap=True):
                 label = field[1]
                 value = getattr(var, field[1])
         else:
-            if globals().get(field, None) is not None:
+            var = globals().get(field, locals().get(field, None))
+            if var is not None:
                 label = field
-                value = globals().get(field)
+                value = var
 
         if label and value is not None:
             value = str(value)
