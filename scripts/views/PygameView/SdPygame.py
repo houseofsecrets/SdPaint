@@ -172,11 +172,20 @@ class SdPygame:
             text = f"Load {preset_type} preset {index}:"
 
         # load preset
-        for preset_field in (self.state.presets["fields"] if preset_type == 'render' else self.state.control_net["preset_fields"]):
-            if preset.get(preset_field, None) is None:
-                continue
-            self.state.render[preset_field] = preset[preset_field]
-            text += f"\n  {preset_field[:1].upper()}{preset_field[1:].replace('_', ' ')} :: {preset[preset_field]}"
+        if preset_type == 'render':
+            for preset_field in self.state.presets["fields"]:
+                if preset.get(preset_field, None) is None:
+                    continue
+
+                self.state.render[preset_field] = preset[preset_field]
+                text += f"\n  {preset_field[:1].upper()}{preset_field[1:].replace('_', ' ')} :: {preset[preset_field]}"
+
+        elif preset_type == 'controlnet':
+            for preset_field in self.state.control_net["preset_fields"]:
+                if preset.get(preset_field, None) is None:
+                    continue
+                self.state.control_net[preset_field] = preset[preset_field]
+                text += f"\n  {preset_field[:1].upper()}{preset_field[1:].replace('_', ' ')} :: {preset[preset_field]}"
 
         update_size(self.state)
         return text
@@ -1110,6 +1119,7 @@ class SdPygame:
                             self.rendering_key = True
                             hr_upscalers = self.state.render["hr_upscalers"]
                             hr_upscaler = self.state.render["hr_upscaler"]
+                            print(hr_upscaler, hr_upscalers)
                             hr_upscaler = hr_upscalers[(hr_upscalers.index(hr_upscaler) + 1) % len(hr_upscalers)]
                             self.state.render["hr_upscaler"] = hr_upscaler
                             self.osd(text=f"HR upscaler: {hr_upscaler}")
