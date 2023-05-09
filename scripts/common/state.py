@@ -91,7 +91,7 @@ class State:
 
         self.render["hr_scale_prev"] = hr_scales[1]
         self.render["hr_upscalers"] = self.configuration["config"].get("hr_upscalers", ['Latent (bicubic)'])
-        self.render["hr_upscalers"] = self.render["hr_upscalers"][0]
+        self.render["hr_upscaler"] = self.render["hr_upscalers"][0]
         self.render["denoising_strengths"] = self.configuration["config"].get("denoising_strengths", [0.6])
         self.render["denoising_strength"] = self.render["denoising_strengths"][0]
 
