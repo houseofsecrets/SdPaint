@@ -675,9 +675,10 @@ class SdPygame:
     def alt_down(self):
         return pygame.key.get_mods() & pygame.KMOD_ALT
 
-    def controlnet_detect(self):
+    def controlnet_detect(self, detector):
         """
             Call ControlNet active detector on the last rendered image, replace the canvas sketch by the detector result.
+        :param str detector: The detector to apply.
         """
         img = self.canvas.subsurface(pygame.Rect(0, 0, self.state.render["width"], self.state.render["height"])).copy()
 
@@ -695,7 +696,7 @@ class SdPygame:
         pygame.image.save(img, data)
         data = base64.b64encode(data.getvalue()).decode('utf-8')
 
-        response = fetch_detect_image(self.state, data, img.get_width(), img.get_height())
+        response = fetch_detect_image(self.state, detector, data, img.get_width(), img.get_height())
         if response["status_code"] == 200:
             return_img = response["image"]
             img_bytes = io.BytesIO(base64.b64decode(return_img))
@@ -1181,8 +1182,9 @@ class SdPygame:
                                 self.osd(text=f"HR denoising: {denoising_strength}")
                         elif self.ctrl_down:
                             self.osd(text=f"Detect {self.state.detectors['detector']}")
-    
-                            t = threading.Thread(target=self.controlnet_detect)
+                            detector = str(self.state.detectors['detector'])
+
+                            t = threading.Thread(target=functools.partial(self.controlnet_detect, detector))
                             t.start()
     
                             # select next detector

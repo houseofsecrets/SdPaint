@@ -61,17 +61,18 @@ def progress_request(state):
         return {"status_code": response.status_code}
 
 
-def fetch_detect_image(state, image, width, height):
+def fetch_detect_image(state, detector, image, width, height):
     """
         Call detect image feature from the API.
     :param State state: Application state.
+    :param str detector: The detector to use.
     :param str image: Base64 encoder image.
     :param int width: Image width.
     :param int height: Image height.
     :return: Requested status, image(s), and info.
     """
     json_data = {
-        "controlnet_module": state.detectors["detector"],
+        "controlnet_module": detector,
         "controlnet_input_images": [image],
         "controlnet_processor_res": min(width, height),
         "controlnet_threshold_a": 64,
