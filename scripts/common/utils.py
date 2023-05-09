@@ -52,6 +52,7 @@ def update_config(config_file, write=False, values=None):
     :param dict values: The arguments to overwrite.
     :return:
     """
+
     if not os.path.exists(config_file):
         shutil.copy(f"{config_file}-dist", config_file)
 
@@ -71,7 +72,6 @@ def update_config(config_file, write=False, values=None):
 def controlnet_to_sdapi(json_data):
     """
         Convert deprecated ``/controlnet/*2img`` JSON data to the new ``sdapi/v1/*2img`` format.
-
     :param dict json_data: The JSON API data.
     :return: The converted payload content.
     """
@@ -102,6 +102,7 @@ def controlnet_to_sdapi(json_data):
 def save_preset(state, preset_type, index):
     """
         Save the current rendering settings as preset.
+    :param State state: Application state.
     :param str preset_type: The preset type. ``[render, controlnet]``
     :param int index: The preset numeric keymap.
     """
@@ -159,7 +160,7 @@ def update_size_thread(state, **kwargs):
         Update interface threaded method.
 
         If a rendering is in progress, wait before resizing.
-
+    :param State state: Application state.
     :param kwargs: Accepted override parameter: ``hr_scale``
     """
 
@@ -197,18 +198,18 @@ def update_size_thread(state, **kwargs):
 def update_size(state, **kwargs):
     """
         Update the interface scale, according to image width & height, and HR scale if enabled.
+    :param State state: Application state.
     :param kwargs: Accepted override parameter: ``hr_scale``
-    :return:
     """
 
-    t = threading.Thread(target=functools.partial(lambda: update_size_thread(state), **kwargs))
+    t = threading.Thread(target=functools.partial(update_size_thread, state, **kwargs))
     t.start()
 
 
 def new_random_seed(state):
     """
         Generate a new random seed.
-
+    :param State state: Application state.
     :return: The new seed.
     """
 
@@ -219,8 +220,9 @@ def new_random_seed(state):
 def payload_submit(state, image_string):
     """
         Fill the payload to be sent to the API.
-
-        Set ``main_json_data`` variable.
+        Set ``state.main_json_data`` variable.
+    :param State state: Application state.
+    :param str image_string: Image data as Base64 encoded string.
     """
 
     with open(state.json_file, "r") as f:
@@ -265,6 +267,12 @@ def payload_submit(state, image_string):
 
 
 def get_img2img_json(state):
+    """
+       Construct img2img JSON payload.
+    :param State state: Application state.
+    :return: JSON payload.
+    """
+
     with open(state.json_file, "r") as f:
         json_data = json.load(f)
 
@@ -300,3 +308,7 @@ def get_img2img_json(state):
     if state.render["quick_mode"]:
         json_data['steps'] = json_data.get('quick_steps', json_data['steps'] // 2)  # use quick_steps setting, or halve steps if not set
     return json_data
+
+
+# Type hinting imports:
+from .state import State

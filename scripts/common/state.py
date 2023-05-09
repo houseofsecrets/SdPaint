@@ -1,7 +1,12 @@
 import json
 from .utils import load_config, update_size
 
+
 class State:
+    """
+        Store the current state of the application.
+    """
+
     configuration = {
         "config_file": "config.json",
         "config": {},
@@ -74,6 +79,9 @@ class State:
         self.update_settings()
     
     def update_config(self):
+        """
+            Update global configuration.
+        """
         self.configuration["config"] = load_config("config.json")
 
         hr_scales = self.configuration["config"].get("hr_scales", [1.0, 1.25, 1.5, 2.0])
@@ -122,11 +130,13 @@ class State:
         self.server["url"] = self.configuration["config"].get('url', 'http://127.0.0.1:7860')
     
     def update_settings(self):
+        """
+            Update rendering settings.
+        """
         if self.img2img:
             self.json_file = "img2img.json"
         else:
             self.json_file = "controlnet.json"
-
 
         self.settings = load_config(self.json_file)
         settings = self.settings
