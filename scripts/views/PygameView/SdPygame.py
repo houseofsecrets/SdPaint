@@ -754,13 +754,15 @@ class SdPygame:
                     label = field[1]
                     value = getattr(var, field[1])
             else:
-                if 'state/' in field:
+                if field.startswith('state/'):
                     field_components = field.replace('state/', '').split('/')
+                    label = field_components[1]
                     field_value = getattr(self.state, field_components[0])[field_components[1]]
                 else:
-                    field_value = globals().get(field, None)
-                if field_value is not None:
                     label = field
+                    field_value = globals().get(field, None)
+
+                if field_value is not None:
                     value = field_value
 
             if label and value is not None:
