@@ -13,7 +13,7 @@ REM Install required packages
 pip install -r requirements.txt
 
 REM Run the script
-python -m scripts.views.PygameView.SdPaint
+python SdPaint.py
 
 REM Deactivate the virtual environment
 deactivate

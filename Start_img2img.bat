@@ -17,7 +17,7 @@ pip install -r requirements.txt
 
 REM Run the script
 
-python -m scripts.views.PygameView.SdPaint --img2img "!var!"
+python SdPaint.py --img2img "!var!"
 
 REM Deactivate the virtual environment
 deactivate
