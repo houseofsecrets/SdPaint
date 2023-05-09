@@ -16,10 +16,10 @@ from PIL import Image, ImageOps
 import tkinter as tk
 from tkinter import filedialog, simpledialog
 import argparse
-from ...common.utils import payload_submit, update_config, save_preset, update_size, new_random_seed
-from ...common.cn_requests import fetch_controlnet_models, progress_request, fetch_detect_image, fetch_img2img, post_request
-from ...common.output_files_utils import autosave_image, save_image
-from ...common.state import State
+from scripts.common.utils import payload_submit, update_config, save_preset, update_size, new_random_seed
+from scripts.common.cn_requests import fetch_controlnet_models, progress_request, fetch_detect_image, fetch_img2img, post_request
+from scripts.common.output_files_utils import autosave_image, save_image
+from scripts.common.state import State
 
 ACCEPTED_FILE_TYPES = ["png", "jpg", "jpeg", "bmp"]
 
@@ -558,7 +558,7 @@ def send_request():
         if response.get("image", None):
             update_image(response["image"])
         elif response.get("batch_images", None):
-            update_batch_images(response["image"])
+            update_batch_images(response["batch_images"])
 
         r_info = json.loads(response['info'])
         return_prompt = r_info['prompt']
@@ -820,7 +820,7 @@ def toggle_batch_mode(cycle=False):
         else:
             state.render["batch_size"] = state.render["batch_size_prev"]
 
-    if batch_size == 1:
+    if state.render["batch_size"] == 1:
         state.render["hr_scale"] = state.render["batch_hr_scale_prev"]
         update_size(state)
         osd(text=f"Batch rendering: off")
@@ -828,7 +828,7 @@ def toggle_batch_mode(cycle=False):
         state.render["batch_hr_scale_prev"] = state.render["hr_scale"]
         state.render["hr_scale"] = 1.0
         update_size(state)
-        osd(text=f"Batch rendering size: {batch_size}")
+        osd(text=f"Batch rendering size: {state.render['batch_size']}")
 
 
 class TextDialog(simpledialog.Dialog):
@@ -1018,8 +1018,8 @@ while running:
                 if shift_down():
                     rendering_key = True
                     controlnet_models = state.control_net["controlnet_models"]
-                    state.control_net["controlnet_models"] = controlnet_models[(controlnet_models.index(state.control_net["controlnet_models"]) + 1) % len(controlnet_models)]
-                    osd(text=f"ControlNet model: {state['control_net']['controlnet_models']}")
+                    state.control_net["controlnet_model"] = controlnet_models[(controlnet_models.index(state.control_net["controlnet_model"]) + 1) % len(controlnet_models)]
+                    osd(text=f"ControlNet model: {state.control_net['controlnet_model']}")
 
             elif event.key == pygame.K_i:
                 if ctrl_down():
@@ -1039,7 +1039,7 @@ while running:
                 if state.render["hr_scale"] == 1.0:
                     osd(text="HR scale: off")
                 else:
-                    osd(text=f"HR scale: {state['hr']['hr_scale']}")
+                    osd(text=f"HR scale: {state.render['hr_scale']}")
 
                 update_size(state, hr_scale=state.render["hr_scale"])
 
