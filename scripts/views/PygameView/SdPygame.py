@@ -6,7 +6,6 @@ import pygame
 import pygame.gfxdraw
 import requests
 import threading
-# import numpy as np
 import base64
 import io
 import json
@@ -61,6 +60,10 @@ class TextDialog(simpledialog.Dialog):
 
 
 class SdPygame:
+    """
+        SdPaint Pygame interface
+    """
+
     ACCEPTED_FILE_TYPES = ["png", "jpg", "jpeg", "bmp"]
 
     def __init__(self, img2img):
@@ -212,11 +215,18 @@ class SdPygame:
         self.canvas.blit(img, (self.state.render["width"], 0))
 
     def finger_pos(self, finger_x, finger_y):
+        """
+            Compute finger position on canvas.
+        :param float finger_x: Finger X position.
+        :param float finger_y: Finger Y position.
+        :return: Finger coordinates.
+        """
+
         x = round(min(max(finger_x, 0), 1) * self.state.render["width"] * (1 if self.state.img2img else 2))
         y = round(min(max(finger_y, 0), 1) * self.state.render["height"])
         return x, y
 
-    def save_file_dialog(self, ):
+    def save_file_dialog(self):
         """
             Display save file dialog, then write the file.
         """
@@ -231,11 +241,15 @@ class SdPygame:
             time.sleep(1)  # add a 1-second delay
 
     def save_sketch(self, file_path):
+        """
+            Save sketch canvas to a file.
+        :param str file_path: Render output file path.
+        """
         file_name, file_ext = os.path.splitext(file_path)
         sketch_img = self.canvas.subsurface(pygame.Rect(self.state.render["width"], 0, self.state.render["width"], self.state.render["height"])).copy()
         pygame.image.save(sketch_img, f"{file_name}-sketch{file_ext}")
 
-    def load_file_dialog(self, ):
+    def load_file_dialog(self):
         """
             Display loading file dialog, then load the image on the sketch canvas.
         """
@@ -253,7 +267,6 @@ class SdPygame:
     def update_image(self, image_data):
         """
             Redraw the image canvas.
-
         :param str|bytes image_data: Base64 encoded image data, from API response.
         """
 
@@ -278,7 +291,6 @@ class SdPygame:
     def update_batch_images(self, image_datas):
         """
             Redraw the image canvas with multiple images.
-
         :param list[str]|list[bytes] image_datas: Images data, if ``str`` type : base64 encoded from API response.
         """
 
@@ -362,7 +374,6 @@ class SdPygame:
     def img2img_submit(self, force=False):
         """
             Read the ``img2img`` file if modified since last render, check every 1s. Call the API to render if needed.
-
         :param bool force: Force the rendering, even if the file is not modified.
         """
         self.img2img_waiting = False
@@ -535,6 +546,10 @@ class SdPygame:
                 self.osd_text_display_start = None
 
     def get_image_string_from_pygame(self):
+        """
+            Get base64 encoded image string from canvas.
+        :return: The encoder image.
+        """
         img = self.canvas.subsurface(pygame.Rect(self.state.render["width"], 0, self.state.render["width"], self.state.render["height"])).copy()
 
         if not self.state.render["use_invert_module"]:
@@ -555,8 +570,6 @@ class SdPygame:
     def send_request(self):
         """
             Send the API request.
-
-            Use ``main_json_data`` variable.
         """
 
         response = post_request(self.state)
@@ -618,6 +631,8 @@ class SdPygame:
     def brush_stroke(self, event, button, pos):
         """
             Draw the brush stroke.
+        :param pygame.event.Event|dict event: The pygame event.
+        :param int|str button: The active button.
         :param tuple[int]|list[int] pos: The brush current position.
         """
 
@@ -648,16 +663,16 @@ class SdPygame:
         self.prev_pos2 = self.prev_pos
         self.prev_pos = event.pos
 
-    @staticmethod
-    def shift_down():
+    @property
+    def shift_down(self):
         return pygame.key.get_mods() & pygame.KMOD_SHIFT
 
-    @staticmethod
-    def ctrl_down():
+    @property
+    def ctrl_down(self):
         return pygame.key.get_mods() & pygame.KMOD_CTRL
 
-    @staticmethod
-    def alt_down():
+    @property
+    def alt_down(self):
         return pygame.key.get_mods() & pygame.KMOD_ALT
 
     def controlnet_detect(self):
@@ -871,7 +886,7 @@ class SdPygame:
                             self.brush_size[2] = max(1, self.brush_size[2] - 1)
                             self.osd(text=f"Brush size {self.brush_size[1]}")
     
-                        if self.shift_down() and self.brush_pos[brush_key] is not None:
+                        if self.shift_down and self.brush_pos[brush_key] is not None:
                             if self.shift_pos is None:
                                 self.shift_pos = self.brush_pos[brush_key]
                             else:
@@ -944,7 +959,7 @@ class SdPygame:
                         self.osd(text=f"Seed: {self.state['gen_settings']['seed']}")
     
                     elif event.key == pygame.K_n:
-                        if self.ctrl_down():
+                        if self.ctrl_down:
                             with TextDialog(self.state.gen_settings["seed"], title="Seed", dialog_width=200, dialog_height=30) as dialog:
                                 if dialog.result and dialog.result.isnumeric():
                                     self.osd(text=f"Seed: {dialog.result}")
@@ -960,7 +975,7 @@ class SdPygame:
                             self.osd(text=f"Seed: {self.state['gen_settings']['seed']}")
     
                     elif event.key == pygame.K_c:
-                        if self.shift_down():
+                        if self.shift_down:
                             self.rendering_key = True
                             self.state.render["clip_skip"] -= 1
                             self.state.render["clip_skip"] = (self.state.render["clip_skip"] + 1) % 2
@@ -970,7 +985,7 @@ class SdPygame:
                             self.display_configuration()
     
                     elif event.key == pygame.K_m and self.state.control_net["controlnet_models"]:
-                        if self.shift_down():
+                        if self.shift_down:
                             self.rendering_key = True
                             controlnet_models = self.state.control_net["controlnet_models"]
                             controlnet_model = self.state.control_net["controlnet_model"]
@@ -979,10 +994,10 @@ class SdPygame:
                             self.osd(text=f"ControlNet model: {controlnet_model}")
     
                     elif event.key == pygame.K_i:
-                        if self.ctrl_down():
+                        if self.ctrl_down:
                             self.interrupt_rendering()
                     elif event.key == pygame.K_h:
-                        if self.shift_down():
+                        if self.shift_down:
                             self.rendering_key = True
                             self.state.render["hr_scale"] = self.state.render["hr_scales"][(self.state.render["hr_scales"].index(self.state.render["hr_scale"])+1) % len(self.state.render["hr_scales"])]
                         else:
@@ -1024,7 +1039,7 @@ class SdPygame:
                         self.osd(text=f"Autosave images: {'on' if self.state['autosave']['images'] else 'off'}")
     
                     elif event.key == pygame.K_o:
-                        if self.ctrl_down():
+                        if self.ctrl_down:
                             self.rendering = True
                             self.instant_render = True
                             self.load_file_dialog()
@@ -1044,9 +1059,9 @@ class SdPygame:
                             pygame.K_KP9:   9
                         }
     
-                        if self.ctrl_down():
+                        if self.ctrl_down:
                             if event.key != pygame.K_KP0:
-                                preset_info = save_preset(self.state, 'controlnet' if self.alt_down() else 'render', keymap.get(event.key))
+                                preset_info = save_preset(self.state, 'controlnet' if self.alt_down else 'render', keymap.get(event.key))
                                 if preset_info['index'] == '0':
                                     self.osd(text=f"Save {preset_info['preset_type']} preset {preset_info['index']}")
                         else:
@@ -1060,11 +1075,11 @@ class SdPygame:
                                 text = self.load_preset('controlnet', keymap.get(event.key))
                                 self.osd(text=text, text_time=4.0)
                             else:
-                                text = self.load_preset('controlnet' if self.alt_down() else 'render', keymap.get(event.key))
+                                text = self.load_preset('controlnet' if self.alt_down else 'render', keymap.get(event.key))
                                 self.osd(text=text, text_time=4.0)
     
                     elif event.key == pygame.K_p:
-                        if self.ctrl_down():
+                        if self.ctrl_down:
                             self.pause_render = not self.pause_render
     
                             if self.pause_render:
@@ -1075,7 +1090,7 @@ class SdPygame:
                                 self.instant_render = True
                                 self.osd(text=f"Dynamic rendering")
 
-                        elif self.alt_down():
+                        elif self.alt_down:
                             with TextDialog(self.state.gen_settings["negative_prompt"], title="Negative prompt") as dialog:
                                 if dialog.result:
                                     self.osd(text=f"New negative prompt: {dialog.result}")
@@ -1098,9 +1113,9 @@ class SdPygame:
                         pygame.draw.rect(self.canvas, (255, 255, 255), (self.state.render["width"], 0, self.state.render["width"], self.state.render["height"]))
     
                     elif event.key == pygame.K_s:
-                        if self.ctrl_down():
+                        if self.ctrl_down:
                             self.save_file_dialog()
-                        elif self.shift_down():
+                        elif self.shift_down:
                             self.rendering_key = True
                             samplers = self.state.samplers["list"]
                             self.state.samplers["sampler"] = samplers[(samplers.index(self.state.samplers["sampler"]) + 1) % len(samplers)]
@@ -1110,7 +1125,7 @@ class SdPygame:
                         self.eraser_down = True
     
                     elif event.key == pygame.K_t:
-                        if self.shift_down():
+                        if self.shift_down:
                             if self.render_wait == 2.0:
                                 self.render_wait = 0.0
                                 self.osd(text="Render wait: off")
@@ -1119,7 +1134,7 @@ class SdPygame:
                                 self.osd(text=f"Render wait: {self.render_wait}s")
     
                     elif event.key == pygame.K_u:
-                        if self.shift_down():
+                        if self.shift_down:
                             self.rendering_key = True
                             hr_upscalers = self.state.render["hr_upscalers"]
                             hr_upscaler = self.state.render["hr_upscaler"]
@@ -1129,10 +1144,10 @@ class SdPygame:
                             self.osd(text=f"HR upscaler: {hr_upscaler}")
     
                     elif event.key == pygame.K_b:
-                        self.toggle_batch_mode(cycle=self.shift_down())
+                        self.toggle_batch_mode(cycle=self.shift_down)
     
                     elif event.key == pygame.K_w:
-                        if self.shift_down():
+                        if self.shift_down:
                             self.rendering_key = True
                             controlnet_weights = self.state.control_net["controlnet_weights"]
                             controlnet_weight = self.state.control_net["controlnet_weight"]
@@ -1141,11 +1156,11 @@ class SdPygame:
                             self.osd(text=f"ControlNet weight: {controlnet_weight}")
     
                     elif event.key == pygame.K_g:
-                        if self.shift_down() and self.ctrl_down():
+                        if self.shift_down and self.ctrl_down:
                             self.rendering_key = True
                             self.state.render["pixel_perfect"] = not self.state.render["pixel_perfect"]
                             self.osd(text=f"ControlNet pixel perfect mode: {'on' if self.state.render['pixel_perfect'] else 'off'}")
-                        elif self.shift_down():
+                        elif self.shift_down:
                             self.rendering_key = True
                             controlnet_guidance_ends = self.state.control_net["controlnet_guidance_ends"]
                             controlnet_guidance_end = self.state.control_net["controlnet_guidance_end"]
@@ -1154,7 +1169,7 @@ class SdPygame:
                             self.osd(text=f"ControlNet guidance end: {controlnet_guidance_end}")
     
                     elif event.key == pygame.K_d:
-                        if self.shift_down():
+                        if self.shift_down:
                             self.rendering_key = True
                             denoising_strengths = self.state.render["denoising_strengths"]
                             denoising_strength = self.state.render["denoising_strength"]
@@ -1164,7 +1179,7 @@ class SdPygame:
                                 self.osd(text=f"Denoising: {denoising_strength}")
                             else:
                                 self.osd(text=f"HR denoising: {denoising_strength}")
-                        elif self.ctrl_down():
+                        elif self.ctrl_down:
                             self.osd(text=f"Detect {self.state.detectors['detector']}")
     
                             t = threading.Thread(target=self.controlnet_detect)
