@@ -1091,6 +1091,8 @@ class SdPygame:
                                     self.instant_render = True
     
                     elif event.key == pygame.K_BACKSPACE:
+                        self.rendering = True
+                        self.instant_render = True
                         pygame.draw.rect(self.canvas, (255, 255, 255), (self.state.render["width"], 0, self.state.render["width"], self.state.render["height"]))
     
                     elif event.key == pygame.K_s:
