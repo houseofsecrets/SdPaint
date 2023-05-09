@@ -21,6 +21,45 @@ from scripts.common.output_files_utils import autosave_image, save_image
 from scripts.common.state import State
 
 
+class TextDialog(simpledialog.Dialog):
+    """
+        Text input dialog.
+    """
+
+    def __init__(self, text, title, dialog_width=800, dialog_height=100):
+        self.text = text
+        self.dialog_width = dialog_width
+        self.dialog_height = dialog_height
+        self.result = None
+        super().__init__(None, title=title)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.quit()
+        gc.collect()
+
+    def body(self, master):
+        self.geometry(f'{self.dialog_width}x{self.dialog_height}')
+
+        self.e1 = tk.Text(master)
+        self.e1.insert("1.0", self.text)
+        self.e1.pack(padx=0, pady=0, fill=tk.BOTH)
+
+        self.attributes("-topmost", True)
+        master.pack(fill=tk.BOTH, expand=True)
+
+        return self.e1
+
+    def apply(self):
+        if "_"+self.e1.get("1.0", tk.INSERT)[-1:]+"_" == "_\n_":
+            p = self.e1.get("1.0", tk.INSERT)[:-1] + self.e1.get(tk.INSERT, tk.END)  # remove new line inserted when validating the dialog with ENTER
+        else:
+            p = self.e1.get("1.0", tk.END)
+        self.result = p.strip("\n")
+
+
 class SdPygame:
     ACCEPTED_FILE_TYPES = ["png", "jpg", "jpeg", "bmp"]
 
@@ -89,6 +128,7 @@ class SdPygame:
             2: (255, 255, 255),  # Middle mouse button color
             'e': (255, 255, 255),  # Eraser color
         }
+        self.brush_color = self.brush_colors[1]
         self.brush_pos = {1: None, 2: None, 'e': None}  # type: dict[int|str, tuple[int, int]|None]
         self.prev_pos = None
         self.prev_pos2 = None
@@ -772,44 +812,6 @@ class SdPygame:
             update_size(self.state)
             self.osd(text=f"Batch rendering size: {self.state.render['batch_size']}")
 
-    class TextDialog(simpledialog.Dialog):
-        """
-            Text input dialog.
-        """
-
-        def __init__(self, text, title, dialog_width=800, dialog_height=100):
-            self.text = text
-            self.dialog_width = dialog_width
-            self.dialog_height = dialog_height
-            self.result = None
-            super().__init__(None, title=title)
-
-        def __enter__(self):
-            return self
-
-        def __exit__(self, exc_type, exc_val, exc_tb):
-            self.quit()
-            gc.collect()
-
-        def body(self, master):
-            self.geometry(f'{self.dialog_width}x{self.dialog_height}')
-
-            self.e1 = tk.Text(master)
-            self.e1.insert("1.0", self.text)
-            self.e1.pack(padx=0, pady=0, fill=tk.BOTH)
-
-            self.attributes("-topmost", True)
-            master.pack(fill=tk.BOTH, expand=True)
-
-            return self.e1
-
-        def apply(self):
-            if "_"+self.e1.get("1.0", tk.INSERT)[-1:]+"_" == "_\n_":
-                p = self.e1.get("1.0", tk.INSERT)[:-1] + self.e1.get(tk.INSERT, tk.END)  # remove new line inserted when validating the dialog with ENTER
-            else:
-                p = self.e1.get("1.0", tk.END)
-            self.result = p.strip("\n")
-
     def main(self):
         # Initial img2img call
         if self.state.img2img:
@@ -924,15 +926,15 @@ class SdPygame:
                         self.osd(text=f"Seed: {self.state['gen_settings']['seed']}")
     
                     elif event.key == pygame.K_DOWN:
-                        rendering = True
-                        instant_render = True
+                        self.rendering = True
+                        self.instant_render = True
                         self.state.gen_settings["seed"] = self.state.gen_settings["seed"] - self.state.render["batch_size"]
                         update_config(self.state.json_file, write=self.state.autosave["seed"], values={'seed': self.state.gen_settings["seed"]})
                         self.osd(text=f"Seed: {self.state['gen_settings']['seed']}")
     
                     elif event.key == pygame.K_n:
                         if self.ctrl_down():
-                            with SdPygame.TextDialog(self.state.gen_settings["seed"], title="Seed", dialog_width=200, dialog_height=30) as dialog:
+                            with TextDialog(self.state.gen_settings["seed"], title="Seed", dialog_width=200, dialog_height=30) as dialog:
                                 if dialog.result and dialog.result.isnumeric():
                                     self.osd(text=f"Seed: {dialog.result}")
                                     self.state.gen_settings["seed"] = int(dialog.result)
@@ -960,8 +962,10 @@ class SdPygame:
                         if self.shift_down():
                             self.rendering_key = True
                             controlnet_models = self.state.control_net["controlnet_models"]
-                            self.state.control_net["controlnet_model"] = controlnet_models[(controlnet_models.index(self.state.control_net["controlnet_model"]) + 1) % len(controlnet_models)]
-                            self.osd(text=f"ControlNet model: {self.state.control_net['controlnet_model']}")
+                            controlnet_model = self.state.control_net["controlnet_model"]
+                            controlnet_model = controlnet_models[(controlnet_models.index(controlnet_model) + 1) % len(controlnet_models)]
+                            self.state.control_net["controlnet_model"] = controlnet_model
+                            self.osd(text=f"ControlNet model: {controlnet_model}")
     
                     elif event.key == pygame.K_i:
                         if self.ctrl_down():
@@ -1061,7 +1065,7 @@ class SdPygame:
                                 self.osd(text=f"Dynamic rendering")
 
                         elif self.alt_down():
-                            with SdPygame.TextDialog(self.state.gen_settings["negative_prompt"], title="Negative prompt") as dialog:
+                            with TextDialog(self.state.gen_settings["negative_prompt"], title="Negative prompt") as dialog:
                                 if dialog.result:
                                     self.osd(text=f"New negative prompt: {dialog.result}")
                                     self.state.gen_settings["negative_prompt"] = dialog.result
@@ -1069,7 +1073,7 @@ class SdPygame:
                                     self.rendering = True
                                     self.instant_render = True
                         else:
-                            with SdPygame.TextDialog(self.state.gen_settings["prompt"], title="Prompt") as dialog:
+                            with TextDialog(self.state.gen_settings["prompt"], title="Prompt") as dialog:
                                 if dialog.result:
                                     self.osd(text=f"New prompt: {dialog.result}")
                                     self.state.gen_settings["prompt"] = dialog.result
@@ -1106,7 +1110,8 @@ class SdPygame:
                             self.rendering_key = True
                             hr_upscalers = self.state.render["hr_upscalers"]
                             hr_upscaler = self.state.render["hr_upscaler"]
-                            self.state.render["hr_upscaler"] = hr_upscalers[(hr_upscalers.index(hr_upscaler) + 1) % len(hr_upscalers)]
+                            hr_upscaler = hr_upscalers[(hr_upscalers.index(hr_upscaler) + 1) % len(hr_upscalers)]
+                            self.state.render["hr_upscaler"] = hr_upscaler
                             self.osd(text=f"HR upscaler: {hr_upscaler}")
     
                     elif event.key == pygame.K_b:
@@ -1117,7 +1122,8 @@ class SdPygame:
                             self.rendering_key = True
                             controlnet_weights = self.state.control_net["controlnet_weights"]
                             controlnet_weight = self.state.control_net["controlnet_weight"]
-                            self.state.control_net["controlnet_weight"] = controlnet_weights[(controlnet_weights.index(controlnet_weight) + 1) % len(controlnet_weights)]
+                            controlnet_weight = controlnet_weights[(controlnet_weights.index(controlnet_weight) + 1) % len(controlnet_weights)]
+                            self.state.control_net["controlnet_weight"] = controlnet_weight
                             self.osd(text=f"ControlNet weight: {controlnet_weight}")
     
                     elif event.key == pygame.K_g:
@@ -1129,15 +1135,17 @@ class SdPygame:
                             self.rendering_key = True
                             controlnet_guidance_ends = self.state.control_net["controlnet_guidance_ends"]
                             controlnet_guidance_end = self.state.control_net["controlnet_guidance_end"]
-                            self.state.control_net["controlnet_guidance_end"] = controlnet_guidance_ends[(controlnet_guidance_ends.index(controlnet_guidance_end) + 1) % len(controlnet_guidance_ends)]
+                            controlnet_guidance_end = controlnet_guidance_ends[(controlnet_guidance_ends.index(controlnet_guidance_end) + 1) % len(controlnet_guidance_ends)]
+                            self.state.control_net["controlnet_guidance_end"] = controlnet_guidance_end
                             self.osd(text=f"ControlNet guidance end: {controlnet_guidance_end}")
     
                     elif event.key == pygame.K_d:
                         if self.shift_down():
                             self.rendering_key = True
-                            denoising_strength = self.state.render["denoising_strength"]
                             denoising_strengths = self.state.render["denoising_strengths"]
-                            self.state.render["denoising_strength"] = denoising_strengths[(denoising_strengths.index(denoising_strength) + 1) % len(denoising_strengths)]
+                            denoising_strength = self.state.render["denoising_strength"]
+                            denoising_strength = denoising_strengths[(denoising_strengths.index(denoising_strength) + 1) % len(denoising_strengths)]
+                            self.state.render["denoising_strength"] = denoising_strength
                             if self.state.img2img:
                                 self.osd(text=f"Denoising: {denoising_strength}")
                             else:
@@ -1154,9 +1162,9 @@ class SdPygame:
                     elif event.key == pygame.K_f:
                         self.fullscreen = not self.fullscreen
                         if self.fullscreen:
-                            screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+                            pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
                         else:
-                            screen = pygame.display.set_mode((self.state.render["width"]*2, self.state.render["height"]))
+                            pygame.display.set_mode((self.state.render["width"]*2, self.state.render["height"]))
     
                     elif event.key in (pygame.K_ESCAPE, pygame.K_x):
                         self.running = False
