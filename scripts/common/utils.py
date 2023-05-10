@@ -2,6 +2,7 @@ import copy
 import functools
 import os
 import random
+import re
 import shutil
 import threading
 import base64
@@ -9,6 +10,8 @@ import io
 import json
 import time
 import math
+
+import requests
 from PIL import Image
 from psd_tools import PSDImage
 
@@ -310,6 +313,48 @@ def get_img2img_json(state):
     if state.render["quick_mode"]:
         json_data['steps'] = json_data.get('quick_steps', json_data['steps'] // 2)  # use quick_steps setting, or halve steps if not set
     return json_data
+
+
+def fetch_configuration(state):
+    """
+        Request current configuration from the webui API.
+    :return: The configuration JSON.
+    """
+
+    response = requests.get(url=f'{state.server["url"]}/sdapi/v1/options')
+    if response.status_code == 200:
+        r = response.json()
+        return r
+    else:
+        return {}
+
+
+checkpoint_pattern = re.compile(r'^(?P<dir>.*(?:\\|\/))?(?P<name>.*?)(?P<vae>\.vae)?(?P<ext>\.safetensors|\.pt|\.ckpt) ?(?P<hash>\[[^\]]*\])?.*')
+
+
+def ckpt_name(name, display_dir=False, display_ext=False, display_hash=False):
+    """
+        Clean checkpoint name.
+    :param str name: Checkpoint name.
+    :param bool display_dir: Display full path.
+    :param bool display_ext: Display checkpoint extension.
+    :param bool display_hash: Display checkpoint hash.
+    :return: Cleaned checkpoint name.
+    """
+
+    replace = ''
+    if display_dir:
+        replace += r'\g<dir>'
+
+    replace += r'\g<name>'
+
+    if display_ext:
+        replace += r'\g<vae>\g<ext>'
+
+    if display_hash:
+        replace += r' \g<hash>'
+
+    return checkpoint_pattern.sub(replace, name)
 
 
 # Type hinting imports:

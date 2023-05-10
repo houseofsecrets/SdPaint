@@ -14,7 +14,7 @@ import math
 from PIL import Image, ImageOps
 import tkinter as tk
 from tkinter import filedialog, simpledialog
-from scripts.common.utils import payload_submit, update_config, save_preset, update_size, new_random_seed
+from scripts.common.utils import payload_submit, update_config, save_preset, update_size, new_random_seed, ckpt_name
 from scripts.common.cn_requests import fetch_controlnet_models, progress_request, fetch_detect_image, fetch_img2img, post_request
 from scripts.common.output_files_utils import autosave_image, save_image
 from scripts.common.state import State
@@ -715,12 +715,16 @@ class PygameView:
         :param bool wrap: Wrap long text.
         """
 
+        self.state.update_webui_config()
+
         fields = [
             '--Prompt',
             'state/gen_settings/prompt',
             'state/gen_settings/negative_prompt',
             'state/gen_settings/seed',
             '--Render',
+            'state/render/checkpoint',
+            'state/render/vae',
             'state/render/render_size',
             'settings.steps',
             'settings.cfg_scale',
@@ -733,7 +737,6 @@ class PygameView:
             'state/control_net/controlnet_weight',
             'state/control_net/controlnet_guidance_end',
             'state/render/pixel_perfect',
-            '--Misc',
             'state/detectors/detector'
         ]
 
@@ -759,7 +762,7 @@ class PygameView:
 
             if '.' in field:
                 field = field.split('.')
-                var = globals().get(field[0], None)
+                var = globals().get(field[0], locals().get(field[0], None))
                 if var is None:
                     continue
 
@@ -779,19 +782,22 @@ class PygameView:
                     field_value = getattr(self.state, field_components[0])[field_components[1]]
                 else:
                     label = field
-                    field_value = globals().get(field, None)
-
-                if 'size' in label and isinstance(field_value, tuple) and len(field_value) == 2:
-                    field_value = f"{field_value[0]}x{field_value[1]}"
+                    field_value = globals().get(field, locals().get(field, None))
 
                 if field_value is not None:
                     value = field_value
 
             if label and value is not None:
-                value = str(value)
+                # prettify
                 label = label.replace('_', ' ')
                 if label.endswith('prompt'):
                     value = value.replace(', ', ',').replace(',', ', ')  # nicer prompt display
+                elif 'size' in label and isinstance(value, tuple) and len(value) == 2:
+                    value = f"{value[0]}x{value[1]}"
+                elif label in ('checkpoint', 'vae'):
+                    value = ckpt_name(value)
+                else:
+                    value = str(value)
 
                 # wrap text
                 if wrap and len(value) > wrap:
@@ -1180,9 +1186,9 @@ class PygameView:
                             if self.shift_down:
                                 # cycle detectors
                                 self.state.detectors["detector"] = self.state.detectors["list"][(self.state.detectors["list"].index(self.state.detectors["detector"])+1) % len(self.state.detectors["list"])]
-                                self.osd(text=f"ControlNet detector: {self.state.detectors['detector']}")
+                                self.osd(text=f"ControlNet detector: {self.state.detectors['detector'].replace('_', ' ')}")
                             else:
-                                self.osd(text=f"Detect {self.state.detectors['detector']}")
+                                self.osd(text=f"Detect {self.state.detectors['detector'].replace('_', ' ')}")
                                 detector = str(self.state.detectors['detector'])
 
                                 t = threading.Thread(target=functools.partial(self.controlnet_detect, detector))

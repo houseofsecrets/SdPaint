@@ -1,5 +1,5 @@
 import json
-from .utils import load_config, update_size
+from .utils import load_config, update_size, fetch_configuration
 
 
 class State:
@@ -10,6 +10,7 @@ class State:
     configuration = {
         "config_file": "config.json",
         "config": {},
+        "webui_config": {}
     }
     presets = {
         "presets_file": "presets.json",
@@ -21,6 +22,8 @@ class State:
         "busy": False,
     }
     render = {
+        "checkpoint": None,
+        "vae": None,
         "hr_scales": [],
         "hr_scale": 1.0,
         "hr_scale_prev": 1.25,
@@ -174,6 +177,14 @@ class State:
             settings['controlnet_units'][0]['model'] = self.control_net["controlnet_models"]
             with open(self.json_file, "w") as f:
                 json.dump(settings, f, indent=4)
+
+    def update_webui_config(self):
+        """
+            Update webui configuration from the API.
+        """
+        self.configuration["webui_config"] = fetch_configuration(self)
+        self.render['checkpoint'] = self.configuration["webui_config"]['sd_model_checkpoint']
+        self.render['vae'] = self.configuration["webui_config"]['sd_vae']
 
     def __setitem__(self, key, value):
         setattr(self, key, value)
