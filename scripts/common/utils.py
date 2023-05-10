@@ -191,6 +191,8 @@ def update_size_thread(state, **kwargs):
     state.render["width"] = math.floor(state.render["init_width"] * hr_scale)
     state.render["height"] = math.floor(state.render["init_height"] * hr_scale)
 
+    state.render["render_size"] = (state.render["width"], state.render["height"])
+
     state.render["width"] = math.floor(state.render["width"] * state.render["soft_upscale"])
     state.render["height"] = math.floor(state.render["height"] * state.render["soft_upscale"])
 
