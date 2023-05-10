@@ -1,6 +1,6 @@
 import argparse
 
-from scripts.views.PygameView.SdPygame import SdPygame
+from scripts.views.PygameView import PygameView
 
 # Read command-line arguments
 if __name__ == '__main__':
@@ -13,5 +13,5 @@ if __name__ == '__main__':
     if img2img == '':
         img2img = '#'  # force load file dialog if launched with --img2img without value
 
-    sd = SdPygame(img2img)
-    sd.main()
+    view = PygameView(img2img)
+    view.main()

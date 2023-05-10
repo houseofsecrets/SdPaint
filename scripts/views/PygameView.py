@@ -59,7 +59,7 @@ class TextDialog(simpledialog.Dialog):
         self.result = p.strip("\n")
 
 
-class SdPygame:
+class PygameView:
     """
         SdPaint Pygame interface
     """
@@ -261,7 +261,7 @@ class SdPygame:
             return
 
         extension = os.path.splitext(file_path)[1][1:].lower()
-        if extension in SdPygame.ACCEPTED_FILE_TYPES:
+        if extension in PygameView.ACCEPTED_FILE_TYPES:
             self.load_filepath_into_canvas(file_path)
 
     def update_image(self, image_data):
