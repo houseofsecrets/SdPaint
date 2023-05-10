@@ -721,6 +721,7 @@ class PygameView:
             'state/gen_settings/negative_prompt',
             'state/gen_settings/seed',
             '--Render',
+            'state/render/render_size',
             'settings.steps',
             'settings.cfg_scale',
             'state/render/hr_scale',
@@ -731,7 +732,9 @@ class PygameView:
             'state/control_net/controlnet_model',
             'state/control_net/controlnet_weight',
             'state/control_net/controlnet_guidance_end',
-            'state/render/pixel_perfect'
+            'state/render/pixel_perfect',
+            '--Misc',
+            'state/detectors/detector'
         ]
 
         if wrap and self.state.render["width"] < 800:
@@ -777,6 +780,9 @@ class PygameView:
                 else:
                     label = field
                     field_value = globals().get(field, None)
+
+                if 'size' in label and isinstance(field_value, tuple) and len(field_value) == 2:
+                    field_value = f"{field_value[0]}x{field_value[1]}"
 
                 if field_value is not None:
                     value = field_value
@@ -1170,7 +1176,18 @@ class PygameView:
                             self.osd(text=f"ControlNet guidance end: {controlnet_guidance_end}")
     
                     elif event.key == pygame.K_d:
-                        if self.shift_down:
+                        if self.ctrl_down:
+                            if self.shift_down:
+                                # cycle detectors
+                                self.state.detectors["detector"] = self.state.detectors["list"][(self.state.detectors["list"].index(self.state.detectors["detector"])+1) % len(self.state.detectors["list"])]
+                                self.osd(text=f"ControlNet detector: {self.state.detectors['detector']}")
+                            else:
+                                self.osd(text=f"Detect {self.state.detectors['detector']}")
+                                detector = str(self.state.detectors['detector'])
+
+                                t = threading.Thread(target=functools.partial(self.controlnet_detect, detector))
+                                t.start()
+                        elif self.shift_down:
                             self.rendering_key = True
                             denoising_strengths = self.state.render["denoising_strengths"]
                             denoising_strength = self.state.render["denoising_strength"]
@@ -1180,16 +1197,7 @@ class PygameView:
                                 self.osd(text=f"Denoising: {denoising_strength}")
                             else:
                                 self.osd(text=f"HR denoising: {denoising_strength}")
-                        elif self.ctrl_down:
-                            self.osd(text=f"Detect {self.state.detectors['detector']}")
-                            detector = str(self.state.detectors['detector'])
 
-                            t = threading.Thread(target=functools.partial(self.controlnet_detect, detector))
-                            t.start()
-    
-                            # select next detector
-                            self.state.detectors["detector"] = self.state.detectors["list"][(self.state.detectors["list"].index(self.state.detectors["detector"])+1) % len(self.state.detectors["list"])]
-    
                     elif event.key == pygame.K_f:
                         self.fullscreen = not self.fullscreen
                         if self.fullscreen:
