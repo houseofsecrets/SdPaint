@@ -5,47 +5,48 @@ the canvas when the image is generated.
 
 ## Controls
 
-| Key / Mouse button            | Control                                                    |
-|-------------------------------|------------------------------------------------------------|
-| Left button                   | Draw with the current brush size                           |
-| Middle button                 | Draw with a white color brush                              |
-| `e` + Left button             | Eraser brush (bigger)                                      |
-| Scroll up / down              | Increase / decrease brush size                             |
-| `backspace`                   | Erase the entire sketch                                    |
-| `shift` + Left button         | Draw a line between two clicks                             |
-| `RETURN` or `ENTER`           | Request image rendering                                    |
-| `ctrl` + `i`                  | Interrupt image rendering                                  |
-| `c`                           | Display current configuration while pressed                |
-| `p`                           | Edit prompt                                                |
-| `alt` + `p`                   | Edit negative prompt                                       |
-| `a`                           | Toggle autosave                                            |
-| `shift` + `t`                 | Cycle render wait time (+0.5s, or off)                     |
-| `ctrl` + `p`                  | Pause dynamic rendering                                    |
-| `q`                           | Toggle quick rendering : low steps & HR fix off            |
-| `n`                           | Random seed value                                          |
-| `ctrl` + `n`                  | Edit seed value                                            |
-| `UP` / `DOWN`                 | Increase / decrease seed by 1                              |
-| `ctrl`+ `s`                   | Save the current generated image                           |
-| `ctrl`+ `o`                   | Open an image file as sketch                               |
-| `ctrl`+ `d`                   | Call ControlNet detector, cycle detectors (replace sketch) |
-| `h`                           | Toggle HR fix                                              |
-| `shift` + `h`                 | Cycle HR fix scale                                         |
-| `shift` + `u`                 | Cycle HR upscalers                                         |
-| `shift` + `d`                 | Cycle denoising strengths                                  |
-| `shift` + `s`                 | Cycle samplers                                             |
-| `b`                           | Toggle batch rendering                                     |
-| `shift` + `b`                 | Cycle batch sizes                                          |
-| `shift` + `c`                 | Cycle CLIP skip settings                                   |
-| `shift` + `m`                 | Cycle ControlNel models                                    |
-| `shift` + `w`                 | Cycle ControlNel weights                                   |
-| `shift` + `g`                 | Cycle ControlNel guidance ends                             |
-| `shift` + `ctrl` + `g`        | Toggle ControlNel pixel perfect mode                       |
-| `keypad 0`                    | Restore starting settings                                  |
-| `keypad 1-9`                  | Load custom rendering preset                               |
-| `ctrl` + `keypad 1-9`         | Save custom rendering preset                               |
-| `alt` + `keypad 1-9`          | Load custom ControlNet preset                              |
-| `ctrl` + `alt` + `keypad 1-9` | Save custom ControlNet preset                              |
-| `x` or `ESC`                  | Quit                                                       |
+| Key / Mouse button            | Control                                         |
+|-------------------------------|-------------------------------------------------|
+| Left button                   | Draw with the current brush size                |
+| Middle button                 | Draw with a white color brush                   |
+| `e` + Left button             | Eraser brush (bigger)                           |
+| Scroll up / down              | Increase / decrease brush size                  |
+| `backspace`                   | Erase the entire sketch                         |
+| `shift` + Left button         | Draw a line between two clicks                  |
+| `RETURN` or `ENTER`           | Request image rendering                         |
+| `ctrl` + `i`                  | Interrupt image rendering                       |
+| `c`                           | Display current configuration while pressed     |
+| `p`                           | Edit prompt                                     |
+| `alt` + `p`                   | Edit negative prompt                            |
+| `a`                           | Toggle autosave                                 |
+| `shift` + `t`                 | Cycle render wait time (+0.5s, or off)          |
+| `ctrl` + `p`                  | Pause dynamic rendering                         |
+| `q`                           | Toggle quick rendering : low steps & HR fix off |
+| `n`                           | Random seed value                               |
+| `ctrl` + `n`                  | Edit seed value                                 |
+| `UP` / `DOWN`                 | Increase / decrease seed by 1                   |
+| `ctrl`+ `s`                   | Save the current generated image                |
+| `ctrl`+ `o`                   | Open an image file as sketch                    |
+| `ctrl`+ `d`                   | Call ControlNet detector (replace sketch)       |
+| `shift` + `ctrl`+ `d`         | Cycle ControlNet detectors                      |
+| `h`                           | Toggle HR fix                                   |
+| `shift` + `h`                 | Cycle HR fix scale                              |
+| `shift` + `u`                 | Cycle HR upscalers                              |
+| `shift` + `d`                 | Cycle denoising strengths                       |
+| `shift` + `s`                 | Cycle samplers                                  |
+| `b`                           | Toggle batch rendering                          |
+| `shift` + `b`                 | Cycle batch sizes                               |
+| `shift` + `c`                 | Cycle CLIP skip settings                        |
+| `shift` + `m`                 | Cycle ControlNel models                         |
+| `shift` + `w`                 | Cycle ControlNel weights                        |
+| `shift` + `g`                 | Cycle ControlNel guidance ends                  |
+| `shift` + `ctrl` + `g`        | Toggle ControlNel pixel perfect mode            |
+| `keypad 0`                    | Restore starting settings                       |
+| `keypad 1-9`                  | Load custom rendering preset                    |
+| `ctrl` + `keypad 1-9`         | Save custom rendering preset                    |
+| `alt` + `keypad 1-9`          | Load custom ControlNet preset                   |
+| `ctrl` + `alt` + `keypad 1-9` | Save custom ControlNet preset                   |
+| `x` or `ESC`                  | Quit                                            |
 
 _Note_ : "Cycle" shortcuts type will wait for the `shift` key to be released before launching the rendering.
 
