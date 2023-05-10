@@ -61,7 +61,7 @@ def progress_request(state):
         return {"status_code": response.status_code}
 
 
-def fetch_detect_image(state, detector, image, width, height):
+def fetch_detect_image(state, detector, image, width, height, thresholds=None):
     """
         Call detect image feature from the API.
     :param State state: Application state.
@@ -69,14 +69,25 @@ def fetch_detect_image(state, detector, image, width, height):
     :param str image: Base64 encoder image.
     :param int width: Image width.
     :param int height: Image height.
+    :param tuple[int]|None thresholds: Detector thresholds. ``(default: 64, 64)``
     :return: Requested status, image(s), and info.
     """
+
+    # Default thresholds
+    if thresholds is None:
+        if detector == 'scribble_xdog':
+            thresholds = (32, 32)
+        elif detector == 'mlsd':
+            thresholds = (0.1, 0.1)
+        else:
+            thresholds = (64, 64)
+
     json_data = {
         "controlnet_module": detector,
         "controlnet_input_images": [image],
         "controlnet_processor_res": min(width, height),
-        "controlnet_threshold_a": 64,
-        "controlnet_threshold_b": 64
+        "controlnet_threshold_a": thresholds[0],
+        "controlnet_threshold_b": thresholds[1]
     }
 
     response = requests.post(url=f'{state.server["url"]}/controlnet/detect', json=json_data)
