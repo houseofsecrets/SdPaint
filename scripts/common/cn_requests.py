@@ -109,6 +109,10 @@ def fetch_img2img(state):
     if response.status_code == 200:
         r = response.json()
         return {"status_code": response.status_code, "image": r['images'][0], "info": r["info"]}
+    elif response.status_code == 500 and state.render['clip_skip_setting'] == 'clip_skip' and response.content.index(b'clip_skip') != -1:
+        # Revert to old clip skip setting name if needed
+        state.render['clip_skip_setting'] = 'CLIP_stop_at_last_layers'
+        return fetch_img2img(state)
     else:
         return {"status_code": response.status_code}
 
@@ -131,6 +135,12 @@ def post_request(state):
             return {"status_code": response.status_code, "image":  r['images'][0], "info": r["info"]}
         else:
             return {"status_code": response.status_code, "batch_images": r['images'][:-ignore_images], "info": r["info"]}
+    elif response.status_code == 500 and state.render['clip_skip_setting'] == 'clip_skip' and response.content.index(b'clip_skip') != -1:
+        # Revert to old clip skip setting name if needed
+        state.render['clip_skip_setting'] = 'CLIP_stop_at_last_layers'
+        state['main_json_data']['override_settings']['CLIP_stop_at_last_layers'] = state['main_json_data']['override_settings']['clip_skip']
+        del (state['main_json_data']['override_settings']['clip_skip'])
+        return post_request(state)
     else:
         return {"status_code": response.status_code}
 
