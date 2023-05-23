@@ -54,9 +54,9 @@ _Note_ : "Cycle" shortcuts type will wait for the `shift` key to be released bef
 
 Windows: [Link to step-by-step Windows installation instructions with screenshots](INSTALL_Windows.md)
 
-Linux: To Do
+macOS: [Link to step-by-step MacOS installation instructions with screenshots](INSTALL_MacOS.md)
 
-macOS: To Do
+Linux: To Do
 
 TLDR; [Web UI](https://github.com/AUTOMATIC1111/stable-diffusion-webui) with
 the [ControlNet](https://github.com/Mikubill/sd-webui-controlnet) extension, API mode enabled in settings, and
