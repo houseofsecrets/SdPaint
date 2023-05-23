@@ -3,14 +3,18 @@
 
 These instructions are for getting started with SDPaint on a MacOS machine. Assuming you started from no experience with SD, and some experience with GitHub. Also assuming that you don't already have Homebrew with the correct version of git and python installed
 
-> **Please note that these instructions have only been tested to be working on a MacBook Pro with Apple M2 Pro chip.**
+```
+PLEASE NOTE: These instructions have only been tested to be working on a MacBook Pro with Apple M2 Pro chip.
+```
 
 ## Install dependencies
 
 ### Install Homebrew
 See www.brew.sh or just run the below command in a new Terminal window.
 
-```/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"```
+```
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
 
 ### Add Brew to Profile
 This will allow you to type `brew` commands
@@ -20,7 +24,9 @@ eval "$(/opt/homebrew/bin/brew shellenv)"
 ```
 
 ### Install Homebrew packages
-```brew install cmake protobuf rust python@3.10 git git-lfs wget cairo python-tk@3.10```
+```
+brew install cmake protobuf rust python@3.10 git git-lfs wget cairo python-tk@3.10
+```
 
 ### Add Python to Profile
 This will allow you to type `python` and `pip` commands
@@ -32,7 +38,9 @@ source ~/.zshrc
 ## Clone These repos:
 
 ### 1.) This Tool
-```git clone https://github.com/houseofsecrets/SdPaint```
+```
+git clone https://github.com/houseofsecrets/SdPaint
+```
 
 ### 2.) The AI models 
 ```
@@ -43,7 +51,9 @@ git clone https://huggingface.co/lllyasviel/ControlNet-v1-1
 - The `.pth` files in this directory should each be ~1.4GB after the `git clone` is done, total ~18GB. If they are only ~2KB in file size, then `git lfs install` needs to be ran before cloning again. Please be patient this step can take a while.
 
 ### 3.) stable-diffusion-webui
-```git clone https://github.com/AUTOMATIC1111/stable-diffusion-webui```
+```
+git clone https://github.com/AUTOMATIC1111/stable-diffusion-webui
+```
 
 ## Setup
 You should now have the following folders:
@@ -61,12 +71,16 @@ cd stable-diffusion-webui
 Note: You will have to wait for bunch of python dependencies to install here and more repos cloned, and some json / txt files downloaded, please be patient. The first time run will also install SD so you can use this independently if you wish.
 
 The Web UI is now running locally. Once you see a line starting with "Startup time:" in the terminal it is ready to be used. In a browser, visit the default address at 
-```http://127.0.0.1:7860```
+```
+http://127.0.0.1:7860
+```
 
 ![WebUI_First_Open](https://user-images.githubusercontent.com/22615608/234109327-a1a58b3b-885e-448a-bfca-64bcb24e5e7f.jpg)
 
 In the Web UI, navigate to the "Extensions Tab" and go to the "Install from URL" tab. Then add the extension from
-```https://github.com/Mikubill/sd-webui-controlnet```
+```
+https://github.com/Mikubill/sd-webui-controlnet
+```
 
 Nothing will seem to happen, but if you go back to the "Installed" tab, it should say "processing".
 <img width="1507" alt="Screenshot 2023-04-24 at 12 43 43 PM" src="https://user-images.githubusercontent.com/22615608/234099711-9f4d435d-54ec-4176-8f1b-dbbb2bde47d8.png">
