@@ -18,7 +18,12 @@ from scripts.common.utils import payload_submit, update_config, save_preset, upd
 from scripts.common.cn_requests import fetch_controlnet_models, progress_request, fetch_detect_image, fetch_img2img, post_request
 from scripts.common.output_files_utils import autosave_image, save_image
 from scripts.common.state import State
+from sys import platform
 
+# workaround for MacOS as per https://bugs.python.org/issue46573
+if platform == "darwin":
+    from tkinter import Tk; root = Tk()
+    root.withdraw()
 
 class TextDialog(simpledialog.Dialog):
     """
