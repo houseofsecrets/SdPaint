@@ -42,6 +42,7 @@ class State:
         "pixel_perfect": False,
         "use_invert_module": True,
         "quick_mode": False,
+        "clip_skip_setting": 'clip_skip',
     }
     control_net = {
         "controlnet_models": [],
@@ -80,6 +81,7 @@ class State:
         self.img2img = img2img
         self.update_config()
         self.update_settings()
+        self.update_webui_config()
     
     def update_config(self):
         """
