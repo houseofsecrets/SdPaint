@@ -267,6 +267,7 @@ def payload_submit(state, image_string):
         json_data['override_settings'] = {}
 
     json_data['override_settings']['CLIP_stop_at_last_layers'] = state.render["clip_skip"]
+    json_data['override_settings']['clip_skip'] = state.render["clip_skip"]
 
     state["main_json_data"] = json_data
 
@@ -309,6 +310,7 @@ def get_img2img_json(state):
         json_data['override_settings'] = {}
 
     json_data['override_settings']['CLIP_stop_at_last_layers'] = state.render["clip_skip"]
+    json_data['override_settings']['clip_skip'] = state.render["clip_skip"]
 
     if state.render["quick_mode"]:
         json_data['steps'] = json_data.get('quick_steps', json_data['steps'] // 2)  # use quick_steps setting, or halve steps if not set
