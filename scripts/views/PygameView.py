@@ -119,7 +119,6 @@ class PygameView:
         self.screen = pygame.display.set_mode((self.state.render["width"] * (1 if self.state.img2img else 2), self.state.render["height"]))
         self.display_caption = "Sd Paint"
         pygame.display.set_caption(self.display_caption)
-        pygame.mouse.set_visible(False)
 
         # Setup text
         self.font = pygame.font.SysFont(None, size=24)
@@ -1253,16 +1252,21 @@ class PygameView:
     
             # Draw the canvas and brushes on the screen
             self.screen.blit(self.canvas, (0, 0))
-    
-            # Create a new surface with a circle
-            cursor_size = self.brush_size[1]*2
-            cursor_surface = pygame.Surface((cursor_size, cursor_size), pygame.SRCALPHA)
-            pygame.draw.circle(cursor_surface, self.cursor_color, (cursor_size // 2, cursor_size // 2), cursor_size // 2)
-    
-            # Blit the cursor surface onto the screen surface at the position of the mouse
+
+            # Handle mouse display
             mouse_pos = pygame.mouse.get_pos()
-            self.screen.blit(cursor_surface, (mouse_pos[0] - cursor_size // 2, mouse_pos[1] - cursor_size // 2))
-    
+            if mouse_pos[0] >= self.state.render["width"]:
+                # Create a new surface with a circle
+                cursor_size = self.brush_size[1]*2
+                cursor_surface = pygame.Surface((cursor_size, cursor_size), pygame.SRCALPHA)
+                pygame.draw.circle(cursor_surface, self.cursor_color, (cursor_size // 2, cursor_size // 2), cursor_size // 2)
+
+                # Blit the cursor surface onto the screen surface at the position of the mouse
+                self.screen.blit(cursor_surface, (mouse_pos[0] - cursor_size // 2, mouse_pos[1] - cursor_size // 2))
+                pygame.mouse.set_visible(False)
+            else:
+                pygame.mouse.set_visible(True)
+
             # Handle OSD
             self.osd()
     
