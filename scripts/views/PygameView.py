@@ -119,6 +119,7 @@ class PygameView:
         self.screen = pygame.display.set_mode((self.state.render["width"] * (1 if self.state.img2img else 2), self.state.render["height"]))
         self.display_caption = "Sd Paint"
         pygame.display.set_caption(self.display_caption)
+        pygame.mouse.set_visible(False)
 
         # Setup text
         self.font = pygame.font.SysFont(None, size=24)
@@ -1214,7 +1215,15 @@ class PygameView:
                             pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
                         else:
                             pygame.display.set_mode((self.state.render["width"]*2, self.state.render["height"]))
-    
+
+                    elif event.key in (pygame.K_0, pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5, pygame.K_6, pygame.K_7, pygame.K_8, pygame.K_9):
+                        for i in range(10):
+                            key = getattr(pygame, f'K_{i}', None)
+                            if event.key == key:
+                                self.brush_size[1] = i if i != 0 else 10
+                                self.brush_size[2] = i if i != 0 else 10
+                                self.osd(text=f"Brush size {self.brush_size[1]}")
+
                     elif event.key in (pygame.K_ESCAPE, pygame.K_x):
                         self.running = False
                         pygame.quit()
