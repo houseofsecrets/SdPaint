@@ -11,6 +11,7 @@ the canvas when the image is generated.
 | Middle button                 | Draw with a white color brush                   |
 | `e` + Left button             | Eraser brush (bigger)                           |
 | Scroll up / down              | Increase / decrease brush size                  |
+| `1` to `9`                    | Set brush size                                  |
 | `backspace`                   | Erase the entire sketch                         |
 | `shift` + Left button         | Draw a line between two clicks                  |
 | `RETURN` or `ENTER`           | Request image rendering                         |
