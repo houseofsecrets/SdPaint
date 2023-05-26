@@ -1,4 +1,6 @@
 import json
+
+from .cn_requests import fetch_controlnet_models
 from .utils import load_config, update_size, fetch_configuration
 
 
@@ -106,6 +108,8 @@ class State:
         self.detectors["list"] = self.configuration["config"].get('detectors', ('lineart',))
         self.detectors["detector"] = self.detectors["list"][0]
 
+        if not self.configuration["config"]['controlnet_models']:
+            fetch_controlnet_models(self)
         self.control_net["controlnet_models"]: list[str] = self.configuration["config"].get("controlnet_models", [])
         self.control_net["controlnet_weights"] = self.configuration["config"].get("controlnet_weights", [0.6, 1.0, 1.6])
         self.control_net["controlnet_weight"] = self.control_net["controlnet_weights"][0]
@@ -176,7 +180,7 @@ class State:
         update_size(self)
 
         if self.control_net["controlnet_models"] and settings.get("controlnet_units", None) and not settings.get("controlnet_units")[0].get('model', None):
-            settings['controlnet_units'][0]['model'] = self.control_net["controlnet_models"]
+            settings['controlnet_units'][0]['model'] = self.control_net["controlnet_models"][0]
             with open(self.json_file, "w") as f:
                 json.dump(settings, f, indent=4)
 
