@@ -175,7 +175,7 @@ class PygameView:
             if preset_type == 'controlnet':
                 # prepend OSD output with render preset values for default settings display (both called successively)
                 for preset_field in self.state.presets["fields"]:
-                    text += f"\n  {preset_field[:1].upper()}{preset_field[1:].replace('_', ' ')} :: {presets['render'][index][preset_field]}"
+                    text += f"\n  {preset_field[:1].upper()}{preset_field[1:].replace('_', ' ')} :n: {presets['render'][index][preset_field]}"
         else:
             text = f"Load {preset_type} preset {index}:"
 
@@ -186,14 +186,14 @@ class PygameView:
                     continue
 
                 self.state.render[preset_field] = preset[preset_field]
-                text += f"\n  {preset_field[:1].upper()}{preset_field[1:].replace('_', ' ')} :: {preset[preset_field]}"
+                text += f"\n  {preset_field[:1].upper()}{preset_field[1:].replace('_', ' ')} :n: {preset[preset_field]}"
 
         elif preset_type == 'controlnet':
             for preset_field in self.state.control_net["preset_fields"]:
                 if preset.get(preset_field, None) is None:
                     continue
                 self.state.control_net[preset_field] = preset[preset_field]
-                text += f"\n  {preset_field[:1].upper()}{preset_field[1:].replace('_', ' ')} :: {preset[preset_field]}"
+                text += f"\n  {preset_field[:1].upper()}{preset_field[1:].replace('_', ' ')} :n: {preset[preset_field]}"
 
         update_size(self.state)
         return text
@@ -509,8 +509,8 @@ class PygameView:
             for line in self.osd_always_on_text.split('\n'):
                 self.need_redraw = True
 
-                if '::' in line:
-                    line, line_value = line.split('::')
+                if ':n:' in line:
+                    line, line_value = line.split(':n:')
                     line = line.rstrip(' ')
                     line_value = line_value.lstrip(' ')
                 else:
@@ -533,8 +533,8 @@ class PygameView:
             for line in self.osd_text.split('\n'):
                 self.need_redraw = True
 
-                if '::' in line:
-                    line, line_value = line.split('::')
+                if ':n:' in line:
+                    line, line_value = line.split(':n:')
                     line = line.rstrip(' ')
                     line_value = line_value.lstrip(' ')
                 else:
@@ -813,7 +813,7 @@ class PygameView:
                             to_wrap = i
 
                         if to_wrap and value[i] in [' ', ')'] or (to_wrap and i - to_wrap > 5):  # try to wrap after space
-                            new_value += value[i]+'\n::'
+                            new_value += value[i]+'\n:n:'
                             to_wrap = 0
                             continue
 
@@ -821,7 +821,7 @@ class PygameView:
 
                     value = new_value
 
-                text += f"    {label} :: {value}"
+                text += f"    {label} :n: {value}"
 
             text += '\n'
 
