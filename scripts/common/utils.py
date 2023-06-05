@@ -1,4 +1,3 @@
-from .state import State
 import copy
 import functools
 import os
@@ -284,7 +283,8 @@ def payload_submit(state, image_string):
     if json_data.get('override_settings', None) is None:
         json_data['override_settings'] = {}
 
-    json_data['override_settings'][state.render['clip_skip_setting']] = state.render["clip_skip"]
+    json_data['override_settings'][state.render['clip_skip_setting']
+                                   ] = state.render["clip_skip"]
 
     state["main_json_data"] = json_data
 
@@ -326,7 +326,8 @@ def get_img2img_json(state):
     if json_data.get('override_settings', None) is None:
         json_data['override_settings'] = {}
 
-    json_data['override_settings'][state.render['clip_skip_setting']] = state.render["clip_skip"]
+    json_data['override_settings'][state.render['clip_skip_setting']
+                                   ] = state.render["clip_skip"]
 
     if state.render["quick_mode"]:
         # use quick_steps setting, or halve steps if not set
