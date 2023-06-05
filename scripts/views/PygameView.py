@@ -18,7 +18,12 @@ from scripts.common.utils import payload_submit, update_config, save_preset, upd
 from scripts.common.cn_requests import fetch_controlnet_models, progress_request, fetch_detect_image, fetch_img2img, post_request
 from scripts.common.output_files_utils import autosave_image, save_image
 from scripts.common.state import State
+from sys import platform
 
+# workaround for MacOS as per https://bugs.python.org/issue46573
+if platform == "darwin":
+    from tkinter import Tk; root = Tk()
+    root.withdraw()
 
 class TextDialog(simpledialog.Dialog):
     """
@@ -170,7 +175,7 @@ class PygameView:
             if preset_type == 'controlnet':
                 # prepend OSD output with render preset values for default settings display (both called successively)
                 for preset_field in self.state.presets["fields"]:
-                    text += f"\n  {preset_field[:1].upper()}{preset_field[1:].replace('_', ' ')} :: {presets['render'][index][preset_field]}"
+                    text += f"\n  {preset_field[:1].upper()}{preset_field[1:].replace('_', ' ')} :n: {presets['render'][index][preset_field]}"
         else:
             text = f"Load {preset_type} preset {index}:"
 
@@ -181,14 +186,14 @@ class PygameView:
                     continue
 
                 self.state.render[preset_field] = preset[preset_field]
-                text += f"\n  {preset_field[:1].upper()}{preset_field[1:].replace('_', ' ')} :: {preset[preset_field]}"
+                text += f"\n  {preset_field[:1].upper()}{preset_field[1:].replace('_', ' ')} :n: {preset[preset_field]}"
 
         elif preset_type == 'controlnet':
             for preset_field in self.state.control_net["preset_fields"]:
                 if preset.get(preset_field, None) is None:
                     continue
                 self.state.control_net[preset_field] = preset[preset_field]
-                text += f"\n  {preset_field[:1].upper()}{preset_field[1:].replace('_', ' ')} :: {preset[preset_field]}"
+                text += f"\n  {preset_field[:1].upper()}{preset_field[1:].replace('_', ' ')} :n: {preset[preset_field]}"
 
         update_size(self.state)
         return text
@@ -504,8 +509,8 @@ class PygameView:
             for line in self.osd_always_on_text.split('\n'):
                 self.need_redraw = True
 
-                if '::' in line:
-                    line, line_value = line.split('::')
+                if ':n:' in line:
+                    line, line_value = line.split(':n:')
                     line = line.rstrip(' ')
                     line_value = line_value.lstrip(' ')
                 else:
@@ -528,8 +533,8 @@ class PygameView:
             for line in self.osd_text.split('\n'):
                 self.need_redraw = True
 
-                if '::' in line:
-                    line, line_value = line.split('::')
+                if ':n:' in line:
+                    line, line_value = line.split(':n:')
                     line = line.rstrip(' ')
                     line_value = line_value.lstrip(' ')
                 else:
@@ -808,7 +813,7 @@ class PygameView:
                             to_wrap = i
 
                         if to_wrap and value[i] in [' ', ')'] or (to_wrap and i - to_wrap > 5):  # try to wrap after space
-                            new_value += value[i]+'\n::'
+                            new_value += value[i]+'\n:n:'
                             to_wrap = 0
                             continue
 
@@ -816,7 +821,7 @@ class PygameView:
 
                     value = new_value
 
-                text += f"    {label} :: {value}"
+                text += f"    {label} :n: {value}"
 
             text += '\n'
 
@@ -1151,7 +1156,6 @@ class PygameView:
                             self.rendering_key = True
                             hr_upscalers = self.state.render["hr_upscalers"]
                             hr_upscaler = self.state.render["hr_upscaler"]
-                            print(hr_upscaler, hr_upscalers)
                             hr_upscaler = hr_upscalers[(hr_upscalers.index(hr_upscaler) + 1) % len(hr_upscalers)]
                             self.state.render["hr_upscaler"] = hr_upscaler
                             self.osd(text=f"HR upscaler: {hr_upscaler}")
@@ -1210,7 +1214,15 @@ class PygameView:
                             pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
                         else:
                             pygame.display.set_mode((self.state.render["width"]*2, self.state.render["height"]))
-    
+
+                    elif event.key in (pygame.K_0, pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5, pygame.K_6, pygame.K_7, pygame.K_8, pygame.K_9):
+                        for i in range(10):
+                            key = getattr(pygame, f'K_{i}', None)
+                            if event.key == key:
+                                self.brush_size[1] = i if i != 0 else 10
+                                self.brush_size[2] = i if i != 0 else 10
+                                self.osd(text=f"Brush size {self.brush_size[1]}")
+
                     elif event.key in (pygame.K_ESCAPE, pygame.K_x):
                         self.running = False
                         pygame.quit()
@@ -1240,16 +1252,21 @@ class PygameView:
     
             # Draw the canvas and brushes on the screen
             self.screen.blit(self.canvas, (0, 0))
-    
-            # Create a new surface with a circle
-            cursor_size = self.brush_size[1]*2
-            cursor_surface = pygame.Surface((cursor_size, cursor_size), pygame.SRCALPHA)
-            pygame.draw.circle(cursor_surface, self.cursor_color, (cursor_size // 2, cursor_size // 2), cursor_size // 2)
-    
-            # Blit the cursor surface onto the screen surface at the position of the mouse
+
+            # Handle mouse display
             mouse_pos = pygame.mouse.get_pos()
-            self.screen.blit(cursor_surface, (mouse_pos[0] - cursor_size // 2, mouse_pos[1] - cursor_size // 2))
-    
+            if mouse_pos[0] >= self.state.render["width"]:
+                # Create a new surface with a circle
+                cursor_size = self.brush_size[1]*2
+                cursor_surface = pygame.Surface((cursor_size, cursor_size), pygame.SRCALPHA)
+                pygame.draw.circle(cursor_surface, self.cursor_color, (cursor_size // 2, cursor_size // 2), cursor_size // 2)
+
+                # Blit the cursor surface onto the screen surface at the position of the mouse
+                self.screen.blit(cursor_surface, (mouse_pos[0] - cursor_size // 2, mouse_pos[1] - cursor_size // 2))
+                pygame.mouse.set_visible(False)
+            else:
+                pygame.mouse.set_visible(True)
+
             # Handle OSD
             self.osd()
     

@@ -11,6 +11,7 @@ the canvas when the image is generated.
 | Middle button                 | Draw with a white color brush                   |
 | `e` + Left button             | Eraser brush (bigger)                           |
 | Scroll up / down              | Increase / decrease brush size                  |
+| `1` to `9`                    | Set brush size                                  |
 | `backspace`                   | Erase the entire sketch                         |
 | `shift` + Left button         | Draw a line between two clicks                  |
 | `RETURN` or `ENTER`           | Request image rendering                         |
@@ -54,9 +55,9 @@ _Note_ : "Cycle" shortcuts type will wait for the `shift` key to be released bef
 
 Windows: [Link to step-by-step Windows installation instructions with screenshots](INSTALL_Windows.md)
 
-Linux: To Do
+macOS: [Link to step-by-step MacOS installation instructions with screenshots](INSTALL_MacOS.md)
 
-macOS: To Do
+Linux: To Do
 
 TLDR; [Web UI](https://github.com/AUTOMATIC1111/stable-diffusion-webui) with
 the [ControlNet](https://github.com/Mikubill/sd-webui-controlnet) extension, API mode enabled in settings, and
