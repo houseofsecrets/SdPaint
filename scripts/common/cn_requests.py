@@ -90,8 +90,7 @@ def fetch_detect_image(state, detector, image, width, height, thresholds=None):
         "controlnet_threshold_b": thresholds[1]
     }
 
-    response = requests.post(
-        url=f'{state.server["url"]}/controlnet/detect', json=json_data)
+    response = requests.post(url=f'{state.server["url"]}/controlnet/detect', json=json_data)
     if response.status_code == 200:
         r = response.json()
         return {"status_code": response.status_code, "image": r['images'][0], "info": r["info"]}
@@ -106,8 +105,7 @@ def fetch_img2img(state):
     :return: Requested status, image(s), and info.
     """
     json_data = get_img2img_json(state)
-    response = requests.post(
-        url=f'{state.server["url"]}/sdapi/v1/img2img', json=json_data)
+    response = requests.post(url=f'{state.server["url"]}/sdapi/v1/img2img', json=json_data)
     if response.status_code == 200:
         r = response.json()
         return {"status_code": response.status_code, "image": r['images'][0], "info": r["info"]}
@@ -125,9 +123,7 @@ def post_request(state):
     :param State state: Application state.
     :return: Requested status, image(s), and info.
     """
-    endpoint = f'{state.server["url"]}/sdapi/v1/{"img2img" if state.img2img else "txt2img"}'
-    response = requests.post(
-        url=endpoint, json=controlnet_to_sdapi(state["main_json_data"]))
+    response = requests.post(url=f'{state.server["url"]}/sdapi/v1/{"img2img" if state.img2img else "txt2img"}', json=controlnet_to_sdapi(state["main_json_data"]))
     if response.status_code == 200:
         r = response.json()
 

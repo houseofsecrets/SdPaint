@@ -172,10 +172,8 @@ def update_size_thread(state, **kwargs):
         # Wait for rendering to end
         time.sleep(0.25)
 
-    interface_width = state.configuration["config"].get(
-        'interface_width', state.render["init_width"] * (1 if state.img2img else 2))
-    interface_height = state.configuration["config"].get(
-        'interface_height', state.render["init_height"])
+    interface_width = state.configuration["config"].get('interface_width', state.render["init_width"] * (1 if state.img2img else 2))
+    interface_height = state.configuration["config"].get('interface_height', state.render["init_height"])
 
     if round(interface_width / interface_height * 100) != round(state.render["init_width"] * (1 if state.img2img else 2) / state.render["init_height"] * 100):
         ratio = state.render["init_width"] / state.render["init_height"]
@@ -186,8 +184,7 @@ def update_size_thread(state, **kwargs):
 
     state.render["soft_upscale"] = 1.0
     if interface_width != state.render["init_width"] * (1 if state.img2img else 2) or interface_height != state.render["init_height"]:
-        state.render["soft_upscale"] = min(state.configuration["config"]['interface_width'] / state.render["init_width"],
-                                           state.configuration["config"]['interface_height'] / state.render["init_height"])
+        state.render["soft_upscale"] = min(state.configuration["config"]['interface_width'] / state.render["init_width"], state.configuration["config"]['interface_height'] / state.render["init_height"])
 
     if kwargs.get('hr_scale', None) is not None:
         hr_scale = kwargs.get('hr_scale')
@@ -198,13 +195,10 @@ def update_size_thread(state, **kwargs):
     state.render["width"] = math.floor(state.render["init_width"] * hr_scale)
     state.render["height"] = math.floor(state.render["init_height"] * hr_scale)
 
-    state.render["render_size"] = (
-        state.render["width"], state.render["height"])
+    state.render["render_size"] = (state.render["width"], state.render["height"])
 
-    state.render["width"] = math.floor(
-        state.render["width"] * state.render["soft_upscale"])
-    state.render["height"] = math.floor(
-        state.render["height"] * state.render["soft_upscale"])
+    state.render["width"] = math.floor(state.render["width"] * state.render["soft_upscale"])
+    state.render["height"] = math.floor(state.render["height"] * state.render["soft_upscale"])
 
 
 def update_size(state, **kwargs):
@@ -214,8 +208,7 @@ def update_size(state, **kwargs):
     :param kwargs: Accepted override parameter: ``hr_scale``
     """
 
-    t = threading.Thread(target=functools.partial(
-        update_size_thread, state, **kwargs))
+    t = threading.Thread(target=functools.partial(update_size_thread, state, **kwargs))
     t.start()
 
 
@@ -261,10 +254,8 @@ def payload_submit(state, image_string):
     if state.render["use_invert_module"]:
         json_data['controlnet_units'][0]['module'] = 'invert'
     if not state.render["pixel_perfect"]:
-        json_data['controlnet_units'][0]['processor_res'] = min(
-            state.render["width"], state.render["height"])
-    json_data['hr_second_pass_steps'] = max(8, math.floor(
-        int(json_data['steps']) * state.render["denoising_strength"]))  # at least 8 steps
+        json_data['controlnet_units'][0]['processor_res'] = min(state.render["width"], state.render["height"])
+    json_data['hr_second_pass_steps'] = max(8, math.floor(int(json_data['steps']) * state.render["denoising_strength"]))  # at least 8 steps
 
     if state.render["hr_scale"] > 1.0:
         json_data['enable_hr'] = 'true'
@@ -283,8 +274,7 @@ def payload_submit(state, image_string):
     if json_data.get('override_settings', None) is None:
         json_data['override_settings'] = {}
 
-    json_data['override_settings'][state.render['clip_skip_setting']
-                                   ] = state.render["clip_skip"]
+    json_data['override_settings'][state.render['clip_skip_setting']] = state.render["clip_skip"]
 
     state["main_json_data"] = json_data
 
@@ -326,13 +316,11 @@ def get_img2img_json(state):
     if json_data.get('override_settings', None) is None:
         json_data['override_settings'] = {}
 
-    json_data['override_settings'][state.render['clip_skip_setting']
-                                   ] = state.render["clip_skip"]
+    json_data['override_settings'][state.render['clip_skip_setting']] = state.render["clip_skip"]
 
     if state.render["quick_mode"]:
         # use quick_steps setting, or halve steps if not set
-        json_data['steps'] = json_data.get(
-            'quick_steps', json_data['steps'] // 2)
+        json_data['steps'] = json_data.get('quick_steps', json_data['steps'] // 2)
     return json_data
 
 
@@ -350,8 +338,7 @@ def fetch_configuration(state):
         return {}
 
 
-checkpoint_pattern = re.compile(
-    r'^(?P<dir>.*(?:\\|\/))?(?P<name>.*?)(?P<vae>\.vae)?(?P<ext>\.safetensors|\.pt|\.ckpt) ?(?P<hash>\[[^\]]*\])?.*')
+checkpoint_pattern = re.compile(r'^(?P<dir>.*(?:\\|\/))?(?P<name>.*?)(?P<vae>\.vae)?(?P<ext>\.safetensors|\.pt|\.ckpt) ?(?P<hash>\[[^\]]*\])?.*')
 
 
 def ckpt_name(name, display_dir=False, display_ext=False, display_hash=False):
@@ -380,3 +367,4 @@ def ckpt_name(name, display_dir=False, display_ext=False, display_hash=False):
 
 
 # Type hinting imports:
+from .state import State
