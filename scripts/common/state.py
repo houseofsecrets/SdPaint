@@ -91,46 +91,35 @@ class State:
         """
         self.configuration["config"] = load_config("config.json")
 
-        hr_scales = self.configuration["config"].get(
-            "hr_scales", [1.0, 1.25, 1.5, 2.0])
+        hr_scales = self.configuration["config"].get("hr_scales", [1.0, 1.25, 1.5, 2.0])
         if 1.0 not in hr_scales:
             hr_scales.insert(0, 1.0)
         hr_scale = hr_scales[0]
 
         self.render["hr_scale_prev"] = hr_scales[1]
-        self.render["hr_upscalers"] = self.configuration["config"].get(
-            "hr_upscalers", ['Latent (bicubic)'])
+        self.render["hr_upscalers"] = self.configuration["config"].get("hr_upscalers", ['Latent (bicubic)'])
         self.render["hr_upscaler"] = self.render["hr_upscalers"][0]
-        self.render["denoising_strengths"] = self.configuration["config"].get(
-            "denoising_strengths", [0.6])
+        self.render["denoising_strengths"] = self.configuration["config"].get("denoising_strengths", [0.6])
         self.render["denoising_strength"] = self.render["denoising_strengths"][0]
 
-        self.samplers["list"] = self.configuration["config"].get("samplers", [
-                                                                 "DDIM"])
+        self.samplers["list"] = self.configuration["config"].get("samplers", ["DDIM"])
         self.samplers["sampler"] = self.samplers["list"][0]
 
-        self.detectors["list"] = self.configuration["config"].get(
-            'detectors', ('lineart',))
+        self.detectors["list"] = self.configuration["config"].get('detectors', ('lineart',))
         self.detectors["detector"] = self.detectors["list"][0]
 
         if not self.configuration["config"]['controlnet_models']:
             fetch_controlnet_models(self)
-        self.control_net["controlnet_models"]: list[str] = self.configuration["config"].get(
-            "controlnet_models", [])
-        self.control_net["controlnet_weights"] = self.configuration["config"].get(
-            "controlnet_weights", [0.6, 1.0, 1.6])
+        self.control_net["controlnet_models"]: list[str] = self.configuration["config"].get("controlnet_models", [])
+        self.control_net["controlnet_weights"] = self.configuration["config"].get("controlnet_weights", [0.6, 1.0, 1.6])
         self.control_net["controlnet_weight"] = self.control_net["controlnet_weights"][0]
-        self.control_net["controlnet_guidance_ends"] = self.configuration["config"].get(
-            "controlnet_guidance_ends", [1.0, 0.2, 0.3])
+        self.control_net["controlnet_guidance_ends"] = self.configuration["config"].get("controlnet_guidance_ends", [1.0, 0.2, 0.3])
         self.control_net["controlnet_guidance_end"] = self.control_net["controlnet_guidance_ends"][0]
 
-        self.control_net["preset_fields"] = self.configuration["config"].get(
-            'cn_preset_fields', ["controlnet_model", "controlnet_weight", "controlnet_guidance_end"])
-        self.presets["fields"] = self.configuration["config"].get(
-            'preset_fields', ["hr_enabled", "hr_scale", "hr_upscaler", "denoising_strength"])
+        self.control_net["preset_fields"] = self.configuration["config"].get('cn_preset_fields', ["controlnet_model", "controlnet_weight", "controlnet_guidance_end"])
+        self.presets["fields"] = self.configuration["config"].get('preset_fields', ["hr_enabled", "hr_scale", "hr_upscaler", "denoising_strength"])
 
-        batch_sizes = self.configuration["config"].get(
-            "batch_sizes", [1, 4, 9, 16])
+        batch_sizes = self.configuration["config"].get("batch_sizes", [1, 4, 9, 16])
         if 1 not in batch_sizes:
             batch_sizes.insert(0, 1)
         self.render["batch_size"] = batch_sizes[0]
@@ -141,19 +130,13 @@ class State:
         self.render["hr_scale"] = hr_scale
         self.render["batch_sizes"] = batch_sizes
 
-        self.autosave["seed"] = self.configuration["config"].get(
-            'autosave_seed', 'false') == 'true'
-        self.autosave["prompt"] = self.configuration["config"].get(
-            'autosave_prompt', 'false') == 'true'
-        self.autosave["negative_prompt"] = self.configuration["config"].get(
-            'autosave_negative_prompt', 'false') == 'true'
-        self.autosave["images"] = self.configuration["config"].get(
-            'autosave_images', 'false') == 'true'
-        self.autosave["images_max"] = self.configuration["config"].get(
-            'autosave_images_max', 5)
+        self.autosave["seed"] = self.configuration["config"].get('autosave_seed', 'false') == 'true'
+        self.autosave["prompt"] = self.configuration["config"].get('autosave_prompt', 'false') == 'true'
+        self.autosave["negative_prompt"] = self.configuration["config"].get('autosave_negative_prompt', 'false') == 'true'
+        self.autosave["images"] = self.configuration["config"].get('autosave_images', 'false') == 'true'
+        self.autosave["images_max"] = self.configuration["config"].get('autosave_images_max', 5)
 
-        self.server["url"] = self.configuration["config"].get(
-            'url', 'http://127.0.0.1:7860')
+        self.server["url"] = self.configuration["config"].get('url', 'http://127.0.0.1:7860')
 
     def update_settings(self):
         """
@@ -176,12 +159,10 @@ class State:
             self.render["batch_hr_scale_prev"] = self.render["hr_scale"]
 
         self.gen_settings["prompt"] = settings.get('prompt', '')
-        self.gen_settings["negative_prompt"] = settings.get(
-            'negative_prompt', '')
+        self.gen_settings["negative_prompt"] = settings.get('negative_prompt', '')
 
         if settings.get("controlnet_units", None) and settings.get("controlnet_units")[0].get('pixel_perfect', None):
-            self.render["pixel_perfect"] = settings.get(
-                "controlnet_units")[0]["pixel_perfect"] == "true"
+            self.render["pixel_perfect"] = settings.get("controlnet_units")[0]["pixel_perfect"] == "true"
         else:
             self.render["pixel_perfect"] = False
 
@@ -191,8 +172,7 @@ class State:
         self.render["init_height"] = self.render["height"] * 1.0
         self.render["soft_upscale"] = 1.0
         if settings.get("controlnet_units", None) and settings.get("controlnet_units")[0].get('model', None):
-            self.control_net["controlnet_model"] = settings.get("controlnet_units")[
-                0]["model"]
+            self.control_net["controlnet_model"] = settings.get("controlnet_units")[0]["model"]
         elif self.control_net["controlnet_models"]:
             self.control_net["controlnet_model"] = self.control_net["controlnet_models"][0]
         else:
