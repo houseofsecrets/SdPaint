@@ -1,8 +1,11 @@
 venv
-*.json
+/*.json
+package-lock.json
 *.iml
 *.local
 .idea
+.vscode
 outputs/*
 **/__pycache__
 *.pyc
+**/node_modules
