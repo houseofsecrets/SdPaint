@@ -148,9 +148,8 @@ want to also apply the sampler value of the preset on recall, add `'sampler'` to
 
 ## Img2img Experimental mode
 
-Launch the program with `--img2img <image_file_path>` to watch an image file for changes, and use it as img2img source.
-If the script is launched
-with an empty image file path, a loading file dialog will be displayed.
+Launch the program with `--img2img --source <image_file_path>` to watch an image file for changes, and use it as img2img source.
+If the script is launched without `--source` argument, a loading file dialog will be displayed.
 The `img2img.json` file is used in this mode.
 
 ## Contributing
