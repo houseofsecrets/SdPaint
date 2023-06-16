@@ -364,7 +364,3 @@ def ckpt_name(name, display_dir=False, display_ext=False, display_hash=False):
         replace += r' \g<hash>'
 
     return checkpoint_pattern.sub(replace, name)
-
-
-# Type hinting imports:
-from .state import State
