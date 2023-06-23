@@ -67,9 +67,11 @@ All this data is sent to ControlNet API when you request image generation.
 
 This is main control panel of this app. Here are:
 
-- `Brush customizer`. It handles behavior of drawing brush. Here you can change width, switch eraser, toggle shape modes and their filling. There is four shape modes: `pencil`, `line`, `ellipse` and `rectangle`.
+- `Brush customizer` section. It handles behavior of drawing brush. Here you can change width, switch eraser, toggle shape modes and their filling. There is four shape modes: `pencil`, `line`, `ellipse` and `rectangle`.
+- `Download` button. Downloads result image (if any).
+- `Load config` button. Loads `controlnet.json` data to form fields.
+- `Save config` button. Saves data from form fields to `controlnet.json`.
 - `Clear` button. Resets `painting canvas`
-- `Download` button. Downloads result image (if any)
 - `Instant mode` button. Switches instant mode (requests image redraw just when you stroke)
 - `Zen mode` button. Enters simplified interface mode
 - `Generate` button. Triggers ControlNet API image generation.
@@ -98,7 +100,7 @@ Zen mode is more simplified interface mode. Only `painting canvas` and `result a
 
 Pull requests are welcome. Development brunch is https://github.com/Pythongor/SdPaint/tree/web-view.
 
-To run in development mode first you need to install `npm`. If you're done with it run `StartWeb.bat` or `start-web.sh` depending on your OS. There can be alert, ignore it. In separated terminal run `cd scripts\views\WebView; npm start` from project root. Your default browser will open http://localhost:3000/ with app. Now all your changes in `scripts\views\WebView\src` will renew page.
+To run in development mode first you need to install `npm`. If you're done with it run `StartWeb.bat` or `start-web.sh` depending on your OS. There can be alert, ignore it. In separated terminal run `cd scripts\views\WebView; npm install` then `npm start` from project root. Your default browser will open http://localhost:3000/ with app. Now all your changes in `scripts\views\WebView\src` will renew page.
 
 ## License
 
