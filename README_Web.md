@@ -1,4 +1,4 @@
-# SdPaint
+# SdPaintWeb
 
 A Web script that lets you paint on a canvas and sends that image to the automatic1111 API and updates the result frame when the image is generated.
 
