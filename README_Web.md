@@ -11,6 +11,8 @@ A Web script that lets you paint on a canvas and sends that image to the automat
 | `Equal`                                 | Increase brush size                                 |
 | `Minus`                                 | Decrease brush size                                 |
 | `Delete`                                | Clear painting canvas                               |
+| `c`                                     | Loads config from `controlnet.json` to form         |
+| `Shift` + `c`                           | Saves config from forms to `controlnet.json`        |
 | `d`                                     | Download result image (if any) from browser         |
 | `e`                                     | Set brush type to `ellipse`                         |
 | `l`                                     | Set brush type to `line`                            |
