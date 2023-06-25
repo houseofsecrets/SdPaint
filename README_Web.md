@@ -4,8 +4,10 @@ A Web script that lets you paint on a canvas and sends that image to the automat
 
 ## Controls
 
-| Key                                     | Control                                             |
+| Key / Mouse button                      | Control                                             |
 | --------------------------------------- | --------------------------------------------------- |
+| `Left button`                           | Draw with the current brush size                    |
+| `Middle button`                         | Draw with a white color brush                       |
 | `Escape`                                | Escape from image viewer or switch off zen mode     |
 | `Enter`                                 | Request image rendering                             |
 | `Equal`                                 | Increase brush size                                 |
