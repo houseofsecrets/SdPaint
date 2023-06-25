@@ -20,6 +20,12 @@ class Api:
         self.session.mount('http://', HTTPAdapter(max_retries=retries))
 
     def request(self, endpoint, *args, method="get", **kwargs):
+        """
+            Makes a request with retries and ConnectionError handling
+        :param str endpoint: url endpoint
+        :return: Response
+        """
+
         url = f'{self.url}/{endpoint}'
         if method == 'post':
             fetch = self.session.post
@@ -33,7 +39,7 @@ class Api:
             response.reason = 'Connection error'
             return response
 
-    def fetch_controlnet_models(self, state):
+    def fetch_controlnet_models(self, state, safe_only=True):
         """
             Fetch the available ControlNet models list from the API.
         :param State state: Application state.
@@ -45,7 +51,7 @@ class Api:
         if response.status_code == 200:
             r = response.json()
             for model in r.get('model_list', []):  # type: str
-                if 'scribble' not in model and 'lineart' not in model:
+                if safe_only and 'scribble' not in model and 'lineart' not in model:
                     continue
 
                 if ' [' in model:
