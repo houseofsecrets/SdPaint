@@ -322,8 +322,7 @@ class PygameView:
         nb = math.ceil(math.sqrt(len(image_datas)))
         i, j, batch_index = 0, 0, 1
         for image_data in image_datas:
-            pos = (i * self.state.render["width"] //
-                   nb, j * self.state.render["height"] // nb)
+            pos = (i * self.state.render["width"] // nb, j * self.state.render["height"] // nb)
 
             # Decode base64 image data
             if isinstance(image_data, str):
@@ -463,8 +462,7 @@ class PygameView:
         self.screen.blit(text_surface, (rect[0] + text_surface.get_width() * align_offset + distance, rect[1] - distance, rect[2], rect[3]))
         self.screen.blit(text_surface, (rect[0] + text_surface.get_width() * align_offset - distance, rect[1] - distance, rect[2], rect[3]))
         text_surface = self.font.render(text, True, color)
-        self.screen.blit(
-            text_surface, (rect[0] + text_surface.get_width() * align_offset, rect[1], rect[2], rect[3]))
+        self.screen.blit(text_surface, (rect[0] + text_surface.get_width() * align_offset, rect[1], rect[2], rect[3]))
 
     def osd(self, **kwargs):
         """
@@ -483,8 +481,7 @@ class PygameView:
 
         osd_dot_size = osd_size[1] // 2
         # osd_dot_pos = (width*(0 if img2img else 1) + osd_margin, osd_margin, osd_dot_size, osd_dot_size)  # top left
-        osd_dot_pos = (self.state.render["width"] * (img2img_modificator + 1) -
-                       osd_dot_size * 2 - osd_margin, osd_margin, osd_dot_size, osd_dot_size)  # top right
+        osd_dot_pos = (self.state.render["width"] * (img2img_modificator + 1) - osd_dot_size * 2 - osd_margin, osd_margin, osd_dot_size, osd_dot_size)  # top right
 
         osd_text_pos = (left, osd_margin)  # top left of canvas
         # osd_text_pos = (width*(0 if img2img else 1) + osd_margin, height - osd_size[1] - osd_margin)  # bottom left of canvas
@@ -609,8 +606,7 @@ class PygameView:
             return_seed = r_info['seed']
             self.display_caption = f"Sd Paint | Seed: {return_seed} | Prompt: {return_prompt}"
         else:
-            self.osd(
-                text=f"Error code returned: HTTP {response['status_code']}")
+            self.osd(text=f"Error code returned: HTTP {response['status_code']}")
         self.state.server["busy"] = False
 
     def render(self):
@@ -706,19 +702,16 @@ class PygameView:
             Call ControlNet active detector on the last rendered image, replace the canvas sketch by the detector result.
         :param str detector: The detector to apply.
         """
-        img = self.canvas.subsurface(pygame.Rect(
-            0, 0, self.state.render["width"], self.state.render["height"])).copy()
+        img = self.canvas.subsurface(pygame.Rect(0, 0, self.state.render["width"], self.state.render["height"])).copy()
 
         # Convert the Pygame surface to a PIL image
-        pil_img = Image.frombytes(
-            'RGB', img.get_size(), pygame.image.tostring(img, 'RGB'))
+        pil_img = Image.frombytes('RGB', img.get_size(), pygame.image.tostring(img, 'RGB'))
 
         # Invert the colors of the PIL image
         pil_img = ImageOps.invert(pil_img)
 
         # Convert the PIL image back to a Pygame surface
-        img = pygame.image.fromstring(
-            pil_img.tobytes(), pil_img.size, pil_img.mode).convert_alpha()
+        img = pygame.image.fromstring(pil_img.tobytes(), pil_img.size, pil_img.mode).convert_alpha()
 
         # Save the inverted image as base64-encoded data
         data = io.BytesIO()
@@ -991,19 +984,15 @@ class PygameView:
                     if event.key == pygame.K_UP:
                         self.rendering = True
                         self.instant_render = True
-                        self.state.gen_settings["seed"] = self.state.gen_settings["seed"] + \
-                            self.state.render["batch_size"]
-                        update_config(self.state.json_file, write=self.state.autosave["seed"], values={
-                                      'seed': self.state.gen_settings["seed"]})
+                        self.state.gen_settings["seed"] = self.state.gen_settings["seed"] + \ self.state.render["batch_size"]
+                        update_config(self.state.json_file, write=self.state.autosave["seed"], values={'seed': self.state.gen_settings["seed"]})
                         self.osd(text=f"Seed: {self.state['gen_settings']['seed']}")
 
                     elif event.key == pygame.K_DOWN:
                         self.rendering = True
                         self.instant_render = True
-                        self.state.gen_settings["seed"] = self.state.gen_settings["seed"] - \
-                            self.state.render["batch_size"]
-                        update_config(self.state.json_file, write=self.state.autosave["seed"], values={
-                                      'seed': self.state.gen_settings["seed"]})
+                        self.state.gen_settings["seed"] = self.state.gen_settings["seed"] - \ self.state.render["batch_size"]
+                        update_config(self.state.json_file, write=self.state.autosave["seed"], values={'seed': self.state.gen_settings["seed"]})
                         self.osd(text=f"Seed: {self.state['gen_settings']['seed']}")
 
                     elif event.key == pygame.K_n:
@@ -1011,10 +1000,8 @@ class PygameView:
                             with TextDialog(self.state.gen_settings["seed"], title="Seed", dialog_width=200, dialog_height=30) as dialog:
                                 if dialog.result and dialog.result.isnumeric():
                                     self.osd(text=f"Seed: {dialog.result}")
-                                    self.state.gen_settings["seed"] = int(
-                                        dialog.result)
-                                    update_config(self.state.json_file, write=self.state.autosave["seed"], values={
-                                                  'seed': self.state.gen_settings["seed"]})
+                                    self.state.gen_settings["seed"] = int(dialog.result)
+                                    update_config(self.state.json_file, write=self.state.autosave["seed"], values={'seed': self.state.gen_settings["seed"]})
                                     self.rendering = True
                                     self.instant_render = True
                         else:
@@ -1022,16 +1009,14 @@ class PygameView:
                             self.instant_render = True
                             self.state.gen_settings["seed"] = new_random_seed(
                                 self.state)
-                            update_config(self.state.json_file, write=self.state.autosave["seed"], values={
-                                          'seed': self.state.gen_settings["seed"]})
+                            update_config(self.state.json_file, write=self.state.autosave["seed"], values={'seed': self.state.gen_settings["seed"]})
                             self.osd(text=f"Seed: {self.state['gen_settings']['seed']}")
 
                     elif event.key == pygame.K_c:
                         if self.shift_down:
                             self.rendering_key = True
                             self.state.render["clip_skip"] -= 1
-                            self.state.render["clip_skip"] = (
-                                self.state.render["clip_skip"] + 1) % 2
+                            self.state.render["clip_skip"] = (self.state.render["clip_skip"] + 1) % 2
                             self.state.render["clip_skip"] += 1
                             self.osd(text=f"CLIP skip: {self.state['render']['clip_skip']}")
                         else:
@@ -1042,8 +1027,7 @@ class PygameView:
                             self.rendering_key = True
                             controlnet_models = self.state.control_net["controlnet_models"]
                             controlnet_model = self.state.control_net["controlnet_model"]
-                            controlnet_model = controlnet_models[(controlnet_models.index(
-                                controlnet_model) + 1) % len(controlnet_models)]
+                            controlnet_model = controlnet_models[(controlnet_models.index(controlnet_model) + 1) % len(controlnet_models)]
                             self.state.control_net["controlnet_model"] = controlnet_model
                             self.osd(text=f"ControlNet model: {controlnet_model}")
 
@@ -1068,8 +1052,7 @@ class PygameView:
                         else:
                             self.osd(text=f"HR scale: {self.state.render['hr_scale']}")
 
-                        update_size(
-                            self.state, hr_scale=self.state.render["hr_scale"])
+                        update_size(self.state, hr_scale=self.state.render["hr_scale"])
 
                     elif event.key in (pygame.K_KP_ENTER, pygame.K_RETURN):
                         self.rendering = True
@@ -1088,8 +1071,7 @@ class PygameView:
                             self.osd(text=f"Quick render: off")
                             self.state.render["hr_scale"] = self.state.render["hr_scale_prev"]
 
-                        update_size(
-                            self.state, hr_scale=self.state.render["hr_scale"])
+                        update_size(self.state, hr_scale=self.state.render["hr_scale"])
 
                     elif event.key == pygame.K_a:
                         self.state.autosave["images"] = not self.state.autosave["images"]
@@ -1118,8 +1100,7 @@ class PygameView:
 
                         if self.ctrl_down:
                             if event.key != pygame.K_KP0:
-                                preset_info = save_preset(
-                                    self.state, 'controlnet' if self.alt_down else 'render', keymap.get(event.key))
+                                preset_info = save_preset(self.state, 'controlnet' if self.alt_down else 'render', keymap.get(event.key))
                                 if preset_info['index'] == '0':
                                     self.osd(text=f"Save {preset_info['preset_type']} preset {preset_info['index']}")
                         else:
@@ -1128,15 +1109,12 @@ class PygameView:
 
                             if event.key == pygame.K_KP0:
                                 # Reset both render & controlnet settings if keypad 0
-                                text = self.load_preset(
-                                    'render', keymap.get(event.key))
+                                text = self.load_preset('render', keymap.get(event.key))
                                 self.osd(text=text, text_time=4.0)
-                                text = self.load_preset(
-                                    'controlnet', keymap.get(event.key))
+                                text = self.load_preset('controlnet', keymap.get(event.key))
                                 self.osd(text=text, text_time=4.0)
                             else:
-                                text = self.load_preset(
-                                    'controlnet' if self.alt_down else 'render', keymap.get(event.key))
+                                text = self.load_preset('controlnet' if self.alt_down else 'render', keymap.get(event.key))
                                 self.osd(text=text, text_time=4.0)
 
                     elif event.key == pygame.K_p:
@@ -1173,8 +1151,7 @@ class PygameView:
                     elif event.key == pygame.K_BACKSPACE:
                         self.rendering = True
                         self.instant_render = True
-                        pygame.draw.rect(self.canvas, (255, 255, 255), (
-                            self.state.render["width"], 0, self.state.render["width"], self.state.render["height"]))
+                        pygame.draw.rect(self.canvas, (255, 255, 255), (self.state.render["width"], 0, self.state.render["width"], self.state.render["height"]))
 
                     elif event.key == pygame.K_s:
                         if self.ctrl_down:
@@ -1182,8 +1159,7 @@ class PygameView:
                         elif self.shift_down:
                             self.rendering_key = True
                             samplers = self.state.samplers["list"]
-                            self.state.samplers["sampler"] = samplers[(samplers.index(
-                                self.state.samplers["sampler"]) + 1) % len(samplers)]
+                            self.state.samplers["sampler"] = samplers[(samplers.index(self.state.samplers["sampler"]) + 1) % len(samplers)]
                             self.osd(text=f"Sampler: {self.state['samplers']['sampler']}")
 
                     elif event.key == pygame.K_e:
@@ -1203,8 +1179,7 @@ class PygameView:
                             self.rendering_key = True
                             hr_upscalers = self.state.render["hr_upscalers"]
                             hr_upscaler = self.state.render["hr_upscaler"]
-                            hr_upscaler = hr_upscalers[(hr_upscalers.index(
-                                hr_upscaler) + 1) % len(hr_upscalers)]
+                            hr_upscaler = hr_upscalers[(hr_upscalers.index(hr_upscaler) + 1) % len(hr_upscalers)]
                             self.state.render["hr_upscaler"] = hr_upscaler
                             self.osd(text=f"HR upscaler: {hr_upscaler}")
 
@@ -1216,8 +1191,7 @@ class PygameView:
                             self.rendering_key = True
                             controlnet_weights = self.state.control_net["controlnet_weights"]
                             controlnet_weight = self.state.control_net["controlnet_weight"]
-                            controlnet_weight = controlnet_weights[(controlnet_weights.index(
-                                controlnet_weight) + 1) % len(controlnet_weights)]
+                            controlnet_weight = controlnet_weights[(controlnet_weights.index(controlnet_weight) + 1) % len(controlnet_weights)]
                             self.state.control_net["controlnet_weight"] = controlnet_weight
                             self.osd(text=f"ControlNet weight: {controlnet_weight}")
 
@@ -1230,8 +1204,7 @@ class PygameView:
                             self.rendering_key = True
                             controlnet_guidance_ends = self.state.control_net["controlnet_guidance_ends"]
                             controlnet_guidance_end = self.state.control_net["controlnet_guidance_end"]
-                            controlnet_guidance_end = controlnet_guidance_ends[(controlnet_guidance_ends.index(
-                                controlnet_guidance_end) + 1) % len(controlnet_guidance_ends)]
+                            controlnet_guidance_end = controlnet_guidance_ends[(controlnet_guidance_ends.index(controlnet_guidance_end) + 1) % len(controlnet_guidance_ends)]
                             self.state.control_net["controlnet_guidance_end"] = controlnet_guidance_end
                             self.osd(text=f"ControlNet guidance end: {controlnet_guidance_end}")
 
