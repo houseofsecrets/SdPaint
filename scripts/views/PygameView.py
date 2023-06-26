@@ -221,8 +221,7 @@ class PygameView:
         self.canvas = pygame.Surface((self.state.render["width"] * width_modificator, self.state.render["height"]))
         pygame.draw.rect(self.canvas, (255, 255, 255), (0, 0, self.state.render["width"] * width_modificator, self.state.render["height"]))
         img = pygame.image.load(file_path)
-        img = pygame.transform.smoothscale(
-            img, (self.state.render["width"], self.state.render["height"]))
+        img = pygame.transform.smoothscale(img, (self.state.render["width"], self.state.render["height"]))
         self.canvas.blit(img, (self.state.render["width"], 0))
 
     def finger_pos(self, finger_x, finger_y):
@@ -292,8 +291,7 @@ class PygameView:
         if self.state.autosave["images"]:
             file_name = autosave_image(self.state, io.BytesIO(image_data))
             self.save_sketch(file_name)
-        self.last_render_bytes = io.BytesIO(
-            image_data)  # store rendered image in memory
+        self.last_render_bytes = io.BytesIO(image_data)  # store rendered image in memory
 
         if self.state.render["soft_upscale"] != 1.0:
             width = img_surface.get_width() * self.state.render["soft_upscale"]
@@ -575,8 +573,7 @@ class PygameView:
 
         if not self.state.render["use_invert_module"]:
             # Convert the Pygame surface to a PIL image
-            pil_img = Image.frombytes(
-                'RGB', img.get_size(), pygame.image.tostring(img, 'RGB'))
+            pil_img = Image.frombytes('RGB', img.get_size(), pygame.image.tostring(img, 'RGB'))
 
             # Invert the colors of the PIL image
             pil_img = ImageOps.invert(pil_img)
@@ -1210,15 +1207,15 @@ class PygameView:
 
                     elif event.key == pygame.K_d:
                         if self.ctrl_down:
+                            detector = self.state.detectors['detector']
+                            detectors = self.state.detectors["list"]
                             if self.shift_down:
                                 # cycle detectors
-                                self.state.detectors["detector"] = self.state.detectors["list"][(self.state.detectors["list"].index(
-                                    self.state.detectors["detector"])+1) % len(self.state.detectors["list"])]
-                                self.osd(text=f"ControlNet detector: {self.state.detectors['detector'].replace('_', ' ')}")
+                                self.state.detectors["detector"] = detectors[(detectors.index(detector)+1) % len(detectors)]
+                                self.osd(text=f"ControlNet detector: {detector.replace('_', ' ')}")
                             else:
-                                self.osd(text=f"Detect {self.state.detectors['detector'].replace('_', ' ')}")
-                                detector = str(
-                                    self.state.detectors['detector'])
+                                self.osd(text=f"Detect {detector.replace('_', ' ')}")
+                                detector = str(detector)
 
                                 t = threading.Thread(target=functools.partial(
                                     self.controlnet_detect, detector))
