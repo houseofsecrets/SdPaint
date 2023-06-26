@@ -21,8 +21,7 @@ from sys import platform
 
 # workaround for MacOS as per https://bugs.python.org/issue46573
 if platform == "darwin":
-    from tkinter import Tk
-    root = Tk()
+    root = tk.Tk()
     root.withdraw()
 
 
@@ -60,8 +59,7 @@ class TextDialog(simpledialog.Dialog):
     def apply(self):
         if "_"+self.e1.get("1.0", tk.INSERT)[-1:]+"_" == "_\n_":
             # remove new line inserted when validating the dialog with ENTER
-            p = self.e1.get("1.0", tk.INSERT)[
-                :-1] + self.e1.get(tk.INSERT, tk.END)
+            p = self.e1.get("1.0", tk.INSERT)[:-1] + self.e1.get(tk.INSERT, tk.END)
         else:
             p = self.e1.get("1.0", tk.END)
         self.result = p.strip("\n")
@@ -120,8 +118,7 @@ class PygameView:
 
         # Set up the display
         self.fullscreen = False
-        self.screen = pygame.display.set_mode(
-            (self.state.render["width"] * (1 if self.state.img2img else 2), self.state.render["height"]))
+        self.screen = pygame.display.set_mode((self.state.render["width"] * (1 if self.state.img2img else 2), self.state.render["height"]))
         self.display_caption = "Sd Paint"
         pygame.display.set_caption(self.display_caption)
 
@@ -131,10 +128,8 @@ class PygameView:
         self.text_input = ""
 
         # Set up the drawing surface
-        self.canvas = pygame.Surface(
-            (self.state.render["width"] * 2, self.state.render["height"]))
-        pygame.draw.rect(self.canvas, (255, 255, 255), (0, 0, self.state.render["width"] * (
-            1 if self.state.img2img else 2), self.state.render["height"]))
+        self.canvas = pygame.Surface((self.state.render["width"] * 2, self.state.render["height"]))
+        pygame.draw.rect(self.canvas, (255, 255, 255), (0, 0, self.state.render["width"] * (1 if self.state.img2img else 2), self.state.render["height"]))
 
         # Set up the brush
         self.brush_size = {1: 2, 2: 2, 'e': 10}
@@ -222,10 +217,9 @@ class PygameView:
 
         :param str file_path: Local image file path.
         """
-        self.canvas = pygame.Surface(
-            (self.state.render["width"] * (1 if self.state.img2img else 2), self.state.render["height"]))
-        pygame.draw.rect(self.canvas, (255, 255, 255), (0, 0, self.state.render["width"] * (
-            1 if self.state.img2img else 2), self.state.render["height"]))
+        width_modificator = 1 if self.state.img2img else 2
+        self.canvas = pygame.Surface((self.state.render["width"] * width_modificator, self.state.render["height"]))
+        pygame.draw.rect(self.canvas, (255, 255, 255), (0, 0, self.state.render["width"] * width_modificator, self.state.render["height"]))
         img = pygame.image.load(file_path)
         img = pygame.transform.smoothscale(
             img, (self.state.render["width"], self.state.render["height"]))
@@ -239,8 +233,7 @@ class PygameView:
         :return: Finger coordinates.
         """
 
-        x = round(min(max(finger_x, 0), 1) *
-                  self.state.render["width"] * (1 if self.state.img2img else 2))
+        x = round(min(max(finger_x, 0), 1) * self.state.render["width"] * (1 if self.state.img2img else 2))
         y = round(min(max(finger_y, 0), 1) * self.state.render["height"])
         return x, y
 
@@ -303,8 +296,9 @@ class PygameView:
             image_data)  # store rendered image in memory
 
         if self.state.render["soft_upscale"] != 1.0:
-            img_surface = pygame.transform.smoothscale(img_surface, (img_surface.get_width(
-            ) * self.state.render["soft_upscale"], img_surface.get_height() * self.state.render["soft_upscale"]))
+            width = img_surface.get_width() * self.state.render["soft_upscale"]
+            height = img_surface.get_height() * self.state.render["soft_upscale"]
+            img_surface = pygame.transform.smoothscale(img_surface, (width, height))
 
         self.canvas.blit(img_surface, (0, 0))
         self.need_redraw = True
@@ -343,8 +337,9 @@ class PygameView:
                 self.last_render_bytes = io.BytesIO(image_data)
 
             if self.state.render["soft_upscale"] != 1.0:
-                img_surface = pygame.transform.smoothscale(img_surface, (img_surface.get_width(
-                ) * self.state.render["soft_upscale"] // nb, img_surface.get_height() * self.state.render["soft_upscale"] // nb))
+                width = img_surface.get_width() * self.state.render["soft_upscale"] // nb
+                height = img_surface.get_height() * self.state.render["soft_upscale"] // nb
+                img_surface = pygame.transform.smoothscale(img_surface, (width, height))
 
             if self.state.autosave["images"]:
                 to_autosave.append(io.BytesIO(image_data))
@@ -384,12 +379,10 @@ class PygameView:
                     and batch_image['coord'][1] <= pos[1] < batch_image['coord'][1] + batch_image['coord'][3]:
 
                 self.need_redraw = True
-                self.osd(
-                    text_time=f"Select batch image seed {batch_image['seed']}")
+                self.osd(text_time=f"Select batch image seed {batch_image['seed']}")
 
                 if batch_image.get('image', None):
-                    self.update_image(
-                        batch_image['image'].getbuffer().tobytes())
+                    self.update_image(batch_image['image'].getbuffer().tobytes())
 
                 self.state.gen_settings["seed"] = batch_image['seed']
 
@@ -422,8 +415,7 @@ class PygameView:
                 return_seed = r_info['seed']
                 self.display_caption = f"Sd Paint | Seed: {return_seed} | Prompt: {return_prompt}"
             else:
-                self.osd(
-                    text=f"Error code returned: HTTP {response['status_code']}")
+                self.osd(text=f"Error code returned: HTTP {response['status_code']}")
 
             self.state.server["busy"] = False
 
@@ -441,8 +433,7 @@ class PygameView:
 
         progress_json = self.api.progress_request()
         if progress_json.get("status_code", None):
-            self.osd(
-                text=f"Error code returned: HTTP {progress_json['status_code']}")
+            self.osd(text=f"Error code returned: HTTP {progress_json['status_code']}")
         self.progress = progress_json.get('progress', None)
         # if progress is not None and progress > 0.0:
         #     print(f"{progress*100:.0f}%")
@@ -467,14 +458,10 @@ class PygameView:
             align_offset = -1
 
         text_surface = self.font.render(text, True, shadow_color)
-        self.screen.blit(text_surface, (rect[0] + text_surface.get_width(
-        ) * align_offset + distance, rect[1] + distance, rect[2], rect[3]))
-        self.screen.blit(text_surface, (rect[0] + text_surface.get_width(
-        ) * align_offset - distance, rect[1] + distance, rect[2], rect[3]))
-        self.screen.blit(text_surface, (rect[0] + text_surface.get_width(
-        ) * align_offset + distance, rect[1] - distance, rect[2], rect[3]))
-        self.screen.blit(text_surface, (rect[0] + text_surface.get_width(
-        ) * align_offset - distance, rect[1] - distance, rect[2], rect[3]))
+        self.screen.blit(text_surface, (rect[0] + text_surface.get_width() * align_offset + distance, rect[1] + distance, rect[2], rect[3]))
+        self.screen.blit(text_surface, (rect[0] + text_surface.get_width() * align_offset - distance, rect[1] + distance, rect[2], rect[3]))
+        self.screen.blit(text_surface, (rect[0] + text_surface.get_width() * align_offset + distance, rect[1] - distance, rect[2], rect[3]))
+        self.screen.blit(text_surface, (rect[0] + text_surface.get_width() * align_offset - distance, rect[1] - distance, rect[2], rect[3]))
         text_surface = self.font.render(text, True, color)
         self.screen.blit(
             text_surface, (rect[0] + text_surface.get_width() * align_offset, rect[1], rect[2], rect[3]))
@@ -488,18 +475,18 @@ class PygameView:
 
         osd_size = (128, 20)
         osd_margin = 10
-        osd_progress_pos = (self.state.render["width"] * (
-            0 if self.state.img2img else 1) + osd_margin, osd_margin)  # top left of canvas
+        img2img_modificator = 0 if self.state.img2img else 1
+        left = self.state.render["width"] * img2img_modificator + osd_margin
+        osd_progress_pos = (left, osd_margin)  # top left of canvas
         # osd_pos = (width*(1 if img2img else 2) // 2 - osd_size [0] // 2, osd_margin)  # top center
         # osd_progress_pos = (width*(1 if img2img else 2) - osd_size[0] - osd_margin, height - osd_size[1] - osd_margin)  # bottom right
 
         osd_dot_size = osd_size[1] // 2
         # osd_dot_pos = (width*(0 if img2img else 1) + osd_margin, osd_margin, osd_dot_size, osd_dot_size)  # top left
-        osd_dot_pos = (self.state.render["width"]*(1 if self.state.img2img else 2) -
+        osd_dot_pos = (self.state.render["width"] * (img2img_modificator + 1) -
                        osd_dot_size * 2 - osd_margin, osd_margin, osd_dot_size, osd_dot_size)  # top right
 
-        osd_text_pos = (self.state.render["width"]*(
-            0 if self.state.img2img else 1) + osd_margin, osd_margin)  # top left of canvas
+        osd_text_pos = (left, osd_margin)  # top left of canvas
         # osd_text_pos = (width*(0 if img2img else 1) + osd_margin, height - osd_size[1] - osd_margin)  # bottom left of canvas
         osd_text_offset = 0
 
@@ -508,18 +495,14 @@ class PygameView:
         self.progress = kwargs.get('progress', self.progress)  # type: float
         text = kwargs.get('text', self.osd_text)  # type: str
         text_time = kwargs.get('text_time', 2.0)  # type: float
-        self.need_redraw = kwargs.get(
-            'need_redraw', self.need_redraw)  # type: bool
-        self.osd_always_on_text = kwargs.get(
-            'always_on', self.osd_always_on_text)
+        self.need_redraw = kwargs.get('need_redraw', self.need_redraw)  # type: bool
+        self.osd_always_on_text = kwargs.get('always_on', self.osd_always_on_text)
 
         if self.rendering or (self.state.server["busy"] and self.progress is not None and self.progress < 0.02):
             rendering_dot_surface = pygame.Surface(osd_size, pygame.SRCALPHA)
 
-            pygame.draw.circle(rendering_dot_surface, (0, 0, 0),
-                               (osd_dot_size + 2, osd_dot_size + 2), osd_dot_size - 2)
-            pygame.draw.circle(rendering_dot_surface, (0, 200, 160),
-                               (osd_dot_size, osd_dot_size), osd_dot_size - 2)
+            pygame.draw.circle(rendering_dot_surface, (0, 0, 0), (osd_dot_size + 2, osd_dot_size + 2), osd_dot_size - 2)
+            pygame.draw.circle(rendering_dot_surface, (0, 200, 160), (osd_dot_size, osd_dot_size), osd_dot_size - 2)
             self.screen.blit(rendering_dot_surface, osd_dot_pos)
 
         if self.progress is not None and self.progress > 0.01:
@@ -527,17 +510,14 @@ class PygameView:
 
             # progress bar
             progress_surface = pygame.Surface(osd_size, pygame.SRCALPHA)
-            pygame.draw.rect(progress_surface, (0, 0, 0), pygame.Rect(
-                2, 2, math.floor(osd_size[0] * self.progress), osd_size[1]))
-            pygame.draw.rect(progress_surface, (0, 200, 160), pygame.Rect(
-                0, 0, math.floor(osd_size[0] * self.progress), osd_size[1] - 2))
+            width = math.floor(osd_size[0] * self.progress)
+            pygame.draw.rect(progress_surface, (0, 0, 0), pygame.Rect(2, 2, width, osd_size[1]))
+            pygame.draw.rect(progress_surface, (0, 200, 160), pygame.Rect(0, 0, width, osd_size[1] - 2))
 
-            self.screen.blit(progress_surface, pygame.Rect(
-                osd_progress_pos[0], osd_progress_pos[1], osd_size[0], osd_size[1]))
+            self.screen.blit(progress_surface, pygame.Rect(osd_progress_pos[0], osd_progress_pos[1], osd_size[0], osd_size[1]))
 
             # progress text
-            self.draw_osd_text(f"{self.progress * 100:.0f}%",
-                               (osd_size[0] - osd_margin + osd_progress_pos[0], 3 + osd_progress_pos[1], osd_size[0], osd_size[1]), right_align=True)
+            self.draw_osd_text(f"{self.progress * 100:.0f}%", (osd_size[0] - osd_margin + osd_progress_pos[0], 3 + osd_progress_pos[1], osd_size[0], osd_size[1]), right_align=True)
 
             osd_text_offset = osd_size[1] + osd_margin
 
@@ -555,11 +535,9 @@ class PygameView:
                 else:
                     line_value = None
 
-                self.draw_osd_text(
-                    line, (osd_text_pos[0], osd_text_pos[1] + osd_text_offset, osd_size[0], osd_size[1]))
+                self.draw_osd_text(line, (osd_text_pos[0], osd_text_pos[1] + osd_text_offset, osd_size[0], osd_size[1]))
                 if line_value:
-                    self.draw_osd_text(
-                        line_value, (osd_text_pos[0] + osd_text_split_offset, osd_text_pos[1] + osd_text_offset, osd_size[0], osd_size[1]))
+                    self.draw_osd_text(line_value, (osd_text_pos[0] + osd_text_split_offset, osd_text_pos[1] + osd_text_offset, osd_size[0], osd_size[1]))
 
                 osd_text_offset += osd_size[1]
 
@@ -581,11 +559,9 @@ class PygameView:
                 else:
                     line_value = None
 
-                self.draw_osd_text(
-                    line, (osd_text_pos[0], osd_text_pos[1] + osd_text_offset, osd_size[0], osd_size[1]))
+                self.draw_osd_text(line, (osd_text_pos[0], osd_text_pos[1] + osd_text_offset, osd_size[0], osd_size[1]))
                 if line_value:
-                    self.draw_osd_text(
-                        line_value, (osd_text_pos[0] + osd_text_split_offset, osd_text_pos[1] + osd_text_offset, osd_size[0], osd_size[1]))
+                    self.draw_osd_text(line_value, (osd_text_pos[0] + osd_text_split_offset, osd_text_pos[1] + osd_text_offset, osd_size[0], osd_size[1]))
 
                 osd_text_offset += osd_size[1]
 
@@ -598,8 +574,7 @@ class PygameView:
             Get base64 encoded image string from canvas.
         :return: The encoder image.
         """
-        img = self.canvas.subsurface(pygame.Rect(
-            self.state.render["width"], 0, self.state.render["width"], self.state.render["height"])).copy()
+        img = self.canvas.subsurface(pygame.Rect(self.state.render["width"], 0, self.state.render["width"], self.state.render["height"])).copy()
 
         if not self.state.render["use_invert_module"]:
             # Convert the Pygame surface to a PIL image
@@ -610,8 +585,7 @@ class PygameView:
             pil_img = ImageOps.invert(pil_img)
 
             # Convert the PIL image back to a Pygame surface
-            img = pygame.image.fromstring(
-                pil_img.tobytes(), pil_img.size, pil_img.mode).convert_alpha()
+            img = pygame.image.fromstring(pil_img.tobytes(), pil_img.size, pil_img.mode).convert_alpha()
 
         # Save the inverted image as base64-encoded data
         data = io.BytesIO()
@@ -661,8 +635,7 @@ class PygameView:
                 t = threading.Thread(target=self.progress_bar)
                 t.start()
             else:
-                t = threading.Thread(
-                    target=functools.partial(self.img2img_submit, True))
+                t = threading.Thread(target=functools.partial(self.img2img_submit, True))
                 t.start()
 
     @staticmethod
@@ -691,34 +664,26 @@ class PygameView:
 
         if self.prev_pos is None or (abs(event.pos[0] - self.prev_pos[0]) < self.brush_size[button] // 4 and abs(event.pos[1] - self.prev_pos[1]) < self.brush_size[button] // 4):
             # Slow brush stroke, draw circles
-            pygame.draw.circle(
-                self.canvas, self.brush_colors[button], event.pos, self.brush_size[button])
+            pygame.draw.circle(self.canvas, self.brush_colors[button], event.pos, self.brush_size[button])
 
         elif not self.prev_pos2 or self.brush_size[button] < 4:
             # Draw a simple polygon for small brush sizes
-            pygame.draw.polygon(self.canvas, self.brush_colors[button], [
-                                self.prev_pos, event.pos], self.brush_size[button] * 2)
+            pygame.draw.polygon(self.canvas, self.brush_colors[button], [self.prev_pos, event.pos], self.brush_size[button] * 2)
 
         else:
             # Draw a complex shape with gfxdraw for bigger bush sizes to avoid gaps
             angle_prev = self.get_angle(self.prev_pos, self.prev_pos2)
             angle = self.get_angle(event.pos, self.prev_pos)
 
-            offset_pos_prev = [(self.brush_size[button] * angle_prev[3]),
-                               (self.brush_size[button] * angle_prev[2])]
-            offset_pos = [(self.brush_size[button] * angle[3]),
-                          (self.brush_size[button] * angle[2])]
+            offset_pos_prev = [(self.brush_size[button] * angle_prev[3]), (self.brush_size[button] * angle_prev[2])]
+            offset_pos = [(self.brush_size[button] * angle[3]), (self.brush_size[button] * angle[2])]
             pygame.gfxdraw.filled_polygon(self.canvas, [
-                (self.prev_pos2[0] - offset_pos_prev[0],
-                 self.prev_pos2[1] - offset_pos_prev[1]),
-                (self.prev_pos[0] - offset_pos[0],
-                 self.prev_pos[1] - offset_pos[1]),
+                (self.prev_pos2[0] - offset_pos_prev[0], self.prev_pos2[1] - offset_pos_prev[1]),
+                (self.prev_pos[0] - offset_pos[0], self.prev_pos[1] - offset_pos[1]),
                 (event.pos[0] - offset_pos[0], event.pos[1] - offset_pos[1]),
                 (event.pos[0] + offset_pos[0], event.pos[1] + offset_pos[1]),
-                (self.prev_pos[0] + offset_pos[0],
-                 self.prev_pos[1] + offset_pos[1]),
-                (self.prev_pos2[0] + offset_pos_prev[0],
-                 self.prev_pos2[1] + offset_pos_prev[1])
+                (self.prev_pos[0] + offset_pos[0], self.prev_pos[1] + offset_pos[1]),
+                (self.prev_pos2[0] + offset_pos_prev[0], self.prev_pos2[1] + offset_pos_prev[1])
             ], self.brush_colors[button])
 
         self.prev_pos2 = self.prev_pos
@@ -760,21 +725,18 @@ class PygameView:
         pygame.image.save(img, data)
         data = base64.b64encode(data.getvalue()).decode('utf-8')
 
-        response = self.api.fetch_detect_image(
-            detector, data, img.get_width(), img.get_height())
+        response = self.api.fetch_detect_image(detector, data, img.get_width(), img.get_height())
         if response["status_code"] == 200:
             return_img = response["image"]
             img_bytes = io.BytesIO(base64.b64decode(return_img))
             pil_img = Image.open(img_bytes)
             pil_img = ImageOps.invert(pil_img)
             pil_img = pil_img.convert('RGB')
-            img_surface = pygame.image.fromstring(
-                pil_img.tobytes(), pil_img.size, pil_img.mode)
+            img_surface = pygame.image.fromstring(pil_img.tobytes(), pil_img.size, pil_img.mode)
 
             self.canvas.blit(img_surface, (self.state.render["width"], 0))
         else:
-            self.osd(
-                text=f"Error code returned: HTTP {response['status_code']}")
+            self.osd(text=f"Error code returned: HTTP {response['status_code']}")
 
     def display_configuration(self, wrap=True):
         """
@@ -846,8 +808,7 @@ class PygameView:
                 if field.startswith('state/'):
                     field_components = field.replace('state/', '').split('/')
                     label = field_components[1]
-                    field_value = getattr(self.state, field_components[0])[
-                        field_components[1]]
+                    field_value = getattr(self.state, field_components[0])[field_components[1]]
                 else:
                     label = field
                     field_value = globals().get(field, locals().get(field, None))
@@ -859,8 +820,7 @@ class PygameView:
                 # prettify
                 label = label.replace('_', ' ')
                 if label.endswith('prompt'):
-                    value = value.replace(', ', ',').replace(
-                        ',', ', ')  # nicer prompt display
+                    value = value.replace(', ', ',').replace(',', ', ')  # nicer prompt display
                 elif 'size' in label and isinstance(value, tuple) and len(value) == 2:
                     value = f"{value[0]}x{value[1]}"
                 elif label in ('checkpoint', 'vae'):
@@ -902,8 +862,7 @@ class PygameView:
         if cycle:
             self.rendering_key = True
             batch_sizes = self.state.render["batch_sizes"]
-            self.state.render["batch_size"] = batch_sizes[(batch_sizes.index(
-                self.state.render["batch_size"]) + 1) % len(batch_sizes)]
+            self.state.render["batch_size"] = batch_sizes[(batch_sizes.index(self.state.render["batch_size"]) + 1) % len(batch_sizes)]
         else:
             self.rendering = True
             if self.state.render["batch_size"] != 1:
@@ -920,8 +879,7 @@ class PygameView:
             self.state.render["batch_hr_scale_prev"] = self.state.render["hr_scale"]
             self.state.render["hr_scale"] = 1.0
             update_size(self.state)
-            self.osd(
-                text=f"Batch rendering size: {self.state.render['batch_size']}")
+            self.osd(text=f"Batch rendering size: {self.state.render['batch_size']}")
 
     def main(self):
         # Initial img2img call
@@ -975,8 +933,7 @@ class PygameView:
                             if self.shift_pos is None:
                                 self.shift_pos = self.brush_pos[brush_key]
                             else:
-                                pygame.draw.polygon(self.canvas, self.brush_colors[brush_key], [
-                                                    self.shift_pos, self.brush_pos[brush_key]], self.brush_size[brush_key] * 2)
+                                pygame.draw.polygon(self.canvas, self.brush_colors[brush_key], [self.shift_pos, self.brush_pos[brush_key]], self.brush_size[brush_key] * 2)
                                 self.shift_pos = self.brush_pos[brush_key]
 
                 elif event.type == pygame.MOUSEBUTTONUP or event.type == pygame.FINGERUP:
@@ -997,8 +954,7 @@ class PygameView:
                                 brush_key = 'e'
 
                             if self.brush_size[brush_key] >= 4 and getattr(event, 'pos', None) is not None:
-                                pygame.draw.circle(
-                                    self.canvas, self.brush_colors[brush_key], event.pos, self.brush_size[brush_key])
+                                pygame.draw.circle(self.canvas, self.brush_colors[brush_key], event.pos, self.brush_size[brush_key])
 
                             self.brush_pos[brush_key] = None
                             self.prev_pos = None
@@ -1039,8 +995,7 @@ class PygameView:
                             self.state.render["batch_size"]
                         update_config(self.state.json_file, write=self.state.autosave["seed"], values={
                                       'seed': self.state.gen_settings["seed"]})
-                        self.osd(
-                            text=f"Seed: {self.state['gen_settings']['seed']}")
+                        self.osd(text=f"Seed: {self.state['gen_settings']['seed']}")
 
                     elif event.key == pygame.K_DOWN:
                         self.rendering = True
@@ -1049,8 +1004,7 @@ class PygameView:
                             self.state.render["batch_size"]
                         update_config(self.state.json_file, write=self.state.autosave["seed"], values={
                                       'seed': self.state.gen_settings["seed"]})
-                        self.osd(
-                            text=f"Seed: {self.state['gen_settings']['seed']}")
+                        self.osd(text=f"Seed: {self.state['gen_settings']['seed']}")
 
                     elif event.key == pygame.K_n:
                         if self.ctrl_down:
@@ -1070,8 +1024,7 @@ class PygameView:
                                 self.state)
                             update_config(self.state.json_file, write=self.state.autosave["seed"], values={
                                           'seed': self.state.gen_settings["seed"]})
-                            self.osd(
-                                text=f"Seed: {self.state['gen_settings']['seed']}")
+                            self.osd(text=f"Seed: {self.state['gen_settings']['seed']}")
 
                     elif event.key == pygame.K_c:
                         if self.shift_down:
@@ -1080,8 +1033,7 @@ class PygameView:
                             self.state.render["clip_skip"] = (
                                 self.state.render["clip_skip"] + 1) % 2
                             self.state.render["clip_skip"] += 1
-                            self.osd(
-                                text=f"CLIP skip: {self.state['render']['clip_skip']}")
+                            self.osd(text=f"CLIP skip: {self.state['render']['clip_skip']}")
                         else:
                             self.display_configuration()
 
@@ -1093,8 +1045,7 @@ class PygameView:
                             controlnet_model = controlnet_models[(controlnet_models.index(
                                 controlnet_model) + 1) % len(controlnet_models)]
                             self.state.control_net["controlnet_model"] = controlnet_model
-                            self.osd(
-                                text=f"ControlNet model: {controlnet_model}")
+                            self.osd(text=f"ControlNet model: {controlnet_model}")
 
                     elif event.key == pygame.K_i:
                         if self.ctrl_down:
@@ -1115,8 +1066,7 @@ class PygameView:
                         if self.state.render["hr_scale"] == 1.0:
                             self.osd(text="HR scale: off")
                         else:
-                            self.osd(
-                                text=f"HR scale: {self.state.render['hr_scale']}")
+                            self.osd(text=f"HR scale: {self.state.render['hr_scale']}")
 
                         update_size(
                             self.state, hr_scale=self.state.render["hr_scale"])
@@ -1143,8 +1093,7 @@ class PygameView:
 
                     elif event.key == pygame.K_a:
                         self.state.autosave["images"] = not self.state.autosave["images"]
-                        self.osd(
-                            text=f"Autosave images: {'on' if self.state['autosave']['images'] else 'off'}")
+                        self.osd(text=f"Autosave images: {'on' if self.state['autosave']['images'] else 'off'}")
 
                     elif event.key == pygame.K_o:
                         if self.ctrl_down:
@@ -1172,8 +1121,7 @@ class PygameView:
                                 preset_info = save_preset(
                                     self.state, 'controlnet' if self.alt_down else 'render', keymap.get(event.key))
                                 if preset_info['index'] == '0':
-                                    self.osd(
-                                        text=f"Save {preset_info['preset_type']} preset {preset_info['index']}")
+                                    self.osd(text=f"Save {preset_info['preset_type']} preset {preset_info['index']}")
                         else:
                             self.rendering = True
                             self.instant_render = True
@@ -1196,8 +1144,7 @@ class PygameView:
                             self.pause_render = not self.pause_render
 
                             if self.pause_render:
-                                self.osd(
-                                    text=f"On-demand rendering (ENTER to render)")
+                                self.osd(text=f"On-demand rendering (ENTER to render)")
 
                             else:
                                 self.rendering = True
@@ -1207,8 +1154,7 @@ class PygameView:
                         elif self.alt_down:
                             with TextDialog(self.state.gen_settings["negative_prompt"], title="Negative prompt") as dialog:
                                 if dialog.result:
-                                    self.osd(
-                                        text=f"New negative prompt: {dialog.result}")
+                                    self.osd(text=f"New negative prompt: {dialog.result}")
                                     self.state.gen_settings["negative_prompt"] = dialog.result
                                     update_config(self.state.json_file, write=self.state.autosave["negative_prompt"], values={
                                                   'negative_prompt': self.state.gen_settings["negative_prompt"]})
@@ -1217,8 +1163,7 @@ class PygameView:
                         else:
                             with TextDialog(self.state.gen_settings["prompt"], title="Prompt") as dialog:
                                 if dialog.result:
-                                    self.osd(
-                                        text=f"New prompt: {dialog.result}")
+                                    self.osd(text=f"New prompt: {dialog.result}")
                                     self.state.gen_settings["prompt"] = dialog.result
                                     update_config(self.state.json_file, write=self.state.autosave["prompt"], values={
                                                   'prompt': self.state.gen_settings["prompt"]})
@@ -1239,8 +1184,7 @@ class PygameView:
                             samplers = self.state.samplers["list"]
                             self.state.samplers["sampler"] = samplers[(samplers.index(
                                 self.state.samplers["sampler"]) + 1) % len(samplers)]
-                            self.osd(
-                                text=f"Sampler: {self.state['samplers']['sampler']}")
+                            self.osd(text=f"Sampler: {self.state['samplers']['sampler']}")
 
                     elif event.key == pygame.K_e:
                         self.eraser_down = True
@@ -1252,8 +1196,7 @@ class PygameView:
                                 self.osd(text="Render wait: off")
                             else:
                                 self.render_wait += 0.5
-                                self.osd(
-                                    text=f"Render wait: {self.render_wait}s")
+                                self.osd(text=f"Render wait: {self.render_wait}s")
 
                     elif event.key == pygame.K_u:
                         if self.shift_down:
@@ -1276,15 +1219,13 @@ class PygameView:
                             controlnet_weight = controlnet_weights[(controlnet_weights.index(
                                 controlnet_weight) + 1) % len(controlnet_weights)]
                             self.state.control_net["controlnet_weight"] = controlnet_weight
-                            self.osd(
-                                text=f"ControlNet weight: {controlnet_weight}")
+                            self.osd(text=f"ControlNet weight: {controlnet_weight}")
 
                     elif event.key == pygame.K_g:
                         if self.shift_down and self.ctrl_down:
                             self.rendering_key = True
                             self.state.render["pixel_perfect"] = not self.state.render["pixel_perfect"]
-                            self.osd(
-                                text=f"ControlNet pixel perfect mode: {'on' if self.state.render['pixel_perfect'] else 'off'}")
+                            self.osd(text=f"ControlNet pixel perfect mode: {'on' if self.state.render['pixel_perfect'] else 'off'}")
                         elif self.shift_down:
                             self.rendering_key = True
                             controlnet_guidance_ends = self.state.control_net["controlnet_guidance_ends"]
@@ -1292,8 +1233,7 @@ class PygameView:
                             controlnet_guidance_end = controlnet_guidance_ends[(controlnet_guidance_ends.index(
                                 controlnet_guidance_end) + 1) % len(controlnet_guidance_ends)]
                             self.state.control_net["controlnet_guidance_end"] = controlnet_guidance_end
-                            self.osd(
-                                text=f"ControlNet guidance end: {controlnet_guidance_end}")
+                            self.osd(text=f"ControlNet guidance end: {controlnet_guidance_end}")
 
                     elif event.key == pygame.K_d:
                         if self.ctrl_down:
@@ -1301,11 +1241,9 @@ class PygameView:
                                 # cycle detectors
                                 self.state.detectors["detector"] = self.state.detectors["list"][(self.state.detectors["list"].index(
                                     self.state.detectors["detector"])+1) % len(self.state.detectors["list"])]
-                                self.osd(
-                                    text=f"ControlNet detector: {self.state.detectors['detector'].replace('_', ' ')}")
+                                self.osd(text=f"ControlNet detector: {self.state.detectors['detector'].replace('_', ' ')}")
                             else:
-                                self.osd(
-                                    text=f"Detect {self.state.detectors['detector'].replace('_', ' ')}")
+                                self.osd(text=f"Detect {self.state.detectors['detector'].replace('_', ' ')}")
                                 detector = str(
                                     self.state.detectors['detector'])
 
@@ -1320,11 +1258,9 @@ class PygameView:
                                 denoising_strength) + 1) % len(denoising_strengths)]
                             self.state.render["denoising_strength"] = denoising_strength
                             if self.state.img2img:
-                                self.osd(
-                                    text=f"Denoising: {denoising_strength}")
+                                self.osd(text=f"Denoising: {denoising_strength}")
                             else:
-                                self.osd(
-                                    text=f"HR denoising: {denoising_strength}")
+                                self.osd(text=f"HR denoising: {denoising_strength}")
 
                     elif event.key == pygame.K_f:
                         self.fullscreen = not self.fullscreen
@@ -1340,8 +1276,7 @@ class PygameView:
                             if event.key == key:
                                 self.brush_size[1] = i if i != 0 else 10
                                 self.brush_size[2] = i if i != 0 else 10
-                                self.osd(
-                                    text=f"Brush size {self.brush_size[1]}")
+                                self.osd(text=f"Brush size {self.brush_size[1]}")
 
                     elif event.key in (pygame.K_ESCAPE, pygame.K_x):
                         self.running = False
