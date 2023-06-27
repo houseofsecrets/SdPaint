@@ -1,7 +1,7 @@
 import json
 
-from .cn_requests import fetch_controlnet_models
-from .utils import load_config, update_size, fetch_configuration
+from .cn_requests import Api
+from .utils import load_config, update_size
 
 
 class State:
@@ -20,7 +20,6 @@ class State:
         "fields": ["hr_enabled", "hr_scale", "hr_upscaler", "denoising_strength"],
     }
     server = {
-        "url": 'http://127.0.0.1:7860',
         "busy": False,
     }
     render = {
@@ -81,6 +80,7 @@ class State:
 
     def __init__(self, img2img=""):
         self.img2img = img2img
+        self.api = Api(self)
         self.update_config()
         self.update_settings()
         self.update_webui_config()
@@ -109,7 +109,7 @@ class State:
         self.detectors["detector"] = self.detectors["list"][0]
 
         if not self.configuration["config"]['controlnet_models']:
-            fetch_controlnet_models(self)
+            self.api.fetch_controlnet_models(self)
         self.control_net["controlnet_models"]: list[str] = self.configuration["config"].get("controlnet_models", [])
         self.control_net["controlnet_weights"] = self.configuration["config"].get("controlnet_weights", [0.6, 1.0, 1.6])
         self.control_net["controlnet_weight"] = self.control_net["controlnet_weights"][0]
@@ -188,9 +188,9 @@ class State:
         """
             Update webui configuration from the API.
         """
-        self.configuration["webui_config"] = fetch_configuration(self)
-        self.render['checkpoint'] = self.configuration["webui_config"]['sd_model_checkpoint']
-        self.render['vae'] = self.configuration["webui_config"]['sd_vae']
+        self.configuration["webui_config"] = self.api.fetch_configuration()
+        self.render['checkpoint'] = self.configuration["webui_config"].get('sd_model_checkpoint', None)
+        self.render['vae'] = self.configuration["webui_config"].get('sd_vae', None)
 
     def __setitem__(self, key, value):
         setattr(self, key, value)
