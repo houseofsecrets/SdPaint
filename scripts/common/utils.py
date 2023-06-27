@@ -323,8 +323,7 @@ def get_img2img_json(state):
     return json_data
 
 
-checkpoint_pattern = re.compile(
-    r'^(?P<dir>.*(?:\\|\/))?(?P<name>.*?)(?P<vae>\.vae)?(?P<ext>\.safetensors|\.pt|\.ckpt) ?(?P<hash>\[[^\]]*\])?.*')
+checkpoint_pattern = re.compile(r'^(?P<dir>.*(?:\\|\/))?(?P<name>.*?)(?P<vae>\.vae)?(?P<ext>\.safetensors|\.pt|\.ckpt) ?(?P<hash>\[[^\]]*\])?.*')
 
 
 def ckpt_name(name, display_dir=False, display_ext=False, display_hash=False):

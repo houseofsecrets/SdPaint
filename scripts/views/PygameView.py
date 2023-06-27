@@ -139,14 +139,12 @@ class PygameView:
             'e': (255, 255, 255),  # Eraser color
         }
         self.brush_color = self.brush_colors[1]
-        # type: dict[int|str, tuple[int, int]|None]
-        self.brush_pos = {1: None, 2: None, 'e': None}
+        self.brush_pos = {1: None, 2: None, 'e': None}  # type: dict[int|str, tuple[int, int]|None]
         self.prev_pos = None
         self.prev_pos2 = None
         self.shift_pos = None
         self.eraser_down = False
-        # wait time max between 2 draw before launching the render
-        self.render_wait = 0.5 if not self.state.img2img else 0.0
+        self.render_wait = 0.5 if not self.state.img2img else 0.0  # wait time max between 2 draw before launching the render
         self.last_draw_time = time.time()
         self.last_render_bytes: io.BytesIO | None = None
 
@@ -256,8 +254,7 @@ class PygameView:
         :param str file_path: Render output file path.
         """
         file_name, file_ext = os.path.splitext(file_path)
-        sketch_img = self.canvas.subsurface(pygame.Rect(
-            self.state.render["width"], 0, self.state.render["width"], self.state.render["height"])).copy()
+        sketch_img = self.canvas.subsurface(pygame.Rect(self.state.render["width"], 0, self.state.render["width"], self.state.render["height"])).copy()
         pygame.image.save(sketch_img, f"{file_name}-sketch{file_ext}")
 
     def load_file_dialog(self):
@@ -982,14 +979,14 @@ class PygameView:
                     if event.key == pygame.K_UP:
                         self.rendering = True
                         self.instant_render = True
-                        self.state.gen_settings["seed"] = self.state.gen_settings["seed"] + \ self.state.render["batch_size"]
+                        self.state.gen_settings["seed"] = self.state.gen_settings["seed"] + self.state.render["batch_size"]
                         update_config(self.state.json_file, write=self.state.autosave["seed"], values={'seed': self.state.gen_settings["seed"]})
                         self.osd(text=f"Seed: {self.state['gen_settings']['seed']}")
 
                     elif event.key == pygame.K_DOWN:
                         self.rendering = True
                         self.instant_render = True
-                        self.state.gen_settings["seed"] = self.state.gen_settings["seed"] - \ self.state.render["batch_size"]
+                        self.state.gen_settings["seed"] = self.state.gen_settings["seed"] - self.state.render["batch_size"]
                         update_config(self.state.json_file, write=self.state.autosave["seed"], values={'seed': self.state.gen_settings["seed"]})
                         self.osd(text=f"Seed: {self.state['gen_settings']['seed']}")
 
@@ -1005,8 +1002,7 @@ class PygameView:
                         else:
                             self.rendering = True
                             self.instant_render = True
-                            self.state.gen_settings["seed"] = new_random_seed(
-                                self.state)
+                            self.state.gen_settings["seed"] = new_random_seed(self.state)
                             update_config(self.state.json_file, write=self.state.autosave["seed"], values={'seed': self.state.gen_settings["seed"]})
                             self.osd(text=f"Seed: {self.state['gen_settings']['seed']}")
 
@@ -1133,7 +1129,8 @@ class PygameView:
                                     self.osd(text=f"New negative prompt: {dialog.result}")
                                     self.state.gen_settings["negative_prompt"] = dialog.result
                                     update_config(self.state.json_file, write=self.state.autosave["negative_prompt"], values={
-                                                  'negative_prompt': self.state.gen_settings["negative_prompt"]})
+                                        'negative_prompt': self.state.gen_settings["negative_prompt"]
+                                    })
                                     self.rendering = True
                                     self.instant_render = True
                         else:
@@ -1142,7 +1139,8 @@ class PygameView:
                                     self.osd(text=f"New prompt: {dialog.result}")
                                     self.state.gen_settings["prompt"] = dialog.result
                                     update_config(self.state.json_file, write=self.state.autosave["prompt"], values={
-                                                  'prompt': self.state.gen_settings["prompt"]})
+                                        'prompt': self.state.gen_settings["prompt"]
+                                    })
                                     self.rendering = True
                                     self.instant_render = True
 
@@ -1225,8 +1223,7 @@ class PygameView:
                             self.rendering_key = True
                             denoising_strengths = self.state.render["denoising_strengths"]
                             denoising_strength = self.state.render["denoising_strength"]
-                            denoising_strength = denoising_strengths[(denoising_strengths.index(
-                                denoising_strength) + 1) % len(denoising_strengths)]
+                            denoising_strength = denoising_strengths[(denoising_strengths.index(denoising_strength) + 1) % len(denoising_strengths)]
                             self.state.render["denoising_strength"] = denoising_strength
                             if self.state.img2img:
                                 self.osd(text=f"Denoising: {denoising_strength}")
@@ -1238,8 +1235,7 @@ class PygameView:
                         if self.fullscreen:
                             pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
                         else:
-                            pygame.display.set_mode(
-                                (self.state.render["width"]*2, self.state.render["height"]))
+                            pygame.display.set_mode((self.state.render["width"]*2, self.state.render["height"]))
 
                     elif event.key in (pygame.K_0, pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5, pygame.K_6, pygame.K_7, pygame.K_8, pygame.K_9):
                         for i in range(10):
@@ -1284,14 +1280,11 @@ class PygameView:
             if mouse_pos[0] >= self.state.render["width"]:
                 # Create a new surface with a circle
                 cursor_size = self.brush_size[1]*2
-                cursor_surface = pygame.Surface(
-                    (cursor_size, cursor_size), pygame.SRCALPHA)
-                pygame.draw.circle(cursor_surface, self.cursor_color,
-                                   (cursor_size // 2, cursor_size // 2), cursor_size // 2)
+                cursor_surface = pygame.Surface((cursor_size, cursor_size), pygame.SRCALPHA)
+                pygame.draw.circle(cursor_surface, self.cursor_color, (cursor_size // 2, cursor_size // 2), cursor_size // 2)
 
                 # Blit the cursor surface onto the screen surface at the position of the mouse
-                self.screen.blit(
-                    cursor_surface, (mouse_pos[0] - cursor_size // 2, mouse_pos[1] - cursor_size // 2))
+                self.screen.blit(cursor_surface, (mouse_pos[0] - cursor_size // 2, mouse_pos[1] - cursor_size // 2))
                 pygame.mouse.set_visible(False)
             else:
                 pygame.mouse.set_visible(True)
