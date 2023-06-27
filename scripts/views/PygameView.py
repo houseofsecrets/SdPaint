@@ -729,6 +729,7 @@ class PygameView:
             'state/gen_settings/seed',
             '--Render',
             'state/render/checkpoint',
+            'state/samplers/sampler',
             'state/render/vae',
             'state/render/render_size',
             'settings.steps',
