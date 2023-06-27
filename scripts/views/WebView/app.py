@@ -11,11 +11,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 
 from scripts.common.state import State
-from scripts.common.cn_requests import fetch_controlnet_models, post_request, progress_request
+from scripts.common.cn_requests import Api
 from scripts.common.utils import payload_submit
 
-
-url = 'http://127.0.0.1:7860'
 
 app = FastAPI()
 
@@ -30,14 +28,16 @@ app.add_middleware(
 sd_image = ''
 
 state = State()
+api = Api(state)
+url = state.server.get('url', 'http://127.0.0.1:7860')
 
 if not state.configuration["config"]['controlnet_models']:
-    fetch_controlnet_models(state)
+    api.fetch_controlnet_models(state)
 
 
 def send_request():
     global sd_image
-    response = post_request(state)
+    response = api.post_request(state)
     if response["status_code"] == 200:
         if response.get("image", None):
             sd_image = response["image"]
@@ -100,7 +100,7 @@ async def root():
     if not state.server["busy"]:
         return
 
-    progress_json = progress_request(state)
+    progress_json = api.progress_request()
     progress = progress_json.get('progress', None)
     if progress == 0.0:
         return 1.0
