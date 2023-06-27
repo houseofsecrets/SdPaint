@@ -236,8 +236,7 @@ def payload_submit(state, image_string):
 
     if state.render["quick_mode"]:
         # use quick_steps setting, or halve steps if not set
-        json_data['steps'] = json_data.get(
-            'quick_steps', json_data['steps'] // 2)
+        json_data['steps'] = json_data.get('quick_steps', json_data['steps'] // 2)
 
     if not json_data.get('controlnet_units', None):
         json_data['controlnet_units'] = [{}]
@@ -322,20 +321,6 @@ def get_img2img_json(state):
         # use quick_steps setting, or halve steps if not set
         json_data['steps'] = json_data.get('quick_steps', json_data['steps'] // 2)
     return json_data
-
-
-def fetch_configuration(state):
-    """
-        Request current configuration from the webui API.
-    :return: The configuration JSON.
-    """
-
-    response = requests.get(url=f'{state.server["url"]}/sdapi/v1/options')
-    if response.status_code == 200:
-        r = response.json()
-        return r
-    else:
-        return {}
 
 
 checkpoint_pattern = re.compile(r'^(?P<dir>.*(?:\\|\/))?(?P<name>.*?)(?P<vae>\.vae)?(?P<ext>\.safetensors|\.pt|\.ckpt) ?(?P<hash>\[[^\]]*\])?.*')

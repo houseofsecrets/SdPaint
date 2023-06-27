@@ -1,7 +1,7 @@
 import json
 
-from .cn_requests import fetch_controlnet_models
-from .utils import load_config, update_size, fetch_configuration
+from .cn_requests import Api
+from .utils import load_config, update_size
 
 
 class State:
@@ -81,15 +81,25 @@ class State:
 
     def __init__(self, img2img=""):
         self.img2img = img2img
+        self.update_config(preload=True)
+        self.api = Api(self)
         self.update_config()
         self.update_settings()
         self.update_webui_config()
 
-    def update_config(self):
+    def update_config(self, preload=False):
         """
             Update global configuration.
+
+            :param bool preload: Do the pre-loading phase only.
         """
         self.configuration["config"] = load_config("config.json")
+
+        if preload:
+            self.server["url"] = self.configuration["config"].get('url', 'http://127.0.0.1:7860')
+            return
+
+        self.server["url"] = self.configuration["config"].get('url', 'http://127.0.0.1:7860')
 
         hr_scales = self.configuration["config"].get("hr_scales", [1.0, 1.25, 1.5, 2.0])
         if 1.0 not in hr_scales:
@@ -109,7 +119,7 @@ class State:
         self.detectors["detector"] = self.detectors["list"][0]
 
         if not self.configuration["config"]['controlnet_models']:
-            fetch_controlnet_models(self)
+            self.api.fetch_controlnet_models(self)
         self.control_net["controlnet_models"]: list[str] = self.configuration["config"].get("controlnet_models", [])
         self.control_net["controlnet_weights"] = self.configuration["config"].get("controlnet_weights", [0.6, 1.0, 1.6])
         self.control_net["controlnet_weight"] = self.control_net["controlnet_weights"][0]
@@ -135,8 +145,6 @@ class State:
         self.autosave["negative_prompt"] = self.configuration["config"].get('autosave_negative_prompt', 'false') == 'true'
         self.autosave["images"] = self.configuration["config"].get('autosave_images', 'false') == 'true'
         self.autosave["images_max"] = self.configuration["config"].get('autosave_images_max', 5)
-
-        self.server["url"] = self.configuration["config"].get('url', 'http://127.0.0.1:7860')
 
     def update_settings(self):
         """
@@ -188,9 +196,9 @@ class State:
         """
             Update webui configuration from the API.
         """
-        self.configuration["webui_config"] = fetch_configuration(self)
-        self.render['checkpoint'] = self.configuration["webui_config"]['sd_model_checkpoint']
-        self.render['vae'] = self.configuration["webui_config"]['sd_vae']
+        self.configuration["webui_config"] = self.api.fetch_configuration()
+        self.render['checkpoint'] = self.configuration["webui_config"].get('sd_model_checkpoint', None)
+        self.render['vae'] = self.configuration["webui_config"].get('sd_vae', None)
 
     def __setitem__(self, key, value):
         setattr(self, key, value)
