@@ -11,9 +11,9 @@ class Api:
         Connector to SDAPI and ControlNet API
     """
 
-    def __init__(self, state, url='http://127.0.0.1:7860', retries=5):
+    def __init__(self, state, retries=5):
         self.state = state
-        self.url = url
+        self.url = state.server['url']
         self.retries = retries
         self.session = requests.Session()
         retries = Retry(total=retries)
@@ -121,8 +121,7 @@ class Api:
             "controlnet_threshold_b": thresholds[1]
         }
 
-        response = self.request('controlnet/detect',
-                                method="post", json=json_data)
+        response = self.request('controlnet/detect', method="post", json=json_data)
         if response.status_code == 200:
             r = response.json()
             return {"status_code": response.status_code, "image": r['images'][0], "info": r["info"]}
@@ -155,8 +154,7 @@ class Api:
         :return: Requested status, image(s), and info.
         """
         endpoint = f'sdapi/v1/{"img2img" if state.img2img else "txt2img"}'
-        response = self.request(
-            endpoint, method="post", json=controlnet_to_sdapi(state["main_json_data"]))
+        response = self.request(endpoint, method="post", json=controlnet_to_sdapi(state["main_json_data"]))
         if response.status_code == 200:
             r = response.json()
 

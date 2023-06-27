@@ -20,6 +20,7 @@ class State:
         "fields": ["hr_enabled", "hr_scale", "hr_upscaler", "denoising_strength"],
     }
     server = {
+        "url": 'http://127.0.0.1:7860',
         "busy": False,
     }
     render = {
@@ -80,16 +81,25 @@ class State:
 
     def __init__(self, img2img=""):
         self.img2img = img2img
+        self.update_config(preload=True)
         self.api = Api(self)
         self.update_config()
         self.update_settings()
         self.update_webui_config()
 
-    def update_config(self):
+    def update_config(self, preload=False):
         """
             Update global configuration.
+
+            :param bool preload: Do the pre-loading phase only.
         """
         self.configuration["config"] = load_config("config.json")
+
+        if preload:
+            self.server["url"] = self.configuration["config"].get('url', 'http://127.0.0.1:7860')
+            return
+
+        self.server["url"] = self.configuration["config"].get('url', 'http://127.0.0.1:7860')
 
         hr_scales = self.configuration["config"].get("hr_scales", [1.0, 1.25, 1.5, 2.0])
         if 1.0 not in hr_scales:
@@ -135,8 +145,6 @@ class State:
         self.autosave["negative_prompt"] = self.configuration["config"].get('autosave_negative_prompt', 'false') == 'true'
         self.autosave["images"] = self.configuration["config"].get('autosave_images', 'false') == 'true'
         self.autosave["images_max"] = self.configuration["config"].get('autosave_images_max', 5)
-
-        self.server["url"] = self.configuration["config"].get('url', 'http://127.0.0.1:7860')
 
     def update_settings(self):
         """
