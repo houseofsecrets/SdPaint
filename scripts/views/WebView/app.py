@@ -1,6 +1,5 @@
 
 import json
-import os
 import base64
 from io import BytesIO
 import requests
@@ -50,6 +49,14 @@ def send_request():
 async def root():
     with open('./controlnet.json', 'r') as f:
         return json.load(f)
+
+
+@app.post('/skip')
+async def root():
+    response = api.skip_rendering()
+    if response.ok:
+        state.server["busy"] = False
+        return response.json()
 
 
 @app.post('/config')

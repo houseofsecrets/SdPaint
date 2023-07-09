@@ -13,6 +13,8 @@ A Web script that lets you paint on a canvas and sends that image to the automat
 | `Equal`                                 | Increase brush size                                 |
 | `Minus`                                 | Decrease brush size                                 |
 | `Delete`                                | Clear painting canvas                               |
+| `Backspace`                             | Stop image generation                               |
+| `a`                                     | Switch audio signal                                 |
 | `c`                                     | Loads config from `controlnet.json` to form         |
 | `Shift` + `c`                           | Saves config from forms to `controlnet.json`        |
 | `d`                                     | Download result image (if any) from browser         |
