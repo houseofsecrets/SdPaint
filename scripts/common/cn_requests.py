@@ -195,6 +195,13 @@ class Api:
 
         return self.request("sdapi/v1/interrupt", method="post")
 
+    def skip_rendering(self):
+        """
+            Skip current image generating.
+        """
+
+        return self.request("sdapi/v1/skip", method="post")
+
 
 # Type hinting imports:
 # from .state import State
