@@ -51,14 +51,6 @@ async def root():
         return json.load(f)
 
 
-@app.post('/skip')
-async def root():
-    response = api.skip_rendering()
-    if response.ok:
-        state.server["busy"] = False
-        return response.json()
-
-
 @app.post('/config')
 async def root(data: Request):
     data = await data.json()
@@ -70,10 +62,20 @@ async def root(data: Request):
     json_data["steps"] = data["steps"]
     json_data["cfg_scale"] = data["cfg_scale"]
     json_data["batch_size"] = data["batch_size"]
+    json_data["width"] = data["width"]
+    json_data["height"] = data["height"]
     json_data["controlnet_units"][0]["module"] = data["module"]
     json_data["controlnet_units"][0]["model"] = data["model"]
     with open('./controlnet.json', 'w') as f:
         f.write(json.dumps(json_data, indent=4))
+
+
+@app.post('/skip')
+async def root():
+    response = api.skip_rendering()
+    if response.ok:
+        state.server["busy"] = False
+        return response.json()
 
 
 @app.get('/models')
@@ -98,6 +100,8 @@ async def root(data: Request):
         state["main_json_data"]["prompt"] = data["config"]["prompt"]
         state["main_json_data"]["negative_prompt"] = data["config"]["negative_prompt"]
         state["main_json_data"]["seed"] = data["config"]["seed"]
+        state["main_json_data"]["width"] = data["config"]["width"]
+        state["main_json_data"]["height"] = data["config"]["height"]
         t = threading.Thread(target=send_request)
         t.start()
 

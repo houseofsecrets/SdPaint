@@ -80,6 +80,7 @@ This is main control panel of this app. Here are:
 - `Clear` button. Resets `painting canvas`
 - `Instant mode` button. Switches instant mode (requests image redraw just when you stroke)
 - `Zen mode` button. Enters simplified interface mode
+- `Audio signal` customizer. Toggles audio signal and customizes the theme
 - `Generate` button. Triggers ControlNet API image generation.
 
 ### `Painting canvas`
@@ -87,6 +88,9 @@ This is main control panel of this app. Here are:
 ![image](images/web_canvas.png)
 
 This is area for drawing. If instant mode enabled, after each stroke image will be requested.
+Size of canvas (and result image) can be customized:
+
+![image](images/web_resizer.png)
 
 ### `Result area`
 
