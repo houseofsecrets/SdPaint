@@ -10,13 +10,13 @@ class State:
     """
 
     configuration = {
-        "config_file": "config.json",
+        "config_file": "configs\config.json",
         "config": {},
         "webui_config": {}
     }
     presets = {
-        "presets_file": "presets.json",
-        "list": load_config("presets.json"),
+        "presets_file": "configs\presets.json",
+        "list": load_config("configs\presets.json"),
         "fields": ["hr_enabled", "hr_scale", "hr_upscaler", "denoising_strength"],
     }
     server = {
@@ -47,6 +47,7 @@ class State:
         "clip_skip_setting": 'clip_skip',
     }
     control_net = {
+        "config_file": "configs\controlnet.json",
         "controlnet_models": [],
         "controlnet_model": None,
         "controlnet_weights": [0.6, 1.0, 1.6],
@@ -69,7 +70,7 @@ class State:
         "images": False,
         "images_max": 5,
     }
-    json_file = "controlnet.json"
+    json_file = "configs\controlnet.json"
     main_json_data = {}
     settings = {}
     img2img = ""
@@ -93,7 +94,7 @@ class State:
 
             :param bool preload: Do the pre-loading phase only.
         """
-        self.configuration["config"] = load_config("config.json")
+        self.configuration["config"] = load_config("configs\config.json")
 
         if preload:
             self.server["url"] = self.configuration["config"].get('url', 'http://127.0.0.1:7860')
@@ -151,9 +152,9 @@ class State:
             Update rendering settings.
         """
         if self.img2img:
-            self.json_file = "img2img.json"
+            self.json_file = "configs\img2img.json"
         else:
-            self.json_file = "controlnet.json"
+            self.json_file = "configs\controlnet.json"
 
         self.settings = load_config(self.json_file)
         settings = self.settings
