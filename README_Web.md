@@ -79,8 +79,8 @@ This is main control panel of this app. Here are:
 - `Load config` button ( ⤒ ). Loads `controlnet.json` data to form fields.
 - `Save config` button ( ⤓ ). Saves data from form fields to `controlnet.json`.
 - `Settings` button ( ⛭ ). Opens settings modal.
-- `Clear` button. Resets `painting canvas`
-- `Zen mode` button. Enters simplified interface mode
+- `Clear` button. Resets `painting canvas`.
+- `Zen mode` button. Enters simplified interface mode.
 - `Generate` button. Triggers ControlNet API image generation.
 
 ### `Settings modal`
@@ -89,9 +89,9 @@ This is main control panel of this app. Here are:
 
 Here you can change:
 
-- `Instant mode`. Switches instant mode (requests image redraw just when you stroke)
-- `Audio signal`. Toggles audio signal
-- `Audio theme`. Customizes the audio signal theme
+- `Instant mode`. Switches instant mode (requests image redraw just when you stroke).
+- `Audio signal`. Toggles audio signal.
+- `Audio theme`. Customizes the audio signal theme.
 
 ### `Painting canvas`
 
