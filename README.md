@@ -65,7 +65,7 @@ the [AI Models](https://huggingface.co/lllyasviel/ControlNet-v1-1)
 
 ## Configuration
 
-On first launch of the Start file, the script will create the `config.json`, `controlnet.json` and `img2img.json`
+On first launch of the Start file, the script will create the `configs\config.json`, `configs\controlnet.json` and `configs\img2img.json`
 configuration files as needed. The ControlNet
 available models for scribble and lineart will be automatically fetched from your API and set in configuration.
 
@@ -80,7 +80,7 @@ first value of each of those list:
 - `hr_upscalers`
 - `denoising_strengths`
 
-The `controlnet.json` or `img2img.json` files can be used to configure the prompt, negative prompt, seed, controlnet
+The `configs\controlnet.json` or `configs\img2img.json` files can be used to configure the prompt, negative prompt, seed, controlnet
 model, etc.
 When you save the json file the program will use it after the next brush stroke or when you press `enter`.
 
@@ -136,14 +136,14 @@ You can find the full list of supported modules with this URL http://127.0.0.1:7
 ### Custom presets
 
 You can save the current rendering settings by using `ctrl` + `keypad 1-9`, and the current ControlNet settings by using
-`ctrl` + `alt` + `keypad 1-9`. Those presets persist in a local `presets.json` file and are available even after the
+`ctrl` + `alt` + `keypad 1-9`. Those presets persist in a local `configs\presets.json` file and are available even after the
 application
 is restarted.
 
 You can load rendering settings with `keypad 1-9`, and ControlNet settings with `alt` + `keypad 1-9`. Not all the saved
 fields
 are applied by default : the settings that are applied are determined respectively by the `preset_fields`
-and `cn_preset_fields` entries of the `config.json` file. For example, if you
+and `cn_preset_fields` entries of the `configs\config.json` file. For example, if you
 want to also apply the sampler value of the preset on recall, add `'sampler'` to your `preset_fields` list.
 
 ## Web interface
@@ -154,7 +154,7 @@ Alternatively, you can use web interface. Just run `SdPaint\StartWeb.bat`. After
 
 Launch the program with `--img2img --source <image_file_path>` to watch an image file for changes, and use it as img2img source.
 If the script is launched without `--source` argument, a loading file dialog will be displayed.
-The `img2img.json` file is used in this mode.
+The `configs\img2img.json` file is used in this mode.
 
 ## Contributing
 
