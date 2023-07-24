@@ -4,34 +4,35 @@ A Web script that lets you paint on a canvas and sends that image to the automat
 
 ## Controls
 
-| Key / Mouse button                      | Control                                              |
-| --------------------------------------- | ---------------------------------------------------- |
-| `Left button`                           | Draw with the current brush size                     |
-| `Middle button`                         | Draw with a white color brush                        |
-| `Escape`                                | Escape from image viewer or switch off zen mode      |
-| `Enter`                                 | Request image rendering                              |
-| `Equal`                                 | Increase brush size                                  |
-| `Minus`                                 | Decrease brush size                                  |
-| `Delete`                                | Clear painting canvas                                |
-| `Backspace`                             | Stop image generation                                |
-| `a`                                     | Switch audio signal                                  |
-| `c`                                     | Loads config from `configs\controlnet.json` to form  |
-| `Shift` + `c`                           | Saves config from forms to `configs\controlnet.json` |
-| `d`                                     | Download result image (if any) from browser          |
-| `e`                                     | Set brush type to `ellipse`                          |
-| `l`                                     | Set brush type to `line`                             |
-| `p`                                     | Set brush type to `pencil`                           |
-| `r`                                     | Set brush type to `rectangle`                        |
-| `Ctrl` + `e`                            | Switch eraser brush mode                             |
-| `f`                                     | Switch fill brush mode                               |
-| `i`                                     | Switch instant generation mode                       |
-| `Ctrl` + `r`                            | Reset interface (standard browser page reload)       |
-| `s`                                     | Increase seed by 1                                   |
-| `Shift` + `s`                           | Decrease seed by 1                                   |
-| `v`                                     | Switch image viewer mode (if there is result image)  |
-| `z`                                     | Switch zen mode                                      |
-| `Ctrl` + `z`                            | Undo canvas action                                   |
-| `Shift` + `y` or `Ctrl` + `Shift` + `z` | Redo an undone canvas action                         |
+| Key / Mouse button                      | Control                                             |
+| --------------------------------------- | --------------------------------------------------- |
+| `Left button`                           | Draw with the current brush size                    |
+| `Middle button`                         | Draw with a white color brush                       |
+| `Escape`                                | Escape from image viewer or switch off zen mode     |
+| `Enter`                                 | Request image rendering                             |
+| `Equal`                                 | Increase brush size                                 |
+| `Minus`                                 | Decrease brush size                                 |
+| `Delete`                                | Clear painting canvas                               |
+| `Backspace`                             | Stop image generation                               |
+| `~`                                     | Increase seed by 1                                  |
+| `Shift` + `~`                           | Decrease seed by 1                                  |
+| `a`                                     | Switch audio signal                                 |
+| `c`                                     | Loads config from `controlnet.json` to form         |
+| `Shift` + `c`                           | Saves config from forms to `controlnet.json`        |
+| `d`                                     | Download result image (if any) from browser         |
+| `e`                                     | Set brush type to `ellipse`                         |
+| `l`                                     | Set brush type to `line`                            |
+| `p`                                     | Set brush type to `pencil`                          |
+| `r`                                     | Set brush type to `rectangle`                       |
+| `Ctrl` + `e`                            | Switch eraser brush mode                            |
+| `f`                                     | Switch fill brush mode                              |
+| `i`                                     | Switch instant generation mode                      |
+| `Ctrl` + `r`                            | Reset interface (standard browser page reload)      |
+| `s`                                     | Open settings                                       |
+| `v`                                     | Switch image viewer mode (if there is result image) |
+| `z`                                     | Switch zen mode                                     |
+| `Ctrl` + `z`                            | Undo canvas action                                  |
+| `Shift` + `y` or `Ctrl` + `Shift` + `z` | Redo an undone canvas action                        |
 
 _Note_ : most widgets can handle standard browser hotkeys such as `Ctrl` + `a` in text input to select all it's content
 
@@ -75,24 +76,40 @@ This is main control panel of this app. Here are:
 
 - `Brush customizer` section. It handles behavior of drawing brush. Here you can change width, switch eraser, toggle shape modes and their filling. There is four shape modes: `pencil`, `line`, `ellipse` and `rectangle`.
 - `Download` button. Downloads result image (if any).
-- `Load config` button. Loads `configs\controlnet.json` data to form fields.
-- `Save config` button. Saves data from form fields to `configs\controlnet.json`.
-- `Clear` button. Resets `painting canvas`
-- `Instant mode` button. Switches instant mode (requests image redraw just when you stroke)
-- `Zen mode` button. Enters simplified interface mode
+- `Load config` button ( ⤒ ). Loads `controlnet.json` data to form fields.
+- `Save config` button ( ⤓ ). Saves data from form fields to `controlnet.json`.
+- `Settings` button ( ⛭ ). Opens settings modal.
+- `Clear` button. Resets `painting canvas`.
+- `Zen mode` button. Enters simplified interface mode.
 - `Generate` button. Triggers ControlNet API image generation.
+
+### `Settings modal`
+
+![image](images/web_settings.png)
+
+Here you can change:
+
+- `Instant mode`. Switches instant mode (requests image redraw just when you stroke).
+- `Audio signal`. Toggles audio signal.
+- `Audio theme`. Customizes the audio signal theme.
 
 ### `Painting canvas`
 
 ![image](images/web_canvas.png)
 
 This is area for drawing. If instant mode enabled, after each stroke image will be requested.
+Size of canvas (and result image) can be customized:
+
+![image](images/web_resizer.png)
 
 ### `Result area`
 
 ![image](images/web_result.png)
 
-There is a place for ControlNet generations. If in process, progressbar will appear.
+There is a place for ControlNet generations. If in process, progressbar and loader will appear. If you can click loader to cancel image generation
+
+![image](images/web_loading.png)
+![image](images/web_skip.png)
 
 ### Zen mode
 
