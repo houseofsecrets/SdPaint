@@ -1,5 +1,6 @@
 venv
 /*.json
+/configs/*.json
 package-lock.json
 *.iml
 *.local

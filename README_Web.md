@@ -57,7 +57,7 @@ Web interface consists of `config form`, `tools section`, `painting canvas` and 
 ### `Config form`
 
 ![image](images/web_form.png)
-This is partial representation of `controlnet.json` file. It consists of:
+This is partial representation of `configs\controlnet.json` file. It consists of:
 
 - `prompt` input
 - `negative prompt` input
