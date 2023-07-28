@@ -1,13 +1,11 @@
-
 import json
-import base64
-from io import BytesIO
+import os
 import requests
 import threading
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response
+from fastapi.staticfiles import StaticFiles
 
 from scripts.common.state import State
 from scripts.common.cn_requests import Api
@@ -24,7 +22,9 @@ app.add_middleware(
     allow_headers=['*'],
 )
 
-sd_image = ''
+app.mount("/static", StaticFiles(directory="scripts/views/WebView/build"), name="static")
+
+sd_response = None,
 
 state = State()
 api = Api(state)
@@ -34,27 +34,28 @@ if not state.configuration["config"]['controlnet_models']:
     api.fetch_controlnet_models(state)
 
 
-def send_request():
-    global sd_image
+def send_request(data):
+    global sd_response
     response = api.post_request(state)
     if response["status_code"] == 200:
-        if response.get("image", None):
-            sd_image = response["image"]
-        # elif response.get("batch_images", None):
-        #     self.update_batch_images(response["batch_images"])
+        info = json.loads(response["info"])
+        input_image = data["config"]["controlnet_units"][0]["input_image"]
+        info["input_image"] = input_image
+        response["info"] = json.dumps(info)
+        sd_response = response
     state.server["busy"] = False
 
 
 @app.get('/config')
 async def root():
-    with open(state.control_net["config_file"], 'r') as f:
+    with open('./controlnet.json', 'r') as f:
         return json.load(f)
 
 
 @app.post('/config')
 async def root(data: Request):
     data = await data.json()
-    with open(state.control_net["config_file"], 'r') as f:
+    with open('./controlnet.json', 'r') as f:
         json_data = json.load(f)
     json_data["prompt"] = data["prompt"]
     json_data["negative_prompt"] = data["negative_prompt"]
@@ -66,7 +67,7 @@ async def root(data: Request):
     json_data["height"] = data["height"]
     json_data["controlnet_units"][0]["module"] = data["module"]
     json_data["controlnet_units"][0]["model"] = data["model"]
-    with open(state.control_net["config_file"], 'w') as f:
+    with open('./controlnet.json', 'w') as f:
         f.write(json.dumps(json_data, indent=4))
 
 
@@ -102,7 +103,8 @@ async def root(data: Request):
         state["main_json_data"]["seed"] = data["config"]["seed"]
         state["main_json_data"]["width"] = data["config"]["width"]
         state["main_json_data"]["height"] = data["config"]["height"]
-        t = threading.Thread(target=send_request)
+        state["main_json_data"]["batch_size"] = data["config"]["batch_size"]
+        t = threading.Thread(target=send_request, args=[data])
         t.start()
 
 
@@ -114,12 +116,11 @@ async def root():
     progress_json = api.progress_request()
     progress = progress_json.get('progress', None)
     if progress == 0.0:
-        return 1.0
+        return "NOT READY"
     return progress
 
 
 @app.get('/cn_image')
 async def root():
-    if sd_image:
-        bytes_image = BytesIO(base64.b64decode(sd_image))
-        return Response(content=bytes_image.getvalue(), media_type='image/png')
+    if sd_response:
+        return sd_response
