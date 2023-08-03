@@ -124,8 +124,8 @@ Each of them use its own seed and you can switch to it by clicking button (appea
 Image viewer appears when you click on result image.
 There is:
 
-- image info such as used sketch, prompt, negative prompt etc.
-- actualy the image itself
+- image info such as used sketch, prompt, negative prompt etc.. In the sketch section, you can overlay the sketch on the image used for generation.
+- actually the image itself
 - images carousel (if multiple)
 
 ### Zen mode
