@@ -45,14 +45,14 @@ def send_request(data):
 
 @app.get('/config')
 async def root():
-    with open('./controlnet.json', 'r') as f:
+    with open(state.control_net["config_file"], 'r') as f:
         return json.load(f)
 
 
 @app.post('/config')
 async def root(data: Request):
     data = await data.json()
-    with open('./controlnet.json', 'r') as f:
+    with open(state.control_net["config_file"], 'r') as f:
         json_data = json.load(f)
     json_data["prompt"] = data["prompt"]
     json_data["negative_prompt"] = data["negative_prompt"]
@@ -64,7 +64,7 @@ async def root(data: Request):
     json_data["height"] = data["height"]
     json_data["controlnet_units"][0]["module"] = data["module"]
     json_data["controlnet_units"][0]["model"] = data["model"]
-    with open('./controlnet.json', 'w') as f:
+    with open(state.control_net["config_file"], 'w') as f:
         f.write(json.dumps(json_data, indent=4))
 
 
