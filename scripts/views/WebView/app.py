@@ -1,5 +1,4 @@
 import json
-import os
 import requests
 import threading
 
@@ -41,6 +40,7 @@ def send_request(data):
         info = json.loads(response["info"])
         input_image = data["config"]["controlnet_units"][0]["input_image"]
         info["input_image"] = input_image
+        info["with_tiling"] = data["config"]["tiling"]
         response["info"] = json.dumps(info)
         sd_response = response
     state.server["busy"] = False
@@ -48,14 +48,14 @@ def send_request(data):
 
 @app.get('/config')
 async def root():
-    with open('./controlnet.json', 'r') as f:
+    with open(state.control_net["config_file"], 'r') as f:
         return json.load(f)
 
 
 @app.post('/config')
 async def root(data: Request):
     data = await data.json()
-    with open('./controlnet.json', 'r') as f:
+    with open(state.control_net["config_file"], 'r') as f:
         json_data = json.load(f)
     json_data["prompt"] = data["prompt"]
     json_data["negative_prompt"] = data["negative_prompt"]
@@ -63,11 +63,12 @@ async def root(data: Request):
     json_data["steps"] = data["steps"]
     json_data["cfg_scale"] = data["cfg_scale"]
     json_data["batch_size"] = data["batch_size"]
+    json_data["tiling"] = data["tiling"]
     json_data["width"] = data["width"]
     json_data["height"] = data["height"]
     json_data["controlnet_units"][0]["module"] = data["module"]
     json_data["controlnet_units"][0]["model"] = data["model"]
-    with open('./controlnet.json', 'w') as f:
+    with open(state.control_net["config_file"], 'w') as f:
         f.write(json.dumps(json_data, indent=4))
 
 
@@ -104,6 +105,7 @@ async def root(data: Request):
         state["main_json_data"]["width"] = data["config"]["width"]
         state["main_json_data"]["height"] = data["config"]["height"]
         state["main_json_data"]["batch_size"] = data["config"]["batch_size"]
+        state["main_json_data"]["tiling"] = data["config"]["tiling"]
         t = threading.Thread(target=send_request, args=[data])
         t.start()
 
