@@ -16,6 +16,7 @@ A Web script that lets you paint on a canvas and sends that image to the automat
 | `Backspace`                             | Stop image generation                               |
 | `~`                                     | Increase seed by 1                                  |
 | `Shift` + `~`                           | Decrease seed by 1                                  |
+| `Alt` + `~`                           | Randomize seed                                 |
 | `a`                                     | Switch audio signal                                 |
 | `c`                                     | Loads config from `controlnet.json` to form         |
 | `Shift` + `c`                           | Saves config from forms to `controlnet.json`        |
@@ -66,6 +67,7 @@ This is partial representation of `configs\controlnet.json` file. It consists of
 - `steps` input
 - `module` selector
 - `model` selector
+- `tiling` switch
 
 All this data is sent to ControlNet API when you request image generation.
 
@@ -124,7 +126,9 @@ Each of them use its own seed and you can switch to it by clicking button (appea
 Image viewer appears when you click on result image.
 There is:
 
-- image info such as used sketch, prompt, negative prompt etc.. In the sketch section, you can overlay the sketch on the image used for generation.
+- image info such as used sketch, prompt, negative prompt etc.. In the sketch section, you can overlay the sketch on the image used for generation. Also if image was generated with `tiling` option you can switch tiling mode here
+![image](images/web_tiling.png)
+![image](images/web_viewer_with_sketch.png)
 - actually the image itself
 - images carousel (if multiple)
 
