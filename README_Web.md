@@ -16,12 +16,14 @@ A Web script that lets you paint on a canvas and sends that image to the automat
 | `Backspace`                             | Stop image generation                               |
 | `~`                                     | Increase seed by 1                                  |
 | `Shift` + `~`                           | Decrease seed by 1                                  |
+| `Alt` + `~`                           | Randomize seed                                 |
 | `a`                                     | Switch audio signal                                 |
 | `c`                                     | Loads config from `controlnet.json` to form         |
 | `Shift` + `c`                           | Saves config from forms to `controlnet.json`        |
 | `d`                                     | Download result image (if any) from browser         |
 | `e`                                     | Set brush type to `ellipse`                         |
 | `l`                                     | Set brush type to `line`                            |
+| `m`                                     | Switch multiple images mode                         |
 | `p`                                     | Set brush type to `pencil`                          |
 | `r`                                     | Set brush type to `rectangle`                       |
 | `Ctrl` + `e`                            | Switch eraser brush mode                            |
@@ -65,6 +67,7 @@ This is partial representation of `configs\controlnet.json` file. It consists of
 - `steps` input
 - `module` selector
 - `model` selector
+- `tiling` switch
 
 All this data is sent to ControlNet API when you request image generation.
 
@@ -81,6 +84,7 @@ This is main control panel of this app. Here are:
 - `Settings` button ( ⛭ ). Opens settings modal.
 - `Clear` button. Resets `painting canvas`.
 - `Zen mode` button. Enters simplified interface mode.
+- `Multiple mode` checkbox. Switches multiple images generation result.
 - `Generate` button. Triggers ControlNet API image generation.
 
 ### `Settings modal`
@@ -90,6 +94,7 @@ This is main control panel of this app. Here are:
 Here you can change:
 
 - `Instant mode`. Switches instant mode (requests image redraw just when you stroke).
+- `Multiple images count`. Selects how many images will be generated in multiple mode.
 - `Audio signal`. Toggles audio signal.
 - `Audio theme`. Customizes the audio signal theme.
 
@@ -110,6 +115,22 @@ There is a place for ControlNet generations. If in process, progressbar and load
 
 ![image](images/web_loading.png)
 ![image](images/web_skip.png)
+
+If you select multiple mode, there will appear multiple images
+![image](images/web_multiple.png)
+Each of them use its own seed and you can switch to it by clicking button (appears on hover on image that use it).
+
+## Image viewer
+
+![image](images/web_viewer.png)
+Image viewer appears when you click on result image.
+There is:
+
+- image info such as used sketch, prompt, negative prompt etc.. In the sketch section, you can overlay the sketch on the image used for generation. Also if image was generated with `tiling` option you can switch tiling mode here
+![image](images/web_tiling.png)
+![image](images/web_viewer_with_sketch.png)
+- actually the image itself
+- images carousel (if multiple)
 
 ### Zen mode
 
