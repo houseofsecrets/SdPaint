@@ -96,11 +96,10 @@ class State:
         """
         self.configuration["config"] = load_config("configs/config.json")
 
-        if preload:
-            self.server["url"] = self.configuration["config"].get('url', 'http://127.0.0.1:7860')
-            return
-
         self.server["url"] = self.configuration["config"].get('url', 'http://127.0.0.1:7860')
+
+        if preload:
+            return
 
         hr_scales = self.configuration["config"].get("hr_scales", [1.0, 1.25, 1.5, 2.0])
         if 1.0 not in hr_scales:

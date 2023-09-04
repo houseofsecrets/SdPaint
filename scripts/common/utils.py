@@ -11,7 +11,6 @@ import json
 import time
 import math
 
-import requests
 from PIL import Image
 from psd_tools import PSDImage
 
