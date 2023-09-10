@@ -215,6 +215,19 @@ class Api:
         else:
             return []
 
+    def get_upscalers(self):
+        """
+            Request current upscalers from the webui API.
+        :return: The upscalers JSON.
+        """
+
+        response = self.request('sdapi/v1/upscalers')
+        if response.status_code == 200:
+            r = response.json()
+            return r
+        else:
+            return []
+
 
 # Type hinting imports:
 # from .state import State
