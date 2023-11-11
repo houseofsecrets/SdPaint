@@ -233,9 +233,12 @@ def payload_submit(state, image_string):
     with open(state.json_file, "r") as f:
         json_data = json.load(f)
 
-    if state.render["quick_mode"]:
+    quick_mode = state.render["quick_mode"] and json_data.get('quick', None) is not None
+
+    if quick_mode:
         # use quick_steps setting, or halve steps if not set
-        json_data['steps'] = json_data.get('quick_steps', json_data['steps'] // 2)
+        json_data['steps'] = json_data['quick'].get('steps', json_data['steps'] // 2)
+        json_data['cfg_scale'] = json_data['quick'].get('cfg_scale', json_data['cfg_scale'])
 
     if not json_data.get('controlnet_units', None):
         json_data['controlnet_units'] = [{}]
@@ -253,7 +256,7 @@ def payload_submit(state, image_string):
         json_data['controlnet_units'][0]['module'] = 'invert'
     if not state.render["pixel_perfect"]:
         json_data['controlnet_units'][0]['processor_res'] = min(state.render["width"], state.render["height"])
-    json_data['hr_second_pass_steps'] = max(8, math.floor(int(json_data['steps']) * state.render["denoising_strength"]))  # at least 8 steps
+    json_data['hr_second_pass_steps'] = max(4, math.floor(int(json_data['steps']) * state.render["denoising_strength"]))  # at least 4 steps
 
     if state.render["hr_scale"] > 1.0:
         json_data['enable_hr'] = 'true'
@@ -263,11 +266,16 @@ def payload_submit(state, image_string):
     json_data['batch_size'] = state.render["batch_size"]
     json_data['seed'] = state.gen_settings["seed"]
     json_data['prompt'] = state.gen_settings["prompt"]
+    if quick_mode and json_data['quick'].get('lora', None):
+        json_data['prompt'] += f" <lora:{json_data['quick']['lora']}:{json_data['quick']['lora_weight']}>"
     json_data['negative_prompt'] = state.gen_settings["negative_prompt"]
     json_data['hr_scale'] = state.render["hr_scale"]
     json_data['hr_upscaler'] = state.render["hr_upscaler"]
     json_data['denoising_strength'] = state.render["denoising_strength"]
-    json_data['sampler_name'] = state.samplers["sampler"]
+    if quick_mode and json_data['quick'].get('sampler', None):
+        json_data['sampler_name'] = json_data['quick']['sampler']
+    else:
+        json_data['sampler_name'] = state.samplers["sampler"]
 
     if json_data.get('override_settings', None) is None:
         json_data['override_settings'] = {}
@@ -303,22 +311,31 @@ def get_img2img_json(state):
             json_data['width'] = im.width
             json_data['height'] = im.height
 
+    quick_mode = state.render["quick_mode"] and json_data.get('quick', None) is not None
+
     json_data['init_images'] = [data]
 
     json_data['seed'] = state.gen_settings["seed"]
     json_data['prompt'] = state.gen_settings["prompt"]
+    if quick_mode and json_data['quick'].get('lora', None):
+        json_data['prompt'] += f" <lora:{json_data['quick']['lora']}:{json_data['quick']['lora_weight']}>"
     json_data['negative_prompt'] = state.gen_settings["negative_prompt"]
     json_data['denoising_strength'] = state.render["denoising_strength"]
-    json_data['sampler_name'] = state.samplers["sampler"]
+    if quick_mode and json_data['quick'].get('sampler', None):
+        json_data['sampler_name'] = json_data['quick']['sampler']
+    else:
+        json_data['sampler_name'] = state.samplers["sampler"]
 
     if json_data.get('override_settings', None) is None:
         json_data['override_settings'] = {}
 
     json_data['override_settings'][state.render['clip_skip_setting']] = state.render["clip_skip"]
 
-    if state.render["quick_mode"]:
+    if quick_mode:
         # use quick_steps setting, or halve steps if not set
-        json_data['steps'] = json_data.get('quick_steps', json_data['steps'] // 2)
+        json_data['steps'] = json_data['quick'].get('steps', json_data['steps'] // 2)
+        json_data['cfg_scale'] = json_data['quick'].get('cfg_scale', json_data['cfg_scale'])
+
     return json_data
 
 
