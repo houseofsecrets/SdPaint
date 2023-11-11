@@ -5,49 +5,49 @@ the canvas when the image is generated.
 
 ## Controls
 
-| Key / Mouse button            | Control                                         |
-| ----------------------------- | ----------------------------------------------- |
-| Left button                   | Draw with the current brush size                |
-| Middle button                 | Draw with a white color brush                   |
-| `e` + Left button             | Eraser brush (bigger)                           |
-| Scroll up / down              | Increase / decrease brush size                  |
-| `1` to `9`                    | Set brush size                                  |
-| `backspace`                   | Erase the entire sketch                         |
-| `shift` + Left button         | Draw a line between two clicks                  |
-| `RETURN` or `ENTER`           | Request image rendering                         |
-| `ctrl` + `i`                  | Interrupt image rendering                       |
-| `c`                           | Display current configuration while pressed     |
-| `p`                           | Edit prompt                                     |
-| `alt` + `p`                   | Edit negative prompt                            |
-| `a`                           | Toggle autosave                                 |
-| `shift` + `t`                 | Cycle render wait time (+0.5s, or off)          |
-| `ctrl` + `p`                  | Pause dynamic rendering                         |
-| `q`                           | Toggle quick rendering : low steps & HR fix off |
-| `n`                           | Random seed value                               |
-| `ctrl` + `n`                  | Edit seed value                                 |
-| `UP` / `DOWN`                 | Increase / decrease seed by 1                   |
-| `ctrl`+ `s`                   | Save the current generated image                |
-| `ctrl`+ `o`                   | Open an image file as sketch                    |
-| `ctrl`+ `d`                   | Call ControlNet detector (replace sketch)       |
-| `shift` + `ctrl`+ `d`         | Cycle ControlNet detectors                      |
-| `h`                           | Toggle HR fix                                   |
-| `shift` + `h`                 | Cycle HR fix scale                              |
-| `shift` + `u`                 | Cycle HR upscalers                              |
-| `shift` + `d`                 | Cycle denoising strengths                       |
-| `shift` + `s`                 | Cycle samplers                                  |
-| `b`                           | Toggle batch rendering                          |
-| `shift` + `b`                 | Cycle batch sizes                               |
-| `shift` + `c`                 | Cycle CLIP skip settings                        |
-| `shift` + `m`                 | Cycle ControlNel models                         |
-| `shift` + `w`                 | Cycle ControlNel weights                        |
-| `shift` + `g`                 | Cycle ControlNel guidance ends                  |
-| `shift` + `ctrl` + `g`        | Toggle ControlNel pixel perfect mode            |
-| `keypad 0`                    | Restore starting settings                       |
-| `keypad 1-9`                  | Load custom rendering preset                    |
-| `ctrl` + `keypad 1-9`         | Save custom rendering preset                    |
-| `alt` + `keypad 1-9`          | Load custom ControlNet preset                   |
-| `ctrl` + `alt` + `keypad 1-9` | Save custom ControlNet preset                   |
-| `x` or `ESC`                  | Quit                                            |
+| Key / Mouse button            | Control                                            |
+| ----------------------------- |----------------------------------------------------|
+| Left button                   | Draw with the current brush size                   |
+| Middle button                 | Draw with a white color brush                      |
+| `e` + Left button             | Eraser brush (bigger)                              |
+| Scroll up / down              | Increase / decrease brush size                     |
+| `1` to `9`                    | Set brush size                                     |
+| `backspace`                   | Erase the entire sketch                            |
+| `shift` + Left button         | Draw a line between two clicks                     |
+| `RETURN` or `ENTER`           | Request image rendering                            |
+| `ctrl` + `i`                  | Interrupt image rendering                          |
+| `c`                           | Display current configuration while pressed        |
+| `p`                           | Edit prompt                                        |
+| `alt` + `p`                   | Edit negative prompt                               |
+| `a`                           | Toggle autosave                                    |
+| `shift` + `t`                 | Cycle render wait time (+0.5s, or off)             |
+| `ctrl` + `p`                  | Pause dynamic rendering                            |
+| `q`                           | Toggle quick rendering, with LCM LoRA if available |
+| `n`                           | Random seed value                                  |
+| `ctrl` + `n`                  | Edit seed value                                    |
+| `UP` / `DOWN`                 | Increase / decrease seed by 1                      |
+| `ctrl`+ `s`                   | Save the current generated image                   |
+| `ctrl`+ `o`                   | Open an image file as sketch                       |
+| `ctrl`+ `d`                   | Call ControlNet detector (replace sketch)          |
+| `shift` + `ctrl`+ `d`         | Cycle ControlNet detectors                         |
+| `h`                           | Toggle HR fix                                      |
+| `shift` + `h`                 | Cycle HR fix scale                                 |
+| `shift` + `u`                 | Cycle HR upscalers                                 |
+| `shift` + `d`                 | Cycle denoising strengths                          |
+| `shift` + `s`                 | Cycle samplers                                     |
+| `b`                           | Toggle batch rendering                             |
+| `shift` + `b`                 | Cycle batch sizes                                  |
+| `shift` + `c`                 | Cycle CLIP skip settings                           |
+| `shift` + `m`                 | Cycle ControlNel models                            |
+| `shift` + `w`                 | Cycle ControlNel weights                           |
+| `shift` + `g`                 | Cycle ControlNel guidance ends                     |
+| `shift` + `ctrl` + `g`        | Toggle ControlNel pixel perfect mode               |
+| `keypad 0`                    | Restore starting settings                          |
+| `keypad 1-9`                  | Load custom rendering preset                       |
+| `ctrl` + `keypad 1-9`         | Save custom rendering preset                       |
+| `alt` + `keypad 1-9`          | Load custom ControlNet preset                      |
+| `ctrl` + `alt` + `keypad 1-9` | Save custom ControlNet preset                      |
+| `x` or `ESC`                  | Quit                                               |
 
 _Note_ : "Cycle" shortcuts type will wait for the `shift` key to be released before launching the rendering.
 
@@ -94,6 +94,18 @@ models folder of the controlnet extension.
 ```
     ".\stable-diffusion-webui\extensions\sd-webui-controlnet\models"
 ```
+
+### Quick mode / LCM LoRA
+
+The quick mode is able to use a very low number of steps with [Latent Consistency Models LoRAs](https://huggingface.co/blog/lcm_lora) .
+To be able to use it fully, please download the LCM LoRAs for SD 1.5 and/or SDXL on huggingface :
+- [LCM LoRA for SD 1.5](https://huggingface.co/latent-consistency/lcm-lora-sdv1-5)
+- [LCM LoRA for SDXL](https://huggingface.co/latent-consistency/lcm-lora-sdxl)
+
+Save the safetensors files as `LCM_LoRA_Weights.safetensors` in the `./models/LoRA/` directory of your Stable Diffusion WebUI installation.
+The name of the LoRA is configurable in the JSON configuration files `controlnet.json` and `img2img.json` with the `quick.lora` entry.
+You can also configure the steps, cfg scale, sampler, and LoRA weight used. The default quick setting gives a good quality/performance ratio
+with DPM++ SDE Karras and 6 steps. HRFix is disabled when first entering quick mode, but you can activate it if wanted by pressing the `h` key.
 
 ### Autosave
 
