@@ -743,8 +743,8 @@ class PygameView:
             'state/samplers/sampler',
             'state/render/vae',
             'state/render/render_size',
-            'settings.steps',
-            'settings.cfg_scale',
+            'state/render/steps',
+            'state/render/cfg_scale',
             'state/render/hr_scale',
             'state/render/hr_upscaler',
             'state/render/denoising_strength',
@@ -765,8 +765,8 @@ class PygameView:
         text = ''
 
         for field in fields:
-            if field == 'settings.steps' and self.state.render["quick_mode"]:
-                field = 'settings.quick_steps'
+            if field in ('state/render/steps', 'state/samplers/sampler', 'state/render/cfg_scale', 'state/gen_settings/prompt') and self.state.render["quick_mode"]:
+                field = 'state/render/quick/'+field[field.rfind('/')+1:]
 
             # Display separator
             if field.startswith('--'):
@@ -777,7 +777,14 @@ class PygameView:
             label = ''
             value = ''
 
-            if '.' in field:
+            if field == 'state/render/quick/prompt':
+                field_components = field.replace('state/', '').split('/')
+                label = field_components[2]
+                value = self.state.gen_settings['prompt']
+                if self.state.render['quick'].get('lora', None) and self.state.render['quick'].get('lora_weight', None):
+                    value += f" <lora:{self.state.render['quick']['lora']}:{self.state.render['quick']['lora_weight']}>"
+
+            elif '.' in field:
                 field = field.split('.')
                 var = globals().get(field[0], locals().get(field[0], None))
                 if var is None:
@@ -797,6 +804,11 @@ class PygameView:
                     field_components = field.replace('state/', '').split('/')
                     label = field_components[1]
                     field_value = getattr(self.state, field_components[0])[field_components[1]]
+                    if isinstance(field_value, dict) and len(field_components) > 2:
+                        label = field_components[2]
+                        field_value = field_value.get(field_components[2], None)
+                        if field_components[1] == 'quick':
+                            field_value = f'{field_value} -quick-'
                 else:
                     label = field
                     field_value = globals().get(field, locals().get(field, None))
