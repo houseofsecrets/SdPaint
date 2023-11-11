@@ -92,6 +92,10 @@ class State:
         """
             Update samplers list from available samplers.
         """
+        if self.configuration["config"].get("override_samplers", 'false') == 'true' and self.configuration["config"].get("samplers", []):
+            self.samplers["list"] = self.configuration["config"].get("samplers", ["DDIM"])
+            self.samplers["sampler"] = self.samplers["list"][0]
+            return
 
         def get_sampler_priority(smp):
             priorities = {
@@ -127,10 +131,15 @@ class State:
         """
             Update upscalers list from available upscalers.
         """
+        if self.configuration["config"].get("override_hr_upscalers", 'false') == 'true' and self.configuration["config"].get("hr_upscalers", []):
+            self.render["hr_upscalers"] = self.configuration["config"].get("hr_upscalers", ['Latent (bicubic)'])
+            self.render["hr_upscaler"] = self.render["hr_upscalers"][0]
+            return
+
         upscalers_data = self.api.get_upscalers()
         upscalers_names = list(map(lambda x: x["name"], upscalers_data))
         if len(upscalers_names) == 0:
-            upscalers_names = self.configuration["config"].get("upscalers", ["Latent (bicubic)"])
+            upscalers_names = self.configuration["config"].get("hr_upscalers", ["Latent (bicubic)"])
         upscalers_names.sort()
         self.render["hr_upscalers"] = upscalers_names
         self.render["hr_upscaler"] = self.render["hr_upscalers"][0]
