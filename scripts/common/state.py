@@ -26,6 +26,8 @@ class State:
     render = {
         "checkpoint": None,
         "vae": None,
+        "steps": 16,
+        "cfg_scale": 7,
         "hr_scales": [],
         "hr_scale": 1.0,
         "hr_scale_prev": 1.25,
@@ -45,6 +47,7 @@ class State:
         "use_invert_module": True,
         "quick_mode": False,
         "clip_skip_setting": 'clip_skip',
+        "quick": {}
     }
     control_net = {
         "config_file": "configs/controlnet.json",
@@ -162,6 +165,9 @@ class State:
             hr_scales.insert(0, 1.0)
         hr_scale = hr_scales[0]
 
+        self.render['steps'] = self.configuration["config"].get("steps", 16)
+        self.render['cfg_scale'] = self.configuration["config"].get("cfg_scale", 7)
+        self.render['quick'] = self.configuration["config"].get("quick", {})
         self.render["hr_scale_prev"] = hr_scales[1]
         self.render["denoising_strengths"] = self.configuration["config"].get("denoising_strengths", [0.6])
         self.render["denoising_strength"] = self.render["denoising_strengths"][0]
@@ -218,6 +224,10 @@ class State:
         if settings.get('enable_hr', 'false') == 'true':
             self.render["hr_scale"] = self.render["hr_scales"][1]
             self.render["batch_hr_scale_prev"] = self.render["hr_scale"]
+
+        self.render['steps'] = settings.get("steps", 16)
+        self.render['cfg_scale'] = settings.get("cfg_scale", 7)
+        self.render['quick'] = settings.get("quick", {})
 
         self.gen_settings["prompt"] = settings.get('prompt', '')
         self.gen_settings["negative_prompt"] = settings.get('negative_prompt', '')
