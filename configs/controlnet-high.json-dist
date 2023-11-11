@@ -5,8 +5,14 @@
     "seed": 42,
     "batch_size": 1,
     "steps": 16,
-    "quick_steps": 12,
     "cfg_scale": 7,
+    "quick": {
+        "steps": 6,
+        "cfg_scale": 3,
+        "lora":  "LCM_LoRA_Weights",
+        "lora_weight": 0.4,
+        "sampler": "DPM++ SDE Karras"
+    },
     "width": 640,
     "height": 720,
     "override_settings": {
