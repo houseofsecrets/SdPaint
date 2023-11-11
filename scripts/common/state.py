@@ -87,6 +87,53 @@ class State:
         self.update_config()
         self.update_settings()
         self.update_webui_config()
+    
+    def update_samplers(self):
+        """
+            Update samplers list from available samplers.
+        """
+
+        def get_sampler_priority(smp):
+            priorities = {
+                "Euler": -2,
+                "PLMS": -2,
+                "Heun": -1,
+                "LMS": -1,
+                "DPM": 1,
+                "DPM2": 3,
+                "Karras": 3,
+                "UniPC": 3,
+                "++": 4,
+                "DDIM": 4,
+            }
+            priority = 0
+            for weight in priorities:
+                if weight in smp:
+                    priority += priorities[weight]
+            # ancestral samplers are more random
+            if " a " in smp or smp.endswith(" a"):
+                priority -= 2
+            return priority
+
+        samplers_data = self.api.get_samplers()
+        samplers_names = list(map(lambda x: x["name"], samplers_data))
+        if len(samplers_names) == 0:
+            samplers_names = self.configuration["config"].get("samplers", ["DDIM"])
+        samplers_names.sort(key=lambda x: get_sampler_priority(x), reverse=True)
+        self.samplers["list"] = samplers_names
+        self.samplers["sampler"] = self.samplers["list"][0]
+    
+    def update_upscalers(self):
+        """
+            Update upscalers list from available upscalers.
+        """
+        upscalers_data = self.api.get_upscalers()
+        upscalers_names = list(map(lambda x: x["name"], upscalers_data))
+        if len(upscalers_names) == 0:
+            upscalers_names = self.configuration["config"].get("upscalers", ["Latent (bicubic)"])
+        upscalers_names.sort()
+        self.render["hr_upscalers"] = upscalers_names
+        self.render["hr_upscaler"] = self.render["hr_upscalers"][0]
 
     def update_config(self, preload=False):
         """
@@ -107,13 +154,10 @@ class State:
         hr_scale = hr_scales[0]
 
         self.render["hr_scale_prev"] = hr_scales[1]
-        self.render["hr_upscalers"] = self.configuration["config"].get("hr_upscalers", ['Latent (bicubic)'])
-        self.render["hr_upscaler"] = self.render["hr_upscalers"][0]
         self.render["denoising_strengths"] = self.configuration["config"].get("denoising_strengths", [0.6])
         self.render["denoising_strength"] = self.render["denoising_strengths"][0]
-
-        self.samplers["list"] = self.configuration["config"].get("samplers", ["DDIM"])
-        self.samplers["sampler"] = self.samplers["list"][0]
+        self.update_samplers()
+        self.update_upscalers()
 
         self.detectors["list"] = self.configuration["config"].get('detectors', ('lineart',))
         self.detectors["detector"] = self.detectors["list"][0]
