@@ -132,18 +132,22 @@ class PygameView:
         pygame.draw.rect(self.canvas, (255, 255, 255), (0, 0, self.state.render["width"] * (1 if self.state.img2img else 2), self.state.render["height"]))
 
         # Set up the brush
-        self.brush_size = {1: 2, 2: 2, 'e': 10}
+        self.brush_size = {1: 2, 2: 2, 'e': 10, 'z': 2}
         self.brush_colors = {
             1: (0, 0, 0),  # Left mouse button color
             2: (255, 255, 255),  # Middle mouse button color
             'e': (255, 255, 255),  # Eraser color
+            'z': (200, 200, 200),  # Eraser zone color
         }
         self.brush_color = self.brush_colors[1]
         self.brush_pos = {1: None, 2: None, 'e': None}  # type: dict[int|str, tuple[int, int]|None]
+        self.button_down = False
         self.prev_pos = None
         self.prev_pos2 = None
         self.shift_pos = None
         self.eraser_down = False
+        self.eraser_zone_down = False
+        self.eraser_zone_pos = []
         self.render_wait = 0.5 if not self.state.img2img else 0.0  # wait time max between 2 draw before launching the render
         self.last_draw_time = time.time()
         self.last_render_bytes: io.BytesIO | None = None
@@ -900,6 +904,8 @@ class PygameView:
                     self.running = False
 
                 elif event.type == pygame.MOUSEBUTTONDOWN or event.type == pygame.FINGERDOWN:
+                    self.button_down = True
+
                     # Handle brush stroke start and modifiers
                     if event.type == pygame.FINGERDOWN:
                         event.button = 1
@@ -909,6 +915,10 @@ class PygameView:
                         self.image_click = True  # clicked on the image part
                         if self.state.render["batch_size"] != 1 and len(self.state.render["batch_images"]):
                             self.select_batch_image(event.pos)
+                    elif self.eraser_zone_down:
+                        self.eraser_zone_pos.append((max(self.state.render["width"], event.pos[0]), event.pos[1]))
+                        if len(self.eraser_zone_pos) > 1:
+                            pygame.draw.polygon(self.canvas, self.brush_colors['z'], (self.eraser_zone_pos[-2], self.eraser_zone_pos[-1]), self.brush_size['z'])
                     else:
                         self.need_redraw = True
                         self.last_draw_time = time.time()
@@ -937,12 +947,20 @@ class PygameView:
                                 self.shift_pos = self.brush_pos[brush_key]
 
                 elif event.type == pygame.MOUSEBUTTONUP or event.type == pygame.FINGERUP:
+                    self.button_down = False
+
                     # Handle brush stoke end
                     self.last_draw_time = time.time()
+
+                    if self.state.render["quick_mode"]:
+                        self.instant_render = True
 
                     if event.type == pygame.FINGERUP:
                         event.button = 1
                         event.pos = self.finger_pos(event.x, event.y)
+
+                    if self.eraser_zone_down:
+                        self.need_redraw = True
 
                     if not self.image_click:
                         self.need_redraw = True
@@ -967,7 +985,13 @@ class PygameView:
                     if event.type == pygame.FINGERMOTION:
                         event.pos = self.finger_pos(event.x, event.y)
 
-                    if not self.image_click:
+                    if self.eraser_zone_down:
+                        self.need_redraw = True
+                        if self.button_down:
+                            self.eraser_zone_pos.append((max(self.state.render["width"], event.pos[0]), event.pos[1]))
+                            if len(self.eraser_zone_pos) > 1:
+                                pygame.draw.polygon(self.canvas, self.brush_colors['z'], self.eraser_zone_pos[-2:], self.brush_size['z'])
+                    elif not self.image_click:
                         self.need_redraw = True
                         for button, pos in self.brush_pos.items():
                             if pos is not None and button in self.brush_colors:
@@ -1173,6 +1197,9 @@ class PygameView:
                     elif event.key == pygame.K_e:
                         self.eraser_down = True
 
+                    elif event.key == pygame.K_z:
+                        self.eraser_zone_down = True
+
                     elif event.key == pygame.K_t:
                         if self.shift_down:
                             if self.render_wait == 2.0:
@@ -1267,6 +1294,16 @@ class PygameView:
                     if event.key == pygame.K_e:
                         self.eraser_down = False
                         self.brush_pos['e'] = None
+
+                    if event.key == pygame.K_z:
+                        self.eraser_zone_down = False
+                        self.rendering = True
+                        self.need_redraw = True
+                        self.brush_pos['e'] = None
+                        if len(self.eraser_zone_pos) > 2:
+                            pygame.draw.polygon(self.canvas, self.brush_colors['e'], self.eraser_zone_pos, self.brush_size['z'])
+                            pygame.draw.polygon(self.canvas, self.brush_colors['e'], self.eraser_zone_pos)
+                        self.eraser_zone_pos = []
 
                     elif event.key in (pygame.K_LSHIFT, pygame.K_RSHIFT):
                         if self.rendering_key:

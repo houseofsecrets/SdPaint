@@ -6,10 +6,11 @@ the canvas when the image is generated.
 ## Controls
 
 | Key / Mouse button            | Control                                            |
-| ----------------------------- |----------------------------------------------------|
+|-------------------------------|----------------------------------------------------|
 | Left button                   | Draw with the current brush size                   |
 | Middle button                 | Draw with a white color brush                      |
 | `e` + Left button             | Eraser brush (bigger)                              |
+| `z` + Left button             | Draw zone to be erased                             |
 | Scroll up / down              | Increase / decrease brush size                     |
 | `1` to `9`                    | Set brush size                                     |
 | `backspace`                   | Erase the entire sketch                            |
