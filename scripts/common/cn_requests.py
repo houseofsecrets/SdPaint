@@ -19,6 +19,19 @@ class Api:
         retries = Retry(total=retries)
         self.session.mount('http://', HTTPAdapter(max_retries=retries))
 
+    @staticmethod
+    def patch_api_1_9_x(kwargs):
+        """ Split the old `sampler_name` into `sampler_name` and `scheduler`. Cf. https://github.com/AUTOMATIC1111/stable-diffusion-webui/issues/15603
+        :return: The updated args
+        """
+        json_data = kwargs.get('json', {})
+        if json_data.get('sampler_name', None) is not None and json_data.get('sampler', None) is None:
+            sampler_name: str = json_data['sampler_name']
+            json_data['sampler_name'], json_data['scheduler'] = sampler_name[:sampler_name.rindex(' ')], sampler_name[sampler_name.rindex(' ')+1:]
+            kwargs['json'] = json_data
+
+        return kwargs
+
     def request(self, endpoint, *args, method="get", **kwargs):
         """
             Makes a request with retries and ConnectionError handling
@@ -32,7 +45,11 @@ class Api:
         else:
             fetch = self.session.get
         try:
-            return fetch(url, *args, **kwargs)
+            response = fetch(url, *args, **self.patch_api_1_9_x(kwargs))
+            if response.status_code == 404:
+                response = fetch(url, *args, **kwargs)
+
+            return response
         except requests.exceptions.ConnectionError:
             response = Response()
             response.status_code = 503
@@ -172,6 +189,9 @@ class Api:
             state['main_json_data']['override_settings']['CLIP_stop_at_last_layers'] = state['main_json_data']['override_settings']['clip_skip']
             del (state['main_json_data']['override_settings']['clip_skip'])
             return self.post_request(state)
+        elif response.status_code == 404:
+            print(f"Error code returned: HTTP {response.status_code} when accessing endpoint {endpoint}")
+            return {"status_code": response.status_code}
         else:
             return {"status_code": response.status_code}
 
